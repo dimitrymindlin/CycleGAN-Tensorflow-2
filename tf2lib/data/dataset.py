@@ -39,8 +39,10 @@ def batch_dataset(dataset,
             dataset = dataset.filter(filter_fn)
 
     dataset = dataset.batch(batch_size, drop_remainder=drop_remainder)
-
-    dataset = dataset.repeat(repeat).prefetch(n_prefetch_batch)
+    if repeat:
+        dataset = dataset.repeat(repeat).prefetch(n_prefetch_batch)
+    else:
+        dataset.prefetch(n_prefetch_batch)
 
     return dataset
 
