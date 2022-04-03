@@ -1,5 +1,7 @@
 import functools
 
+# import attention_maps
+import attention_maps
 import imlib as im
 import numpy as np
 import pylib as py
@@ -8,21 +10,26 @@ import tensorflow.keras as keras
 import tf2lib as tl
 import tf2gan as gan
 import tqdm
+import numpy as np
+from matplotlib import pyplot as plt
+from matplotlib import cm
+from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
+from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
+from tf_keras_vis.utils.scores import CategoricalScore
 
 import data
 import module
-
 
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
 
-py.arg('--dataset', default='horse2zebra')
+py.arg('--dataset', default='apple2orange')
 py.arg('--datasets_dir', default='datasets')
-py.arg('--load_size', type=int, default=286)  # load image to this size
-py.arg('--crop_size', type=int, default=256)  # then crop to this size
+py.arg('--load_size', type=int, default=520)  # load image to this size
+py.arg('--crop_size', type=int, default=512)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
-py.arg('--epochs', type=int, default=200)
+py.arg('--epochs', type=int, default=20)
 py.arg('--epoch_decay', type=int, default=100)  # epoch to start decaying learning rate
 py.arg('--lr', type=float, default=0.0002)
 py.arg('--beta_1', type=float, default=0.5)
@@ -30,6 +37,7 @@ py.arg('--adversarial_loss_mode', default='lsgan', choices=['gan', 'hinge_v1', '
 py.arg('--gradient_penalty_mode', default='none', choices=['none', 'dragan', 'wgan-gp'])
 py.arg('--gradient_penalty_weight', type=float, default=10.0)
 py.arg('--cycle_loss_weight', type=float, default=10.0)
+py.arg('--counterfactual_loss_weight', type=float, default=5.0)
 py.arg('--identity_loss_weight', type=float, default=0.0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 args = py.args()
@@ -41,22 +49,22 @@ py.mkdir(output_dir)
 # save settings
 py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 
-
 # ==============================================================================
 # =                                    data                                    =
 # ==============================================================================
 
 A_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainA'), '*.jpg')
 B_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainB'), '*.jpg')
-A_B_dataset, len_dataset = data.make_zip_dataset(A_img_paths, B_img_paths, args.batch_size, args.load_size, args.crop_size, training=True, repeat=False)
+A_B_dataset, len_dataset = data.make_zip_dataset(A_img_paths, B_img_paths, args.batch_size, args.load_size,
+                                                 args.crop_size, training=True, repeat=False)
 
 A2B_pool = data.ItemPool(args.pool_size)
 B2A_pool = data.ItemPool(args.pool_size)
 
 A_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testA'), '*.jpg')
 B_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testB'), '*.jpg')
-A_B_dataset_test, _ = data.make_zip_dataset(A_img_paths_test, B_img_paths_test, args.batch_size, args.load_size, args.crop_size, training=False, repeat=True)
-
+A_B_dataset_test, _ = data.make_zip_dataset(A_img_paths_test, B_img_paths_test, args.batch_size, args.load_size,
+                                            args.crop_size, training=False, repeat=True)
 
 # ==============================================================================
 # =                                   models                                   =
@@ -71,6 +79,8 @@ D_B = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
 d_loss_fn, g_loss_fn = gan.get_adversarial_losses_fn(args.adversarial_loss_mode)
 cycle_loss_fn = tf.losses.MeanAbsoluteError()
 identity_loss_fn = tf.losses.MeanAbsoluteError()
+
+clf = tf.keras.models.load_model(f"checkpoints/inception_apple_orange/model", compile=False)
 
 G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
 D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
@@ -102,7 +112,12 @@ def train_G(A, B):
         A2A_id_loss = identity_loss_fn(A, A2A)
         B2B_id_loss = identity_loss_fn(B, B2B)
 
-        G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
+        A2B_counterfactual_loss = clf(A2B)
+        B2A_counterfactual_loss = clf(B2A)
+
+        G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
+                 + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
+                 (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight
 
     G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
     G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
@@ -112,7 +127,9 @@ def train_G(A, B):
                       'A2B2A_cycle_loss': A2B2A_cycle_loss,
                       'B2A2B_cycle_loss': B2A2B_cycle_loss,
                       'A2A_id_loss': A2A_id_loss,
-                      'B2B_id_loss': B2B_id_loss}
+                      'B2B_id_loss': B2B_id_loss,
+                      'A2B_counterfactual_loss': A2B_counterfactual_loss,
+                      'B2A_counterfactual_loss': B2A_counterfactual_loss}
 
 
 @tf.function
@@ -155,9 +172,9 @@ def train_step(A, B):
 def sample(A, B):
     A2B = G_A2B(A, training=False)
     B2A = G_B2A(B, training=False)
-    A2B2A = G_B2A(A2B, training=False)
-    B2A2B = G_A2B(B2A, training=False)
-    return A2B, B2A, A2B2A, B2A2B
+    #A2B2A = G_B2A(A2B, training=False)
+    #B2A2B = G_A2B(B2A, training=False)
+    return A2B, B2A
 
 
 # ==============================================================================
@@ -190,6 +207,9 @@ test_iter = iter(A_B_dataset_test)
 sample_dir = py.join(output_dir, 'samples_training')
 py.mkdir(sample_dir)
 
+# Create GradCAM++ object
+gradcam = GradcamPlusPlus(clf, model_modifier=ReplaceToLinear(),clone=True)
+
 # main loop
 with train_summary_writer.as_default():
     for ep in tqdm.trange(args.epochs, desc='Epoch Loop'):
@@ -201,18 +221,27 @@ with train_summary_writer.as_default():
 
         # train for an epoch
         for A, B in tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset):
+            A, _ = attention_maps.get_attention_image(A, gradcam)
+            B, _ = attention_maps.get_attention_image(B, gradcam)
+
             G_loss_dict, D_loss_dict = train_step(A, B)
 
             # # summary
             tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
             tl.summary(D_loss_dict, step=G_optimizer.iterations, name='D_losses')
-            tl.summary({'learning rate': G_lr_scheduler.current_learning_rate}, step=G_optimizer.iterations, name='learning rate')
+            tl.summary({'learning rate': G_lr_scheduler.current_learning_rate}, step=G_optimizer.iterations,
+                       name='learning rate')
 
             # sample
             if G_optimizer.iterations.numpy() % 100 == 0:
                 A, B = next(test_iter)
-                A2B, B2A, A2B2A, B2A2B = sample(A, B)
-                img = im.immerge(np.concatenate([A, A2B, A2B2A, B, B2A, B2A2B], axis=0), n_rows=2)
+
+                # Attention for images
+                A_attention, A_heatmap = attention_maps.get_attention_image(A, gradcam)
+                B_attention, B_heatmap = attention_maps.get_attention_image(B, gradcam)
+
+                A2B, B2A, = sample(A_attention, B_attention)
+                img = im.immerge(np.concatenate([A, A2B, A_heatmap, A_attention, B, B2A, B_heatmap, B_attention], axis=0), n_rows=2)
                 im.imwrite(img, py.join(sample_dir, 'iter-%09d.jpg' % G_optimizer.iterations.numpy()))
 
         # save checkpoint
