@@ -232,17 +232,17 @@ with train_summary_writer.as_default():
                        name='learning rate')
 
             # sample
-            # if G_optimizer.iterations.numpy() % 100 == 0:
-            A, B = next(test_iter)
+            if G_optimizer.iterations.numpy() % 100 == 0:
+                A, B = next(test_iter)
 
-            # Attention for images
-            A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam)
-            B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam)
+                # Attention for images
+                A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam)
+                B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam)
 
-            A2B, B2A, = sample(A_attention, B_attention)
-            img = im.immerge(np.concatenate([A, A2B, A_heatmap, A_attention, B, B2A, B_heatmap, B_attention], axis=0),
-                             n_rows=2)
-            im.imwrite(img, py.join(sample_dir, 'iter-%09d.jpg' % G_optimizer.iterations.numpy()))
+                A2B, B2A, = sample(A_attention, B_attention)
+                img = im.immerge(np.concatenate([A, A2B, A_heatmap, A_attention, B, B2A, B_heatmap, B_attention], axis=0),
+                                 n_rows=2)
+                im.imwrite(img, py.join(sample_dir, 'iter-%09d.jpg' % G_optimizer.iterations.numpy()))
 
         # save checkpoint
         checkpoint.save(ep)
