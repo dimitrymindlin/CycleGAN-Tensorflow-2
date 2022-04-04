@@ -39,7 +39,7 @@ py.arg('--attention', type=str, default="gradcam")
 args = py.args()
 
 # output_dir
-output_dir = py.join(f'output_{py.attention}', args.dataset)
+output_dir = py.join(f'output_{args.attention}', args.dataset)
 py.mkdir(output_dir)
 
 # save settings
