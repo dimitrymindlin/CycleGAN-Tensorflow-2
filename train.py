@@ -16,6 +16,7 @@ from matplotlib import cm
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
 from tf_keras_vis.utils.scores import CategoricalScore
+from tf_keras_vis.gradcam import Gradcam
 
 import data
 import module
@@ -40,6 +41,7 @@ py.arg('--cycle_loss_weight', type=float, default=1)
 py.arg('--counterfactual_loss_weight', type=float, default=1)
 py.arg('--identity_loss_weight', type=float, default=0.0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
+py.arg('--attention', type=str, default="gradcam")
 args = py.args()
 
 # output_dir
@@ -204,11 +206,14 @@ train_summary_writer = tf.summary.create_file_writer(py.join(output_dir, 'summar
 
 # sample
 test_iter = iter(A_B_dataset_test)
-sample_dir = py.join(output_dir, 'samples_training')
+sample_dir = py.join(output_dir, 'samples_training_mul')
 py.mkdir(sample_dir)
 
 # Create GradCAM++ object
-gradcam = GradcamPlusPlus(clf, model_modifier=ReplaceToLinear(),clone=True)
+if args.attention == "gradcam":
+    gradcam = Gradcam(clf, model_modifier=ReplaceToLinear(),clone=True)
+else:
+    gradcam = GradcamPlusPlus(clf, model_modifier=ReplaceToLinear(),clone=True)
 
 # main loop
 with train_summary_writer.as_default():
@@ -221,8 +226,8 @@ with train_summary_writer.as_default():
 
         # train for an epoch
         for A, B in tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset):
-            A, _ = attention_maps.get_attention_image(A, gradcam)
-            B, _ = attention_maps.get_attention_image(B, gradcam)
+            A, _ = attention_maps.get_gradcam(A, gradcam, clf, 0)
+            B, _ = attention_maps.get_gradcam(B, gradcam, clf, 1)
 
             G_loss_dict, D_loss_dict = train_step(A, B)
 
@@ -233,16 +238,16 @@ with train_summary_writer.as_default():
                        name='learning rate')
 
             # sample
-            if G_optimizer.iterations.numpy() % 100 == 0:
-                A, B = next(test_iter)
+            #if G_optimizer.iterations.numpy() % 100 == 0:
+            A, B = next(test_iter)
 
-                # Attention for images
-                A_attention, A_heatmap = attention_maps.get_attention_image(A, gradcam)
-                B_attention, B_heatmap = attention_maps.get_attention_image(B, gradcam)
+            # Attention for images
+            A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam)
+            B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam)
 
-                A2B, B2A, = sample(A_attention, B_attention)
-                img = im.immerge(np.concatenate([A, A2B, A_heatmap, A_attention, B, B2A, B_heatmap, B_attention], axis=0), n_rows=2)
-                im.imwrite(img, py.join(sample_dir, 'iter-%09d.jpg' % G_optimizer.iterations.numpy()))
+            A2B, B2A, = sample(A_attention, B_attention)
+            img = im.immerge(np.concatenate([A, A2B, A_heatmap, A_attention, B, B2A, B_heatmap, B_attention], axis=0), n_rows=2)
+            im.imwrite(img, py.join(sample_dir, 'iter-%09d.jpg' % G_optimizer.iterations.numpy()))
 
         # save checkpoint
         checkpoint.save(ep)
