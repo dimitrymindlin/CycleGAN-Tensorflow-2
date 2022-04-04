@@ -7,7 +7,7 @@ import data
 from classifiers.apple_orange_model import AppleOrangeModel
 
 TF_LOG_DIR = "logs/apple_orange_clf"
-checkpoint_path_name = "checkpoints/inception_apple_orange/cp.ckpt"
+checkpoint_path_name = "checkpoints/inception_apple_orange/"
 
 py.arg('--dataset', default='apple2orange')
 py.arg('--datasets_dir', default='datasets')
@@ -61,7 +61,7 @@ my_callbacks = [
                                     monitor='val_accuracy',
                                     verbose=0,
                                     save_best_only=True,
-                                    save_weights_only=True,
+                                    save_weights_only=False,
                                     mode='auto',
                                     save_freq='epoch'),
     keras.callbacks.ReduceLROnPlateau(monitor='val_accuracy',
@@ -103,9 +103,14 @@ history = model.fit(A_B_dataset,
                     callbacks=my_callbacks)
 
 print("Train History")
-print(history)
 result = model.evaluate(A_B_dataset_test)
 result = dict(zip(model.metrics_names, result))
 result_matrix = [[k, str(w)] for k, w in result.items()]
 for metric, value in zip(model.metrics_names, result):
     print(metric, ": ", value)
+
+print("Result Matrix")
+print(result_matrix)
+print("Result")
+print(result)
+model.save(checkpoint_path_name + 'model')
