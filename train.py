@@ -236,8 +236,8 @@ with train_summary_writer.as_default():
                 A, B = next(test_iter)
 
                 # Attention for images
-                A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam)
-                B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam)
+                A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, clf, 0)
+                B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, clf, 1)
 
                 A2B, B2A, = sample(A_attention, B_attention)
                 img = im.immerge(np.concatenate([A, A2B, A_heatmap, A_attention, B, B2A, B_heatmap, B_attention], axis=0),
