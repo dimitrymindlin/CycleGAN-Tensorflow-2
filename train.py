@@ -1,9 +1,6 @@
 import functools
-
-# import attention_maps
 import attention_maps
 import imlib as im
-import numpy as np
 import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
@@ -11,11 +8,8 @@ import tf2lib as tl
 import tf2gan as gan
 import tqdm
 import numpy as np
-from matplotlib import pyplot as plt
-from matplotlib import cm
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
-from tf_keras_vis.utils.scores import CategoricalScore
 from tf_keras_vis.gradcam import Gradcam
 
 import data
@@ -45,7 +39,7 @@ py.arg('--attention', type=str, default="gradcam")
 args = py.args()
 
 # output_dir
-output_dir = py.join('output', args.dataset)
+output_dir = py.join(f'output_{py.attention}', args.dataset)
 py.mkdir(output_dir)
 
 # save settings
@@ -174,8 +168,8 @@ def train_step(A, B):
 def sample(A, B):
     A2B = G_A2B(A, training=False)
     B2A = G_B2A(B, training=False)
-    #A2B2A = G_B2A(A2B, training=False)
-    #B2A2B = G_A2B(B2A, training=False)
+    # A2B2A = G_B2A(A2B, training=False)
+    # B2A2B = G_A2B(B2A, training=False)
     return A2B, B2A
 
 
@@ -211,9 +205,9 @@ py.mkdir(sample_dir)
 
 # Create GradCAM++ object
 if args.attention == "gradcam":
-    gradcam = Gradcam(clf, model_modifier=ReplaceToLinear(),clone=True)
+    gradcam = Gradcam(clf, model_modifier=ReplaceToLinear(), clone=True)
 else:
-    gradcam = GradcamPlusPlus(clf, model_modifier=ReplaceToLinear(),clone=True)
+    gradcam = GradcamPlusPlus(clf, model_modifier=ReplaceToLinear(), clone=True)
 
 # main loop
 with train_summary_writer.as_default():
@@ -238,7 +232,7 @@ with train_summary_writer.as_default():
                        name='learning rate')
 
             # sample
-            #if G_optimizer.iterations.numpy() % 100 == 0:
+            # if G_optimizer.iterations.numpy() % 100 == 0:
             A, B = next(test_iter)
 
             # Attention for images
@@ -246,7 +240,8 @@ with train_summary_writer.as_default():
             B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam)
 
             A2B, B2A, = sample(A_attention, B_attention)
-            img = im.immerge(np.concatenate([A, A2B, A_heatmap, A_attention, B, B2A, B_heatmap, B_attention], axis=0), n_rows=2)
+            img = im.immerge(np.concatenate([A, A2B, A_heatmap, A_attention, B, B2A, B_heatmap, B_attention], axis=0),
+                             n_rows=2)
             im.imwrite(img, py.join(sample_dir, 'iter-%09d.jpg' % G_optimizer.iterations.numpy()))
 
         # save checkpoint
