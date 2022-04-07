@@ -28,6 +28,7 @@ def save_images(imgs, clf, ep_cnt, batch_count):
     titles = ['Original', 'Attention', 'Input Image', 'Translated']
     classification = [['Normal', 'Abnormal'][int(np.argmax(clf.predict(x)))] for x in imgs]
     gen_imgs = np.concatenate(imgs)
+    gen_imgs = 0.5 * gen_imgs + 0.5
     correct_classification = ['Normal', 'Normal', 'Normal', 'Abnormal',
                               'Abnormal', 'Abnormal', 'Abnormal', 'Normal']
     fig, axs = plt.subplots(r, c, figsize=(30, 20))
@@ -52,7 +53,7 @@ def save_images(imgs, clf, ep_cnt, batch_count):
 # =                                   param                                    =
 # ==============================================================================
 
-py.arg('--dataset', default='mura')
+py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=520)  # load image to this size
 py.arg('--crop_size', type=int, default=512)  # then crop to this size
@@ -68,7 +69,7 @@ py.arg('--cycle_loss_weight', type=float, default=1)
 py.arg('--counterfactual_loss_weight', type=float, default=1)
 py.arg('--identity_loss_weight', type=float, default=0.0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
-py.arg('--attention', type=str, default="gradcam")
+py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
 py.arg('--attention_type', type=str, default="attention-gan", choices=['attention-gan', 'spa-gan'])
 args = py.args()
 
@@ -235,7 +236,7 @@ def train_step(A, B, A_attention_image=None, B_attention_image=None):
 
 
 @tf.function
-def sample(A, B, A_attention_image, B_attention_image):
+def sample(A, B, A_attention_image=None, B_attention_image=None):
     if args.attention_type == "attention-gan":
         # Transform important areas
         A2B_foreground = G_A2B(A_attention_image.foreground, training=True)
@@ -314,25 +315,29 @@ with train_summary_writer.as_default():
                 B, _ = attention_maps.get_gradcam(B, gradcam, 1, attention_type=args.attention_type)
                 G_loss_dict, D_loss_dict = train_step(A, B)
 
-            # sample
-            # if G_optimizer.iterations.numpy() % 100 == 0:
-            A, B = next(test_iter)
-            if args.attention_type == "attention-gan":
-                # Attention-GAN splits fore and background and puts them together after transformation
-                A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0, attention_type=args.attention_type)
-                B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1, attention_type=args.attention_type)
-                A_attention_image = AttentionImage(A, A_heatmap)
-                B_attention_image = AttentionImage(B, B_heatmap)
-                A2B, B2A, = sample(A, B, A_attention_image, B_attention_image)
-            else:
-                # Attention for images
-                A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0, attention_type=args.attention_type)
-                B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1, attention_type=args.attention_type)
-                A2B, B2A, = sample(A_attention, B_attention)
+                # sample
+                if G_optimizer.iterations.numpy() % 100 == 0:
+                    A, B = next(test_iter)
+                    if args.attention_type == "attention-gan":
+                        # Attention-GAN splits fore and background and puts them together after transformation
+                        A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
+                                                                            attention_type=args.attention_type)
+                        B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
+                                                                            attention_type=args.attention_type)
+                        A_attention_image = AttentionImage(A, A_heatmap)
+                        B_attention_image = AttentionImage(B, B_heatmap)
+                        A2B, B2A, = sample(A, B, A_attention_image, B_attention_image)
+                    else:
+                        # Attention for images
+                        A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
+                                                                            attention_type=args.attention_type)
+                        B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
+                                                                            attention_type=args.attention_type)
+                        A2B, B2A, = sample(A_attention, B_attention)
 
-            imgs = [A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A]
-            save_images(imgs, clf, ep_cnt, batch_count)
-            batch_count += 1
+                    imgs = [A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A]
+                    save_images(imgs, clf, ep_cnt, batch_count)
+                    batch_count += 1
 
         # # summary
         tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
