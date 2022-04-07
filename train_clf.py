@@ -4,12 +4,13 @@ import tensorflow as tf
 import tensorflow.keras as keras
 
 import data
-from classifiers.apple_orange_model import AppleOrangeModel
+from classifiers.domain_to_domain_model import Domain2DomainModel
 
-TF_LOG_DIR = "logs/apple_orange_clf"
-checkpoint_path_name = "checkpoints/inception_apple_orange/"
+dataset = "horse2zebra"
+TF_LOG_DIR = f"logs/{dataset}_clf"
+checkpoint_path_name = f"checkpoints/inception_{dataset}/"
 
-py.arg('--dataset', default='apple2orange')
+py.arg('--dataset', default=dataset)
 py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=520)  # load image to this size
 py.arg('--crop_size', type=int, default=512)  # then crop to this size
@@ -53,7 +54,7 @@ A_B_dataset_test, _ = data.make_concat_dataset(A_img_paths_test, B_img_paths_tes
 
 # ==============================================================================
 
-model = AppleOrangeModel(img_shape=(args.crop_size, args.crop_size, 3)).model()
+model = Domain2DomainModel(img_shape=(args.crop_size, args.crop_size, 3)).model()
 
 my_callbacks = [
     keras.callbacks.ModelCheckpoint(filepath=checkpoint_path_name,

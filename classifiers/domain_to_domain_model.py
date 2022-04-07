@@ -2,10 +2,10 @@ import tensorflow as tf
 from keras import regularizers
 
 
-class AppleOrangeModel(tf.keras.Model):
+class Domain2DomainModel(tf.keras.Model):
 
     def __init__(self, weights='imagenet', img_shape=(512, 512, 3)):
-        super(AppleOrangeModel, self).__init__(name='AppleOrangeModel')
+        super(Domain2DomainModel, self).__init__(name='Domain2DomainModel')
         self.weight_regularisation = regularizers.l2(0.002)
         self._input_shape = img_shape
         self.img_input = tf.keras.Input(shape=self._input_shape)
