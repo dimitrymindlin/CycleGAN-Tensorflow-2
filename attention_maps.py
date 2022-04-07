@@ -3,28 +3,24 @@ import numpy as np
 from matplotlib import pyplot as plt
 from tf_keras_vis.utils.scores import CategoricalScore
 
+from imlib import scale_to_zero_one, scale_to_minus_one_one
 
 
-def get_gradcam(img, gradcam_plus, clf=None, class_index=None):
-    # Generate cam with GradCAM++ for A
-
-    cam = gradcam_plus(CategoricalScore(class_index), img)  # [0,1]
-    cam += 0.5  # ensure all values are some threshold
-    cam /= np.max(cam)
+def get_gradcam(img, gradcam, class_index, attention_type):
+    # Generate cam map
+    cam = gradcam(CategoricalScore(class_index), img)  # returns img in [0,1]
+    cam /= np.max(cam)  # normalise
+    # Turn to [1,512,512,3]
     cam = tf.expand_dims(cam, axis=-1)
-    cam = tf.image.grayscale_to_rgb(tf.convert_to_tensor(cam))  # [1,512,512,3] like img
+    cam = tf.image.grayscale_to_rgb(tf.convert_to_tensor(cam))
+    # Convert img to same pixel values [0, 1]
+    img = scale_to_zero_one(img)
 
-    # Rescale img to 0,1
-    img = 0.5 * img + 0.5  # [0, 1]
+    if attention_type == "spa-gan":
+        # For Spagan, enhance important parts but don't delete unimportant ones
+        cam += 0.5
 
-    # Interpolate by addition and normalise back to 0,1
-    img = tf.math.multiply(img, cam)
+    # Interpolate by multiplication and normalise
+    img = cam * img
     img /= np.max(img)
-
-    """plt.imshow(np.squeeze(cam))
-    plt.show()
-    plt.imshow(np.squeeze(img))
-    plt.show()"""
-
-    return img * 2.0 - 1, cam * 2.0 - 1  # [-1,1]
-
+    return scale_to_minus_one_one(img), scale_to_minus_one_one(cam)  # [-1,1]
