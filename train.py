@@ -53,7 +53,7 @@ def save_images(imgs, clf, ep_cnt, batch_count):
 # =                                   param                                    =
 # ==============================================================================
 
-py.arg('--dataset', default='horse2zebra')
+py.arg('--dataset', default='apple2orange')
 py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=520)  # load image to this size
 py.arg('--crop_size', type=int, default=512)  # then crop to this size
