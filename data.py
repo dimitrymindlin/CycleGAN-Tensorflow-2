@@ -10,10 +10,10 @@ def make_dataset(img_paths, batch_size, load_size, crop_size, training, drop_rem
     if training:
         @tf.function
         def _map_fn(img, label=None):  # preprocessing
-            img = tfa.image.equalize(img)
+            # img = tfa.image.equalize(img)
             # img = tf.image.random_flip_left_right(img)
-            img = tf.image.resize(img, [load_size, load_size])
-            img = tf.image.random_crop(img, [crop_size, crop_size, tf.shape(img)[-1]])
+            img = tf.image.resize_with_pad(img, crop_size, crop_size)
+            # img = tf.image.random_crop(img, [crop_size, crop_size, tf.shape(img)[-1]])
             if not special_normalisation:
                 img = img / 255.0 * 2 - 1
             else:
@@ -24,8 +24,8 @@ def make_dataset(img_paths, batch_size, load_size, crop_size, training, drop_rem
     else:
         @tf.function
         def _map_fn(img, label=None):  # preprocessing
-            img = tfa.image.equalize(img)
-            img = tf.image.resize(img, [crop_size, crop_size])
+            # img = tfa.image.equalize(img)
+            img = tf.image.resize_with_pad(img, crop_size, crop_size)
             if not special_normalisation:
                 img = img / 255.0 * 2 - 1
             else:
@@ -115,13 +115,13 @@ def get_mura_data_paths():
 
     def filenames(part, train=True):
         root = '../tensorflow_datasets/downloads/cjinny_mura-v11/'
-        #root = '/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/'
+        root = '/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/'
         if train:
             csv_path = "../tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/train_image_paths.csv"
-            #csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/train_image_paths.csv"
+            csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/train_image_paths.csv"
         else:
             csv_path = "../tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/valid_image_paths.csv"
-            #csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/valid_image_paths.csv"
+            csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/valid_image_paths.csv"
 
         with open(csv_path, 'rb') as F:
             d = F.readlines()
