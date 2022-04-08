@@ -70,7 +70,7 @@ py.arg('--counterfactual_loss_weight', type=float, default=1)
 py.arg('--identity_loss_weight', type=float, default=0.0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
-py.arg('--attention_type', type=str, default="attention-gan", choices=['attention-gan', 'spa-gan'])
+py.arg('--attention_type', type=str, default="spa-gan", choices=['attention-gan', 'spa-gan'])
 args = py.args()
 
 execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
