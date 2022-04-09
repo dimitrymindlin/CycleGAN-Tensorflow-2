@@ -33,8 +33,8 @@ def save_images(imgs, clf, ep_cnt, batch_count):
         correct_classification = ['Normal', 'Normal', 'Normal', 'Abnormal',
                                   'Abnormal', 'Abnormal', 'Abnormal', 'Normal']
     else:
-        correct_classification = ['Apple', 'Apple', 'Apple', 'Orange',
-                                  'Orange', 'Apple', 'Apple', 'Apple']
+        correct_classification = ['A', 'A', 'A', 'B',
+                                  'B', 'A', 'A', 'A']
     fig, axs = plt.subplots(r, c, figsize=(30, 20))
     cnt = 0
     for i in range(r):
@@ -60,7 +60,7 @@ def save_images(imgs, clf, ep_cnt, batch_count):
 # =                                   param                                    =
 # ==============================================================================
 
-py.arg('--dataset', default='apple2orange')
+py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=520)  # load image to this size
 py.arg('--crop_size', type=int, default=512)  # then crop to this size
@@ -71,20 +71,25 @@ py.arg('--lr', type=float, default=0.0002)
 py.arg('--beta_1', type=float, default=0.5)
 py.arg('--adversarial_loss_mode', default='lsgan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
 py.arg('--gradient_penalty_mode', default='none', choices=['none', 'dragan', 'wgan-gp'])
-py.arg('--gradient_penalty_weight', type=float, default=10.0)
+py.arg('--gradient_penalty_weight', type=float, default=1)
 py.arg('--cycle_loss_weight', type=float, default=1)
 py.arg('--counterfactual_loss_weight', type=float, default=1)
 py.arg('--identity_loss_weight', type=float, default=0.0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
+"""pool_size: the discriminator is trained against the current batch of generated images as well as images generated on 
+previous iterations. Essentially, we remember the last pool_size generated images then randomly sample from this pool 
+to create a batch_size batch of images to do one iteration of backprop on. This helps to stabilize training, kind of 
+like experience replay."""
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
 py.arg('--attention_type', type=str, default="spa-gan", choices=['attention-gan', 'spa-gan'])
+py.arg('--attention_intensity', type=float, default=0.5)
 args = py.args()
 
 execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
-
 # output_dir
 output_dir = py.join(f'output_{args.dataset}/{execution_id}')
 py.mkdir(output_dir)
+TF_LOG_DIR = f"logs/{args.dataset}/"
 
 # save settings
 py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
@@ -131,7 +136,7 @@ counterfactual_loss_nf = tf.losses.MeanSquaredError()
 if args.dataset == "mura":
     clf = tf.keras.models.load_model(f"checkpoints/2022-03-24--12.42/model", compile=False)
 else:
-    clf = tf.keras.models.load_model(f"checkpoints/inception_apple_orange/model", compile=False)
+    clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}/model", compile=False)
 
 G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
 D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
@@ -282,7 +287,7 @@ except Exception as e:
     print(e)
 
 # summary
-train_summary_writer = tf.summary.create_file_writer(py.join(f'logs/' + execution_id))
+train_summary_writer = tf.summary.create_file_writer(py.join(TF_LOG_DIR + execution_id))
 
 # sample
 test_iter = iter(A_B_dataset_test)
@@ -311,53 +316,61 @@ with train_summary_writer.as_default():
             B_attention_image = None
             if args.attention_type == "attention-gan":
                 # Attention-GAN splits fore and background and puts them together after transformation
-                _, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0, attention_type=args.attention_type)
-                _, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1, attention_type=args.attention_type)
+                _, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0, attention_type=args.attention_type,
+                                                          attention_intensity=args.attention_intensity)
+                _, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1, attention_type=args.attention_type,
+                                                          attention_intensity=args.attention_intensity)
                 A_attention_image = AttentionImage(A, A_heatmap)
                 B_attention_image = AttentionImage(B, B_heatmap)
                 G_loss_dict, D_loss_dict = train_step(A, B, A_attention_image, B_attention_image)
             else:
                 # Spa-gan puts the attention on the input image -> changes input img
-                A, _ = attention_maps.get_gradcam(A, gradcam, 0, attention_type=args.attention_type)
-                B, _ = attention_maps.get_gradcam(B, gradcam, 1, attention_type=args.attention_type)
+                A, _ = attention_maps.get_gradcam(A, gradcam, 0, attention_type=args.attention_type,
+                                                  attention_intensity=args.attention_intensity)
+                B, _ = attention_maps.get_gradcam(B, gradcam, 1, attention_type=args.attention_type,
+                                                  attention_intensity=args.attention_intensity)
                 G_loss_dict, D_loss_dict = train_step(A, B)
 
                 # sample
-                #if G_optimizer.iterations.numpy() % 100 == 0:
-                A, B = next(test_iter)
-                if args.attention_type == "attention-gan":
-                    # Attention-GAN splits fore and background and puts them together after transformation
-                    A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
-                                                                        attention_type=args.attention_type)
-                    B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
-                                                                        attention_type=args.attention_type)
-                    A_attention_image = AttentionImage(A, A_heatmap)
-                    B_attention_image = AttentionImage(B, B_heatmap)
-                    A2B, B2A, = sample(A, B, A_attention_image, B_attention_image)
-                else:
-                    # Attention for images
-                    A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
-                                                                        attention_type=args.attention_type)
-                    B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
-                                                                        attention_type=args.attention_type)
-                    A2B, B2A, = sample(A_attention, B_attention)
+                if G_optimizer.iterations.numpy() % 100 == 0:
+                    A, B = next(test_iter)
+                    if args.attention_type == "attention-gan":
+                        # Attention-GAN splits fore and background and puts them together after transformation
+                        A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
+                                                                            attention_type=args.attention_type,
+                                                                            attention_intensity=args.attention_intensity)
+                        B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
+                                                                            attention_type=args.attention_type,
+                                                                            attention_intensity=args.attention_intensity)
+                        A_attention_image = AttentionImage(A, A_heatmap)
+                        B_attention_image = AttentionImage(B, B_heatmap)
+                        A2B, B2A, = sample(A, B, A_attention_image, B_attention_image)
+                    else:
+                        # Attention for images
+                        A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
+                                                                            attention_type=args.attention_type,
+                                                                            attention_intensity=args.attention_intensity)
+                        B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
+                                                                            attention_type=args.attention_type,
+                                                                            attention_intensity=args.attention_intensity)
+                        A2B, B2A, = sample(A_attention, B_attention)
 
-                if args.dataset == "mura":
-                    imgs = [A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A]
-                    save_images(imgs, clf, ep_cnt, batch_count)
-                else:
-                    img = im.immerge(np.concatenate([A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A], axis=0), n_rows=2)
-                    classification = [['A', 'B'][int(np.argmax(clf.predict(x)))] for x in [A, A2B, B, B2A]]
-                    AB_correct, BA_corrrect = False, False
-                    if classification[0] == 'A' and classification[1] == "B":
-                        AB_correct = True
-                    if classification[2] == 'B' and classification[3] == "A":
-                        BA_correct = True
-                    img_folder = f'output_{args.dataset}/{execution_id}/images'
-                    im.imwrite(img, f"{img_folder}/%d_%d_AB:{AB_correct}_BA:{BA_correct}.png" % (ep_cnt, batch_count))
-
-
-                batch_count += 1
+                    if args.dataset == "mura":
+                        imgs = [A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A]
+                        save_images(imgs, clf, ep_cnt, batch_count)
+                    else:
+                        img = im.immerge(
+                            np.concatenate([A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A], axis=0),
+                            n_rows=2)
+                        classification = [['A', 'B'][int(np.argmax(clf.predict(x)))] for x in [A, A2B, B, B2A]]
+                        AB_correct, BA_corrrect = False, False
+                        if classification[0] == 'A' and classification[1] == "B":
+                            AB_correct = True
+                        if classification[2] == 'B' and classification[3] == "A":
+                            BA_correct = True
+                        img_folder = f'output_{args.dataset}/{execution_id}/images'
+                        im.imwrite(img, f"{img_folder}/%d_%d_AB:{AB_correct}_BA:{BA_correct}.png" % (ep_cnt, batch_count))
+                    batch_count += 1
 
         # # summary
         tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
