@@ -2,10 +2,10 @@
 #SBATCH -p cpu
 #SBATCH -c2
 #SBATCH --time=1:00:00
-#SBATCH --output=/media/compute/homes/dmindlin/CycleGAN-Tensorflow-2/slurm_logs/tensorboard_horse2zebra_clf.out
+#SBATCH --output=/media/compute/homes/dmindlin/CycleGAN-Tensorflow-2/slurm_logs/tensorboard_apple2orange.out
 #SBATCH --mail-user=dmindlin@techfak.uni-bielefeld.de
 #SBATCH --mail-type=END
 #SBATCH --ntasks=1
 #SBATCH --ntasks-per-core=1
 
-srun tensorboard_horse2zebra_clf.job.sh
+srun tensorboard_apple2orange.job.sh
