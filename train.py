@@ -29,13 +29,20 @@ def save_images(imgs, clf, ep_cnt, batch_count):
     classification = [['Normal', 'Abnormal'][int(np.argmax(clf.predict(x)))] for x in imgs]
     gen_imgs = np.concatenate(imgs)
     gen_imgs = 0.5 * gen_imgs + 0.5
-    correct_classification = ['Normal', 'Normal', 'Normal', 'Abnormal',
-                              'Abnormal', 'Abnormal', 'Abnormal', 'Normal']
+    if args.dataset == "mura":
+        correct_classification = ['Normal', 'Normal', 'Normal', 'Abnormal',
+                                  'Abnormal', 'Abnormal', 'Abnormal', 'Normal']
+    else:
+        correct_classification = ['Apple', 'Apple', 'Apple', 'Orange',
+                                  'Orange', 'Apple', 'Apple', 'Apple']
     fig, axs = plt.subplots(r, c, figsize=(30, 20))
     cnt = 0
     for i in range(r):
         for j in range(c):
-            axs[i, j].imshow(gen_imgs[cnt][:, :, 0], cmap='gray')
+            if args.dataset == "mura":
+                axs[i, j].imshow(gen_imgs[cnt][:, :, 0], cmap='gray')
+            else:
+                axs[i, j].imshow(gen_imgs[cnt][:, :, 0])
             if j in [0, 3]:
                 axs[i, j].set_title(
                     f'{titles[j]} T: ({correct_classification[cnt]} | P: {classification[cnt]})')
@@ -316,28 +323,41 @@ with train_summary_writer.as_default():
                 G_loss_dict, D_loss_dict = train_step(A, B)
 
                 # sample
-                if G_optimizer.iterations.numpy() % 100 == 0:
-                    A, B = next(test_iter)
-                    if args.attention_type == "attention-gan":
-                        # Attention-GAN splits fore and background and puts them together after transformation
-                        A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
-                                                                            attention_type=args.attention_type)
-                        B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
-                                                                            attention_type=args.attention_type)
-                        A_attention_image = AttentionImage(A, A_heatmap)
-                        B_attention_image = AttentionImage(B, B_heatmap)
-                        A2B, B2A, = sample(A, B, A_attention_image, B_attention_image)
-                    else:
-                        # Attention for images
-                        A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
-                                                                            attention_type=args.attention_type)
-                        B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
-                                                                            attention_type=args.attention_type)
-                        A2B, B2A, = sample(A_attention, B_attention)
+                #if G_optimizer.iterations.numpy() % 100 == 0:
+                A, B = next(test_iter)
+                if args.attention_type == "attention-gan":
+                    # Attention-GAN splits fore and background and puts them together after transformation
+                    A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
+                                                                        attention_type=args.attention_type)
+                    B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
+                                                                        attention_type=args.attention_type)
+                    A_attention_image = AttentionImage(A, A_heatmap)
+                    B_attention_image = AttentionImage(B, B_heatmap)
+                    A2B, B2A, = sample(A, B, A_attention_image, B_attention_image)
+                else:
+                    # Attention for images
+                    A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
+                                                                        attention_type=args.attention_type)
+                    B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
+                                                                        attention_type=args.attention_type)
+                    A2B, B2A, = sample(A_attention, B_attention)
 
+                if args.dataset == "mura":
                     imgs = [A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A]
                     save_images(imgs, clf, ep_cnt, batch_count)
-                    batch_count += 1
+                else:
+                    img = im.immerge(np.concatenate([A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A], axis=0), n_rows=2)
+                    classification = [['A', 'B'][int(np.argmax(clf.predict(x)))] for x in [A, A2B, B, B2A]]
+                    AB_correct, BA_corrrect = False, False
+                    if classification[0] == 'A' and classification[1] == "B":
+                        AB_correct = True
+                    if classification[2] == 'B' and classification[3] == "A":
+                        BA_correct = True
+                    img_folder = f'output_{args.dataset}/{execution_id}/images'
+                    im.imwrite(img, f"{img_folder}/%d_%d_AB:{AB_correct}_BA:{BA_correct}.png" % (ep_cnt, batch_count))
+
+
+                batch_count += 1
 
         # # summary
         tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
