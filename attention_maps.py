@@ -19,6 +19,7 @@ def get_gradcam(img, gradcam, class_index, attention_type):
     if attention_type == "spa-gan":
         # For Spagan, enhance important parts but don't delete unimportant ones
         cam += 0.5
+        cam /= np.max(cam)
 
     # Interpolate by multiplication and normalise
     img = cam * img
