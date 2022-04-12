@@ -8,7 +8,9 @@ from imlib import scale_to_zero_one, scale_to_minus_one_one
 
 def get_gradcam(img, gradcam, class_index, attention_type, attention_intensity=0.5):
     # Generate cam map
-    cam = gradcam(CategoricalScore(class_index), img)  # returns img in [0,1]
+    cam = gradcam(CategoricalScore(class_index), img) # returns img in [0,1]
+    if np.max(cam) == 0:
+        cam += 0.001
     cam /= np.max(cam)  # normalise
     # Turn to [1,512,512,3]
     cam = tf.expand_dims(cam, axis=-1)
