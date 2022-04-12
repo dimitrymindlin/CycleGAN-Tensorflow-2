@@ -84,7 +84,7 @@ like experience replay."""
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
 py.arg('--attention_type', type=str, default="spa-gan", choices=['attention-gan', 'spa-gan'])
 py.arg('--attention_intensity', type=float, default=0.5)
-py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
+py.arg('--generator', type=str, default="unet", choices=['resnet', 'unet'])
 args = py.args()
 
 execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
@@ -376,7 +376,7 @@ with train_summary_writer.as_default():
                         np.concatenate([A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A], axis=0),
                         n_rows=2)
                     classification = [['A', 'B'][int(np.argmax(clf.predict(x)))] for x in [A, A2B, B, B2A]]
-                    AB_correct, BA_corrrect = False, False
+                    AB_correct, BA_correct = False, False
                     if classification[0] == 'A' and classification[1] == "B":
                         AB_correct = True
                     if classification[2] == 'B' and classification[3] == "A":
