@@ -382,8 +382,11 @@ with train_summary_writer.as_default():
                     if classification[2] == 'B' and classification[3] == "A":
                         BA_correct = True
                     img_folder = f'output_{args.dataset}/{execution_id}/images'
-                    im.imwrite(img,
-                               f"{img_folder}/%d_%d_AB:{AB_correct}_BA:{BA_correct}.png" % (ep_cnt, batch_count))
+                    try:
+                        im.imwrite(img,
+                                   f"{img_folder}/%d_%d_AB:{AB_correct}_BA:{BA_correct}.png" % (ep_cnt, batch_count))
+                    except AssertionError:
+                        continue # Some image contains nan ... just skip it
                 batch_count += 1
 
         # # summary
