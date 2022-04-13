@@ -385,7 +385,8 @@ with train_summary_writer.as_default():
                     try:
                         im.imwrite(img,
                                    f"{img_folder}/%d_%d_AB:{AB_correct}_BA:{BA_correct}.png" % (ep_cnt, batch_count))
-                    except AssertionError:
+                    except (AssertionError, AttributeError, OSError):
+                        print(f"Wasn't able to print image {ep_cnt}_{batch_count}")
                         continue # Some image contains nan ... just skip it
                 batch_count += 1
 
