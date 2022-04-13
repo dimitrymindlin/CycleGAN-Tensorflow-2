@@ -94,8 +94,8 @@ try:
     py.mkdir(output_dir)
 except FileExistsError:
     time.sleep(60)
-    output_dir = py.join(f'output_{args.dataset}/{execution_id}')
     execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
+    output_dir = py.join(f'output_{args.dataset}/{execution_id}')
     py.mkdir(output_dir)
 
 TF_LOG_DIR = f"logs/{args.dataset}/"
