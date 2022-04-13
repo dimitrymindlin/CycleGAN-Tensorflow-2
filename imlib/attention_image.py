@@ -4,16 +4,27 @@ from imlib import scale_to_zero_one, scale_to_minus_one_one
 
 
 def add_background_to_img(foreground, background):
+    """
+    Expects foreground and background to be in range [-1,1]
+    Return image in [-1,1]
+    """
+    foreground = scale_to_zero_one(foreground)
+    background = scale_to_zero_one(background)
     img = tf.math.add(foreground, background)
-    return tf.math.divide(img, tf.math.reduce_max(img))
-
+    return scale_to_minus_one_one(tf.math.divide(img, tf.math.reduce_max(img)))
 
 def get_foreground(img, attention):
+    """
+    Expects img and attention to be in range [0,1]
+    """
     img = tf.math.multiply(attention, img)
     return tf.math.divide(img, tf.math.reduce_max(img))
 
 
 def get_background(img, attention):
+    """
+    Expects img and attention to be in range [0,1]
+    """
     img = tf.math.multiply(tf.math.subtract(1, attention), img)
     return tf.math.divide(img, tf.math.reduce_max(img))
 
