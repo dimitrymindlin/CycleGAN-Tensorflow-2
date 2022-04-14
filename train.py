@@ -82,7 +82,7 @@ previous iterations. Essentially, we remember the last pool_size generated image
 to create a batch_size batch of images to do one iteration of backprop on. This helps to stabilize training, kind of 
 like experience replay."""
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
-py.arg('--attention_type', type=str, default="spa-gan", choices=['attention-gan', 'spa-gan'])
+py.arg('--attention_type', type=str, default="attention-gan", choices=['attention-gan', 'spa-gan'])
 py.arg('--attention_intensity', type=float, default=0.5)
 py.arg('--generator', type=str, default="unet", choices=['resnet', 'unet'])
 args = py.args()
@@ -164,21 +164,15 @@ class_B_ground_truth = np.stack([np.zeros(args.batch_size), np.ones(args.batch_s
 # ==============================================================================
 
 @tf.function
-def train_G(A, B, A_attention_image=None, B_attention_image=None):
+def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
     with tf.GradientTape() as t:
-        if args.attention_type == "attention-gan":  # Attention Gan approach
-            # Transform important areas
-            A2B_foreground = G_A2B(A_attention_image.foreground, training=True)
-            A_attention_image.transformed_foreground = A2B_foreground
-            B2A_foreground = G_B2A(B_attention_image.foreground, training=True)
-            B_attention_image.transformed_foreground = B2A_foreground
-            # Combine new transformed foreground with background
-            A2B = add_background_to_img(A2B_foreground, A_attention_image.background)
-            B2A = add_background_to_img(B2A_foreground, B_attention_image.background)
-
-        else:
+        if args.attention_type == "spa-gan":
+            # Transformation
             A2B = G_A2B(A, training=True)
             B2A = G_B2A(B, training=True)
+            # Cycle
+            A2B2A = G_B2A(A2B, training=True)
+            B2A2B = G_A2B(B2A, training=True)
 
         A2A = G_B2A(A, training=True)
         B2B = G_A2B(B, training=True)
@@ -193,16 +187,6 @@ def train_G(A, B, A_attention_image=None, B_attention_image=None):
 
         A2B_counterfactual_loss = counterfactual_loss_nf(class_B_ground_truth, clf(A2B))
         B2A_counterfactual_loss = counterfactual_loss_nf(class_A_ground_truth, clf(B2A))
-
-        # Cycle Consistency
-        if args.attention_type == "attention-gan":  # Attention Gan approach
-            A2B2A_foreground = G_B2A(A_attention_image.transformed_foreground, training=True)
-            A2B2A = add_background_to_img(A2B2A_foreground, A_attention_image.background)
-            B2A2B_foreground = G_A2B(B_attention_image.transformed_foreground, training=True)
-            B2A2B = add_background_to_img(B2A2B_foreground, B_attention_image.background)
-        else:
-            A2B2A = G_B2A(A2B, training=True)
-            B2A2B = G_A2B(B2A, training=True)
 
         A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
         B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
@@ -249,7 +233,22 @@ def train_D(A, B, A2B, B2A):
 
 
 def train_step(A, B, A_attention_image=None, B_attention_image=None):
-    A2B, B2A, G_loss_dict = train_G(A, B, A_attention_image, B_attention_image)
+    if args.attention_type == "attention-gan":  # Attention Gan approach
+        # Transform important areas
+        A2B_foreground = G_A2B(A_attention_image.foreground, training=True)
+        A_attention_image.transformed_foreground = A2B_foreground
+        B2A_foreground = G_B2A(B_attention_image.foreground, training=True)
+        B_attention_image.transformed_foreground = B2A_foreground
+        # Combine new transformed foreground with background
+        A2B = add_background_to_img(A2B_foreground, A_attention_image.background)
+        B2A = add_background_to_img(B2A_foreground, B_attention_image.background)
+        A2B2A_foreground = G_B2A(A_attention_image.transformed_foreground, training=True)
+        A2B2A = add_background_to_img(A2B2A_foreground, A_attention_image.background)
+        B2A2B_foreground = G_A2B(B_attention_image.transformed_foreground, training=True)
+        B2A2B = add_background_to_img(B2A2B_foreground, B_attention_image.background)
+        A2B, B2A, G_loss_dict = train_G(A, B, A2B, B2A, A2B2A, B2A2B)
+    else: # spa-gan
+        A2B, B2A, G_loss_dict = train_G(A, B)
 
     # cannot autograph `A2B_pool`
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
