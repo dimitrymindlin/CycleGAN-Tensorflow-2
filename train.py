@@ -84,7 +84,7 @@ like experience replay."""
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
 py.arg('--attention_type', type=str, default="attention-gan", choices=['attention-gan', 'spa-gan'])
 py.arg('--attention_intensity', type=float, default=0.5)
-py.arg('--generator', type=str, default="unet", choices=['resnet', 'unet'])
+py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 args = py.args()
 
 execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
