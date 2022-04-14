@@ -3,4 +3,4 @@ source /media/compute/homes/dmindlin/.bashrc
 conda activate medical-decision-support-system
 cd /media/compute/homes/dmindlin/CycleGAN-Tensorflow-2
 
-python3 -m train --gradient_penalty_mode 10
+python3 -m train --cycle_loss_weight 10 --generator unet
