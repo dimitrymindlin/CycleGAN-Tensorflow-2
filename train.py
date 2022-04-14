@@ -242,6 +242,7 @@ def train_step(A, B, A_attention_image=None, B_attention_image=None):
         # Combine new transformed foreground with background
         A2B = add_background_to_img(A2B_foreground, A_attention_image.background)
         B2A = add_background_to_img(B2A_foreground, B_attention_image.background)
+        # Cycle
         A2B2A_foreground = G_B2A(A_attention_image.transformed_foreground, training=True)
         A2B2A = add_background_to_img(A2B2A_foreground, A_attention_image.background)
         B2A2B_foreground = G_A2B(B_attention_image.transformed_foreground, training=True)
