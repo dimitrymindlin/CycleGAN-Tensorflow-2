@@ -18,6 +18,7 @@ import numpy as np
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
 from tf_keras_vis.gradcam import Gradcam
+from sklearn.metrics import accuracy_score
 
 import data
 import module
@@ -82,7 +83,7 @@ previous iterations. Essentially, we remember the last pool_size generated image
 to create a batch_size batch of images to do one iteration of backprop on. This helps to stabilize training, kind of 
 like experience replay."""
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
-py.arg('--attention_type', type=str, default="attention-gan", choices=['attention-gan', 'spa-gan'])
+py.arg('--attention_type', type=str, default="none", choices=['attention-gan', 'spa-gan', 'none'])
 py.arg('--attention_intensity', type=float, default=0.5)
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 args = py.args()
@@ -166,7 +167,7 @@ class_B_ground_truth = np.stack([np.zeros(args.batch_size), np.ones(args.batch_s
 @tf.function
 def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
     with tf.GradientTape() as t:
-        if args.attention_type == "spa-gan":
+        if args.attention_type == "spa-gan" or args.attention_type == "none":
             # Transformation
             A2B = G_A2B(A, training=True)
             B2A = G_B2A(B, training=True)
@@ -216,6 +217,13 @@ def train_D(A, B, A2B, B2A):
         B_d_logits = D_B(B, training=True)
         A2B_d_logits = D_B(A2B, training=True)
 
+        # Get classes for accuracy
+        """prediction_A_d = tf.math.argmax(tf.nn.softmax(A_d_logits), 0)
+        prediction_B2A_d = tf.math.argmax(tf.nn.softmax(B2A_d_logits), 0)
+        prediction_B_d = tf.math.argmax(tf.nn.softmax(B_d_logits), 0)
+        prediction_A2B_d = tf.math.argmax(tf.nn.softmax(A2B_d_logits), 0)
+        y_pred = [prediction_A_d, prediction_B2A_d, prediction_B_d, prediction_A2B_d]"""
+
         A_d_loss, B2A_d_loss = d_loss_fn(A_d_logits, B2A_d_logits)
         B_d_loss, A2B_d_loss = d_loss_fn(B_d_logits, A2B_d_logits)
         D_A_gp = gan.gradient_penalty(functools.partial(D_A, training=True), A, B2A, mode=args.gradient_penalty_mode)
@@ -229,7 +237,8 @@ def train_D(A, B, A2B, B2A):
     return {'A_d_loss': A_d_loss + B2A_d_loss,
             'B_d_loss': B_d_loss + A2B_d_loss,
             'D_A_gp': D_A_gp,
-            'D_B_gp': D_B_gp}
+            'D_B_gp': D_B_gp,
+            }
 
 
 def train_step(A, B, A_attention_image=None, B_attention_image=None):
@@ -248,7 +257,7 @@ def train_step(A, B, A_attention_image=None, B_attention_image=None):
         B2A2B_foreground = G_A2B(B_attention_image.transformed_foreground, training=True)
         B2A2B = add_background_to_img(B2A2B_foreground, B_attention_image.background)
         A2B, B2A, G_loss_dict = train_G(A, B, A2B, B2A, A2B2A, B2A2B)
-    else: # spa-gan
+    else:  # spa-gan or none
         A2B, B2A, G_loss_dict = train_G(A, B)
 
     # cannot autograph `A2B_pool`
@@ -269,7 +278,7 @@ def sample(A, B, A_attention_image=None, B_attention_image=None):
         # Combine new transformed foreground with background
         A2B = add_background_to_img(A2B_foreground, A_attention_image.background)
         B2A = add_background_to_img(B2A_foreground, B_attention_image.background)
-    else:
+    else:  # spa-gan or none
         A2B = G_A2B(A, training=False)
         B2A = G_B2A(B, training=False)
     # A2B2A = G_B2A(A2B, training=False)
@@ -336,38 +345,43 @@ with train_summary_writer.as_default():
                 A_attention_image = AttentionImage(A, A_heatmap)
                 B_attention_image = AttentionImage(B, B_heatmap)
                 G_loss_dict, D_loss_dict = train_step(A, B, A_attention_image, B_attention_image)
-            else:
+            elif args.attention_type == "spa-gan":
                 # Spa-gan puts the attention on the input image -> changes input img
                 A, _ = attention_maps.get_gradcam(A, gradcam, 0, attention_type=args.attention_type,
                                                   attention_intensity=args.attention_intensity)
                 B, _ = attention_maps.get_gradcam(B, gradcam, 1, attention_type=args.attention_type,
                                                   attention_intensity=args.attention_intensity)
                 G_loss_dict, D_loss_dict = train_step(A, B)
+            else:  # none
+                G_loss_dict, D_loss_dict = train_step(A, B)
 
             # sample
-            if G_optimizer.iterations.numpy() % 200 == 0:
-                A, B = next(test_iter)
-                if args.attention_type == "attention-gan":
-                    # Attention-GAN splits fore and background and puts them together after transformation
-                    A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
-                                                                        attention_type=args.attention_type,
-                                                                        attention_intensity=args.attention_intensity)
-                    B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
-                                                                        attention_type=args.attention_type,
-                                                                        attention_intensity=args.attention_intensity)
-                    A_attention_image = AttentionImage(A, A_heatmap)
-                    B_attention_image = AttentionImage(B, B_heatmap)
-                    A2B, B2A, = sample(A, B, A_attention_image, B_attention_image)
-                else:
-                    # Attention for images
-                    A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
-                                                                        attention_type=args.attention_type,
-                                                                        attention_intensity=args.attention_intensity)
-                    B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
-                                                                        attention_type=args.attention_type,
-                                                                        attention_intensity=args.attention_intensity)
-                    A2B, B2A, = sample(A_attention, B_attention)
+            #if G_optimizer.iterations.numpy() % 200 == 0:
+            A, B = next(test_iter)
+            if args.attention_type == "attention-gan":
+                # Attention-GAN splits fore and background and puts them together after transformation
+                A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
+                                                                    attention_type=args.attention_type,
+                                                                    attention_intensity=args.attention_intensity)
+                B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
+                                                                    attention_type=args.attention_type,
+                                                                    attention_intensity=args.attention_intensity)
+                A_attention_image = AttentionImage(A, A_heatmap)
+                B_attention_image = AttentionImage(B, B_heatmap)
+                A2B, B2A, = sample(A, B, A_attention_image, B_attention_image)
+            elif args.attention_type == "spa-gan":
+                # Attention for images
+                A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
+                                                                    attention_type=args.attention_type,
+                                                                    attention_intensity=args.attention_intensity)
+                B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
+                                                                    attention_type=args.attention_type,
+                                                                    attention_intensity=args.attention_intensity)
+                A2B, B2A, = sample(A_attention, B_attention)
+            else:
+                A2B, B2A, = sample(A, B)
 
+            if args.attention_type != "none":
                 if args.dataset == "mura":
                     imgs = [A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A]
                     save_images(imgs, clf, ep_cnt, batch_count)
@@ -384,12 +398,16 @@ with train_summary_writer.as_default():
                     img_folder = f'output_{args.dataset}/{execution_id}/images'
                     try:
                         im.imwrite(img,
-                                   f"{img_folder}/%d_%d_AB:{AB_correct}_BA:{BA_correct}.png" % (ep_cnt, batch_count))
+                                   f"{img_folder}/%d_%d_AB:{AB_correct}_BA:{BA_correct}.png" % (
+                                   ep_cnt, batch_count))
                     except (AssertionError, AttributeError, OSError):
                         print(f"Wasn't able to print image {ep_cnt}_{batch_count}")
-                        continue # Some image contains nan ... just skip it
-                batch_count += 1
-
+                        continue  # Some image contains nan ... just skip it
+            else:
+                img = im.immerge(np.concatenate([A, A2B, B, B2A], axis=0), n_rows=2)
+                img_folder = f'output_{args.dataset}/{execution_id}/images'
+                im.imwrite(img, f"{img_folder}/%d_%d.png" % (ep_cnt, batch_count))
+            batch_count += 1
         # # summary
         tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
         tl.summary(D_loss_dict, step=G_optimizer.iterations, name='D_losses')
@@ -397,4 +415,5 @@ with train_summary_writer.as_default():
                    name='learning rate')
 
         # save checkpoint
-        checkpoint.save(ep)
+        if ep > 10 and ep < 14:
+            checkpoint.save(ep)
