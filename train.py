@@ -62,7 +62,7 @@ def save_images(imgs, clf, ep_cnt, batch_count):
 # =                                   param                                    =
 # ==============================================================================
 
-py.arg('--dataset', default='horse2zebra')
+py.arg('--dataset', default='apple2orange')
 py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=520)  # load image to this size
 py.arg('--crop_size', type=int, default=512)  # then crop to this size
@@ -356,7 +356,7 @@ with train_summary_writer.as_default():
                 G_loss_dict, D_loss_dict = train_step(A, B)
 
             # sample
-            if G_optimizer.iterations.numpy() % 200 == 0:
+            if G_optimizer.iterations.numpy() % 200 == 0 or G_optimizer.iterations.numpy() == 1:
                 A, B = next(test_iter)
                 if args.attention_type == "attention-gan":
                     # Attention-GAN splits fore and background and puts them together after transformation
@@ -404,9 +404,42 @@ with train_summary_writer.as_default():
                             print(f"Wasn't able to print image {ep_cnt}_{batch_count}")
                             continue  # Some image contains nan ... just skip it
                 else:
-                    img = im.immerge(np.concatenate([A, A2B, B, B2A], axis=0), n_rows=2)
-                    img_folder = f'output_{args.dataset}/{execution_id}/images'
-                    im.imwrite(img, f"{img_folder}/%d_%d.png" % (ep_cnt, batch_count))
+                    if args.dataset == "mura":
+                        imgs = [A, A2B, B, B2A]
+                        r, c = 2, 2
+                        titles = ['Original', 'Translated', 'Original', 'Translated']
+                        classification = [['Normal', 'Abnormal'][int(np.argmax(clf.predict(x)))] for x in imgs]
+                        gen_imgs = np.concatenate(imgs)
+                        gen_imgs = 0.5 * gen_imgs + 0.5
+                        if args.dataset == "mura":
+                            correct_classification = ['Normal', 'Abnormal',
+                                                      'Abnormal', 'Normal']
+                        else:
+                            correct_classification = ['A', 'B',
+                                                      'B', 'A']
+                        fig, axs = plt.subplots(r, c, figsize=(30, 20))
+                        cnt = 0
+                        for i in range(r):
+                            for j in range(c):
+                                if args.dataset == "mura":
+                                    axs[i, j].imshow(gen_imgs[cnt][:, :, 0], cmap='gray')
+                                else:
+                                    axs[i, j].imshow(gen_imgs[cnt][:, :, 0])
+                                if j in [0, 3]:
+                                    axs[i, j].set_title(
+                                        f'{titles[j]} T: ({correct_classification[cnt]} | P: {classification[cnt]})')
+                                else:
+                                    axs[i, j].set_title(f'{titles[j]}')
+                                axs[i, j].axis('off')
+                                cnt += 1
+                        img_folder = f'output_{args.dataset}/{execution_id}/images'
+                        os.makedirs(img_folder, exist_ok=True)
+                        fig.savefig(f"{img_folder}/%d_%d.png" % (ep_cnt, batch_count))
+                        plt.close()
+                    else:
+                        img = im.immerge(np.concatenate([A, A2B, B, B2A], axis=0), n_rows=2)
+                        img_folder = f'output_{args.dataset}/{execution_id}/images'
+                        im.imwrite(img, f"{img_folder}/%d_%d.png" % (ep_cnt, batch_count))
             batch_count += 1
         # # summary
         tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
