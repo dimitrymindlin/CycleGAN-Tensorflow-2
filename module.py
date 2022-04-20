@@ -5,10 +5,10 @@ from keras import Input, Model
 from keras.layers import Conv2D, ReLU, LeakyReLU, UpSampling2D, Dropout, Concatenate
 from tensorflow_addons.layers import InstanceNormalization
 
+
 # ==============================================================================
 # =                                  networks                                  =
 # ==============================================================================
-
 
 
 def _get_norm_layer(norm):
@@ -79,6 +79,7 @@ def ResnetGenerator(input_shape=(256, 256, 3),
 
     return keras.Model(inputs=inputs, outputs=h)
 
+
 def UnetGenerator(input_shape, filters=32, channels=3, leaky_relu=False, skip_connections=True):
     """U-Net Generator"""
 
@@ -93,7 +94,8 @@ def UnetGenerator(input_shape, filters=32, channels=3, leaky_relu=False, skip_co
                 d)  # TODO: Try Normal Relu https://machinelearningmastery.com/how-to-train-stable-generative-adversarial-networks/
         else:
             d = LeakyReLU(alpha=0.2)(d)
-        d = InstanceNormalization()(d, training=True) # https://machinelearningmastery.com/how-to-implement-pix2pix-gan-models-from-scratch-with-keras/
+        d = InstanceNormalization()(d,
+                                    training=True)  # https://machinelearningmastery.com/how-to-implement-pix2pix-gan-models-from-scratch-with-keras/
         return d
 
     def deconv2d(layer_input, skip_input, filters, f_size=4, dropout_rate=0):
@@ -176,7 +178,18 @@ class LinearDecay(keras.optimizers.schedules.LearningRateSchedule):
     def __call__(self, step):
         self.current_learning_rate.assign(tf.cond(
             step >= self._step_decay,
-            true_fn=lambda: self._initial_learning_rate * (1 - 1 / (self._steps - self._step_decay) * (step - self._step_decay)),
+            true_fn=lambda: self._initial_learning_rate * (
+                        1 - 1 / (self._steps - self._step_decay) * (step - self._step_decay)),
             false_fn=lambda: self._initial_learning_rate
         ))
         return self.current_learning_rate
+
+
+def get_generators(args):
+    if args.generator == "resnet":
+        G_A2B = ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
+        G_B2A = ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
+    else:  # UNET
+        G_A2B = UnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
+        G_B2A = UnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
+    return G_A2B, G_B2A

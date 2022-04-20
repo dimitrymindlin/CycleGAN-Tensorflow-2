@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 import tf2lib as tl
 import tensorflow_addons as tfa
+import pylib as py
 
 def make_dataset(img_paths, batch_size, load_size, crop_size, training, drop_remainder=True, shuffle=True, repeat=1,
                  labels=None, special_normalisation=None):
@@ -146,3 +147,18 @@ def get_mura_data_paths():
     test_x, test_y = to_categorical(test_x, test_y)
 
     return train_x, train_y, valid_x, valid_y, test_x, test_y
+
+def get_dataset_paths(args):
+    if args.dataset == "mura":
+        # A = 0 = negative, B = 1 = positive
+        train_x, train_y, valid_x, valid_y, test_x, test_y = get_mura_data_paths()
+        A_img_paths = [filename for filename in train_x if "negative" in filename]
+        B_img_paths = [filename for filename in train_x if "positive" in filename]
+        A_img_paths_test = [filename for filename in train_x if "negative" in filename]
+        B_img_paths_test = [filename for filename in train_x if "positive" in filename]
+    else:
+        A_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainA'), '*.jpg')
+        B_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainB'), '*.jpg')
+        A_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testA'), '*.jpg')
+        B_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testB'), '*.jpg')
+    return A_img_paths, B_img_paths, A_img_paths_test, B_img_paths_test

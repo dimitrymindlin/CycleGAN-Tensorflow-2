@@ -107,37 +107,20 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 # ==============================================================================
 # =                                    data                                    =
 # ==============================================================================
-if args.dataset == "mura":
-    # A = 0 = negative, B = 1 = positive
-    train_x, train_y, valid_x, valid_y, test_x, test_y = data.get_mura_data_paths()
-    A_img_paths = [filename for filename in train_x if "negative" in filename]
-    B_img_paths = [filename for filename in train_x if "positive" in filename]
-    A_img_paths_test = [filename for filename in train_x if "negative" in filename]
-    B_img_paths_test = [filename for filename in train_x if "positive" in filename]
-else:
-    A_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainA'), '*.jpg')
-    B_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainB'), '*.jpg')
-    A_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testA'), '*.jpg')
-    B_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testB'), '*.jpg')
-
+A_img_paths, B_img_paths, A_img_paths_test, B_img_paths_test = data.get_dataset_paths(args)
 A_B_dataset, len_dataset = data.make_zip_dataset(A_img_paths, B_img_paths, args.batch_size, args.load_size,
                                                  args.crop_size, training=True, repeat=False)
+A_B_dataset_test, _ = data.make_zip_dataset(A_img_paths_test, B_img_paths_test, args.batch_size, args.load_size,
+                                            args.crop_size, training=False, repeat=True)
 
 A2B_pool = data.ItemPool(args.pool_size)
 B2A_pool = data.ItemPool(args.pool_size)
-A_B_dataset_test, _ = data.make_zip_dataset(A_img_paths_test, B_img_paths_test, args.batch_size, args.load_size,
-                                            args.crop_size, training=False, repeat=True)
 
 # ==============================================================================
 # =                                   models                                   =
 # ==============================================================================
 
-if args.generator == "resnet":
-    G_A2B = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
-    G_B2A = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
-else:  # UNET
-    G_A2B = module.UnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
-    G_B2A = module.UnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
+G_A2B, G_B2A = module.get_generators(args)
 
 D_A = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
 D_B = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
@@ -175,6 +158,7 @@ def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
             A2B2A = G_B2A(A2B, training=True)
             B2A2B = G_A2B(B2A, training=True)
 
+        # Identity
         A2A = G_B2A(A, training=True)
         B2B = G_A2B(B, training=True)
 
@@ -399,7 +383,7 @@ with train_summary_writer.as_default():
                         try:
                             im.imwrite(img,
                                        f"{img_folder}/%d_%d_AB:{AB_correct}_BA:{BA_correct}.png" % (
-                                       ep_cnt, batch_count))
+                                           ep_cnt, batch_count))
                         except (AssertionError, AttributeError, OSError):
                             print(f"Wasn't able to print image {ep_cnt}_{batch_count}")
                             continue  # Some image contains nan ... just skip it
