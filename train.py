@@ -67,8 +67,8 @@ py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=520)  # load image to this size
 py.arg('--crop_size', type=int, default=512)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
-py.arg('--epochs', type=int, default=200)
-py.arg('--epoch_decay', type=int, default=100)  # epoch to start decaying learning rate
+py.arg('--epochs', type=int, default=30)
+py.arg('--epoch_decay', type=int, default=15)  # epoch to start decaying learning rate
 py.arg('--lr', type=float, default=0.0002)
 py.arg('--beta_1', type=float, default=0.5)
 py.arg('--adversarial_loss_mode', default='lsgan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
@@ -448,5 +448,5 @@ with train_summary_writer.as_default():
                    name='learning rate')
 
         # save checkpoint
-        if ep > 10 and ep < 14:
+        if ep > 20 and ep < 25:
             checkpoint.save(ep)
