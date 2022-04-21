@@ -78,13 +78,21 @@ def save_images(A, A2B, B, B2A, dataset, execution_id, ep_cnt, batch_count):
     imwrite(img, f"{img_folder}/%d_%d.png" % (ep_cnt, batch_count))
 
 
-def save_images_with_attention(A, A_attention_image, A2B, B, B_attention_image, B2A, clf, dataset,
-                               execution_id, ep_cnt, batch_count, attention_gan_original=False):
-    img = immerge(
-        np.concatenate([A, A_attention_image.attention, A_attention_image.transformed_part, A2B,
-                        B, B_attention_image.attention, B_attention_image.transformed_part, B2A], axis=0),
-        n_rows=2)
-    classification = [['A', 'B'][int(np.argmax(clf.predict(x)))] for x in [A, A2B, B, B2A]]
+def save_images_with_attention(A_attention_image, A2B, B_attention_image, B2A, clf, dataset,
+                               execution_id, ep_cnt, batch_count, attention_type):
+    if attention_type == "spa-gan":
+        img = immerge(
+            np.concatenate([A_attention_image.img, A_attention_image.attention, A_attention_image.enhanced_img, A2B,
+                            B_attention_image.img, B_attention_image.attention, B_attention_image.enhanced_img, B2A],
+                           axis=0), n_rows=2)
+    else:  # attention-gan
+        img = immerge(
+            np.concatenate([A_attention_image.img, A_attention_image.attention, A_attention_image.transformed_part, A2B,
+                            B_attention_image.img, B_attention_image.attention, B_attention_image.transformed_part,
+                            B2A],
+                           axis=0), n_rows=2)
+    classification = [['A', 'B'][int(np.argmax(clf.predict(x)))] for x in [A_attention_image.img, A2B,
+                                                                           B_attention_image.img, B2A]]
     AB_correct, BA_correct = False, False
     if classification[0] == 'A' and classification[1] == "B":
         AB_correct = True

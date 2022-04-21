@@ -1,5 +1,6 @@
 import tensorflow as tf
 
+import attention_maps
 from imlib import scale_to_zero_one, scale_to_minus_one_one
 
 
@@ -38,17 +39,27 @@ def multiply_images(img1, img2):
 
 
 class AttentionImage():
-    def __init__(self, img, attention):
-        self.attention = attention
-        self.foreground = None
-        self.background = None
-        self.transformed_part = None  # Can be either transformed foreground or transformed image with attention
-        self.get_fore_and_backgrouds_by_attention(img, attention)
+    def __init__(self, img, class_label, gradcam, attention_type, attention_intensity):
+        self.img = img  # original image
+        self.attention = None  # heatmap
+        self.foreground = None  # original image + heatmap
+        self.background = None  # original image - heatmap
+        self.enhanced_img = None  # original image * (heatmap + intensity)
+        self.transformed_part = None  # depending on strategy, the part that should be transformed
+        self.get_attention(class_label, gradcam, attention_type, attention_intensity)
+        self.get_fore_and_backgroud_by_attention()
 
-    def get_fore_and_backgrouds_by_attention(self, img, attention):
+    def get_attention(self, class_label, gradcam, attention_type, attention_intensity):
+        enhanced_img, attention = attention_maps.get_gradcam(self.img, gradcam, class_label,
+                                                             attention_type=attention_type,
+                                                             attention_intensity=attention_intensity)
+        self.attention = attention
+        self.enhanced_img = enhanced_img
+
+    def get_fore_and_backgroud_by_attention(self):
         # Scale all [0,1]
-        img = scale_to_zero_one(img)
-        attention = scale_to_zero_one(attention)
+        img = scale_to_zero_one(self.img)
+        attention = scale_to_zero_one(self.attention)
         # Split background and foreground
         self.foreground = scale_to_minus_one_one(get_foreground(img, attention))
         self.background = scale_to_minus_one_one(get_background(img, attention))

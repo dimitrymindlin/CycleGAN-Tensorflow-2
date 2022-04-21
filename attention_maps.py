@@ -6,6 +6,16 @@ from tf_keras_vis.utils.scores import CategoricalScore
 from imlib import scale_to_zero_one, scale_to_minus_one_one
 
 
+def enhance_img(cam, attention_intensity):
+    """
+    For Spagan, enhance important parts but don't delete unimportant ones
+    expects cam to be image [0,1]
+    """
+    cam += attention_intensity
+    cam /= np.max(cam)
+    return cam
+
+
 def get_gradcam(img, gradcam, class_index, attention_type, attention_intensity=0.5):
     # Generate cam map
     cam = gradcam(CategoricalScore(class_index), img)  # returns img in [0,1]
@@ -18,9 +28,7 @@ def get_gradcam(img, gradcam, class_index, attention_type, attention_intensity=0
     img = scale_to_zero_one(img)
 
     if attention_type == "spa-gan":
-        # For Spagan, enhance important parts but don't delete unimportant ones
-        cam += attention_intensity
-        cam /= np.max(cam)
+        cam = enhance_img(cam, attention_intensity)
 
     # Interpolate by multiplication and normalise
     img = cam * img

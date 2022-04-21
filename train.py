@@ -20,7 +20,7 @@ from tf_keras_vis.gradcam import Gradcam
 
 import data
 import module
-from attention_strategies.attention_strategies import attention_gan_original, attention_gan_foreground
+from attention_strategies.attention_strategies import attention_gan_original, attention_gan_foreground, spa_gan
 from imlib import save_mura_images, save_mura_images_with_attention, save_images, save_images_with_attention
 from imlib.attention_image import AttentionImage, add_images
 
@@ -49,8 +49,8 @@ previous iterations. Essentially, we remember the last pool_size generated image
 to create a batch_size batch of images to do one iteration of backprop on. This helps to stabilize training, kind of 
 like experience replay."""
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
-py.arg('--attention_type', type=str, default="none", choices=['attention-gan', 'spa-gan', 'none'])
-py.arg('--attention_intensity', type=float, default=0.5)
+py.arg('--attention_type', type=str, default="attention-gan", choices=['attention-gan', 'spa-gan', 'none'])
+py.arg('--attention_intensity', type=float, default=0.3)
 py.arg('--attention_gan_original', type=bool, default=False)
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 args = py.args()
@@ -117,31 +117,39 @@ class_B_ground_truth = np.stack([np.zeros(args.batch_size), np.ones(args.batch_s
 @tf.function
 def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
     with tf.GradientTape() as t:
-        if args.attention_type == "spa-gan" or args.attention_type == "none":
+        if args.attention_type == "none":
             # Transformation
             A2B = G_A2B(A, training=True)
             B2A = G_B2A(B, training=True)
             # Cycle
             A2B2A = G_B2A(A2B, training=True)
             B2A2B = G_A2B(B2A, training=True)
-
-        # Identity
-        A2A = G_B2A(A, training=True)
-        B2B = G_A2B(B, training=True)
+            # Identity
+            A2A = G_B2A(A, training=True)
+            B2B = G_A2B(B, training=True)
+            A2A_id_loss = identity_loss_fn(A, A2A)
+            B2B_id_loss = identity_loss_fn(B, B2B)
+            # cycle
+            A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
+            B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
+        else:
+            # Identity
+            A2A = G_B2A(A.img, training=True)
+            B2B = G_A2B(B.img, training=True)
+            A2A_id_loss = identity_loss_fn(A.img, A2A)
+            B2B_id_loss = identity_loss_fn(B.img, B2B)
+            # cycle
+            A2B2A_cycle_loss = cycle_loss_fn(A.img, A2B2A)
+            B2A2B_cycle_loss = cycle_loss_fn(B.img, B2A2B)
 
         A2B_d_logits = D_B(A2B, training=True)
         B2A_d_logits = D_A(B2A, training=True)
 
         A2B_g_loss = g_loss_fn(A2B_d_logits)
         B2A_g_loss = g_loss_fn(B2A_d_logits)
-        A2A_id_loss = identity_loss_fn(A, A2A)
-        B2B_id_loss = identity_loss_fn(B, B2B)
 
         A2B_counterfactual_loss = counterfactual_loss_nf(class_B_ground_truth, clf(A2B))
         B2A_counterfactual_loss = counterfactual_loss_nf(class_A_ground_truth, clf(B2A))
-
-        A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
-        B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
 
         G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
                  + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
@@ -192,32 +200,54 @@ def train_D(A, B, A2B, B2A):
             }
 
 
-def train_step(A, B, A_attention_image=None, B_attention_image=None):
-    if args.attention_type == "attention-gan":  # Attention Gan approach
+def train_step(A, B):
+    """
+    Parameters
+    ----------
+    A AttentionImage if attention mode, else normal image tensor
+    B AttentionImage if attention mode, else normal image tensor
+    -------
+    """
+    if args.attention_type == "attention-gan":
         if args.attention_gan_original:
-            A2B, B2A, A2B2A, B2A2B = attention_gan_original(A, B, G_A2B, G_B2A, A_attention_image, B_attention_image)
+            A2B, B2A, A2B2A, B2A2B = attention_gan_original(A, B, G_A2B, G_B2A, training=True)
         else:
-            A2B, B2A, A2B2A, B2A2 = attention_gan_foreground(G_A2B, G_B2A, A_attention_image, B_attention_image)
+            A2B, B2A, A2B2A, B2A2B = attention_gan_foreground(A, B, G_A2B, G_B2A, training=True)
         A2B, B2A, G_loss_dict = train_G(A, B, A2B, B2A, A2B2A, B2A2B)
-    else:  # spa-gan or none
+    elif args.attention_type == "spa-gan":
+        A2B, B2A, A2B2A, B2A2B = spa_gan(A, B, G_A2B, G_B2A, training=True)
+        A2B, B2A, G_loss_dict = train_G(A, B, A2B, B2A, A2B2A, B2A2B)
+    else:
         A2B, B2A, G_loss_dict = train_G(A, B)
 
     # cannot autograph `A2B_pool`
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
     B2A = B2A_pool(B2A)  # because of the communication between CPU and GPU
 
-    D_loss_dict = train_D(A, B, A2B, B2A)
+    if args.attention_type != "none":
+        D_loss_dict = train_D(A.img, B.img, A2B, B2A)
+    else:
+        D_loss_dict = train_D(A, B, A2B, B2A)
 
     return G_loss_dict, D_loss_dict
 
 
-#@tf.function
-def sample(A, B, A_attention_image=None, B_attention_image=None):
+# @tf.function
+def sample(A, B):
+    """
+    Parameters
+    ----------
+    A AttentionImage if attention mode, else normal image tensor
+    B AttentionImage if attention mode, else normal image tensor
+    -------
+    """
     if args.attention_type == "attention-gan":
         if args.attention_gan_original:
-            A2B, B2A = attention_gan_original(A, B, G_A2B, G_B2A, A_attention_image, B_attention_image, training=False)
+            A2B, B2A = attention_gan_original(A, B, G_A2B, G_B2A, training=False)
         else:
-            A2B, B2A = attention_gan_foreground(G_A2B, G_B2A, A_attention_image, B_attention_image, training=False)
+            A2B, B2A = attention_gan_foreground(A, B, G_A2B, G_B2A, training=False)
+    elif args.attention_type == "spa-gan":
+        A2B, B2A = spa_gan(A, B, G_A2B, G_B2A, training=False)
     else:  # spa-gan or none
         A2B = G_A2B(A, training=False)
         B2A = G_B2A(B, training=False)
@@ -272,23 +302,12 @@ with train_summary_writer.as_default():
         # train for an epoch
         batch_count = 0
         for A, B in tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset):
-            A_attention_image = None
-            B_attention_image = None
             if args.attention_type == "none":
                 G_loss_dict, D_loss_dict = train_step(A, B)
-            else:  # Attention
-                A, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0, attention_type=args.attention_type,
-                                                          attention_intensity=args.attention_intensity)
-                B, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1, attention_type=args.attention_type,
-                                                          attention_intensity=args.attention_intensity)
-                if args.attention_type == "attention-gan":
-                    # Attention-GAN splits fore and background and puts them together after transformation
-                    A_attention_image = AttentionImage(A, A_heatmap)
-                    B_attention_image = AttentionImage(B, B_heatmap)
-                    G_loss_dict, D_loss_dict = train_step(A, B, A_attention_image, B_attention_image)
-                else:  # Spa-gan
-                    # Spa-gan puts the attention on the input image -> changes input img
-                    G_loss_dict, D_loss_dict = train_step(A, B)
+            else:  # Attention-strategies
+                A_attention_image = AttentionImage(A, 0, gradcam, args.attention_type, args.attention_intensity)
+                B_attention_image = AttentionImage(B, 1, gradcam, args.attention_type, args.attention_intensity)
+                G_loss_dict, D_loss_dict = train_step(A_attention_image, B_attention_image)
 
             # sample
             if ep == 0 or ep > 10:
@@ -302,33 +321,24 @@ with train_summary_writer.as_default():
                     if args.attention_type == "none":
                         A2B, B2A, = sample(A, B)
                     else:  # Attention
-                        A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
-                                                                            attention_type=args.attention_type,
-                                                                            attention_intensity=args.attention_intensity)
-                        B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
-                                                                            attention_type=args.attention_type,
-                                                                            attention_intensity=args.attention_intensity)
-                        if args.attention_type == "attention-gan":
-                            A_attention_image = AttentionImage(A, A_heatmap)
-                            B_attention_image = AttentionImage(B, B_heatmap)
-                            A2B, B2A = sample(A, B, A_attention_image, B_attention_image)
-                        elif args.attention_type == "spa-gan":
-                            A2B, B2A = sample(A_attention, B_attention)
+                        A_attention_image = AttentionImage(A, 0, gradcam, args.attention_type, args.attention_intensity)
+                        B_attention_image = AttentionImage(B, 1, gradcam, args.attention_type, args.attention_intensity)
+                        A2B, B2A = sample(A_attention_image, B_attention_image)
 
                     # Save images
                     if args.attention_type != "none":  # Save with attention
                         if args.dataset == "mura":
-                            imgs = [A, A_heatmap, A_attention_image.transformed_part, A2B,
-                                    B, B_heatmap, B_attention_image.transformed_part, B2A]
+                            imgs = [A, A_attention_image.attention, A_attention_image.transformed_part, A2B,
+                                    B, B_attention_image.attention, B_attention_image.transformed_part, B2A]
                             save_mura_images_with_attention(imgs, clf, args.dataset, execution_id, ep_cnt, batch_count,
                                                             attention_gan_original=args.attention_gan_original)
                         else:
-                            save_images_with_attention(A, A_attention_image, A2B, B, B_attention_image, B2A,
+                            save_images_with_attention(A_attention_image, A2B, B_attention_image, B2A,
                                                        clf, args.dataset, execution_id, ep_cnt, batch_count,
-                                                       attention_gan_original=args.attention_gan_original)
+                                                       args.attention_type)
                     else:  # Save without attention
                         if args.dataset == "mura":
-                            imgs = [A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A]
+                            imgs = [A, A2B, B, B2A]
                             save_mura_images(imgs, clf, args.dataset, execution_id, ep_cnt, batch_count)
                         else:
                             save_images(A, A2B, B, B2A, args.dataset, execution_id, ep_cnt, batch_count)
