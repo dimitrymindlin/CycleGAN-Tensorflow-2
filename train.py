@@ -51,7 +51,7 @@ like experience replay."""
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
 py.arg('--attention_type', type=str, default="none", choices=['attention-gan', 'spa-gan', 'none'])
 py.arg('--attention_intensity', type=float, default=0.5)
-py.arg('--attention_gan_original', type=bool, default=True)
+py.arg('--attention_gan_original', type=bool, default=False)
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 args = py.args()
 
@@ -211,20 +211,16 @@ def train_step(A, B, A_attention_image=None, B_attention_image=None):
     return G_loss_dict, D_loss_dict
 
 
-@tf.function
+#@tf.function
 def sample(A, B, A_attention_image=None, B_attention_image=None):
     if args.attention_type == "attention-gan":
-        # Transform important areas
-        A2B_foreground = G_A2B(A_attention_image.foreground, training=True)
-        B2A_foreground = G_B2A(B_attention_image.foreground, training=True)
-        # Combine new transformed foreground with background
-        A2B = add_images(A2B_foreground, A_attention_image.background)
-        B2A = add_images(B2A_foreground, B_attention_image.background)
+        if args.attention_gan_original:
+            A2B, B2A = attention_gan_original(A, B, G_A2B, G_B2A, A_attention_image, B_attention_image, training=False)
+        else:
+            A2B, B2A = attention_gan_foreground(G_A2B, G_B2A, A_attention_image, B_attention_image, training=False)
     else:  # spa-gan or none
         A2B = G_A2B(A, training=False)
         B2A = G_B2A(B, training=False)
-    # A2B2A = G_B2A(A2B, training=False)
-    # B2A2B = G_A2B(B2A, training=False)
     return A2B, B2A
 
 
@@ -295,14 +291,14 @@ with train_summary_writer.as_default():
                     G_loss_dict, D_loss_dict = train_step(A, B)
 
             # sample
-            if ep > 30:
+            if ep == 0 or ep > 10:
                 if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1:
                     try:
                         A, B = next(test_iter)
                     except StopIteration:  # When all elements finished
                         # Create new iterator
                         test_iter = iter(A_B_dataset_test)
-
+                    # Get images
                     if args.attention_type == "none":
                         A2B, B2A, = sample(A, B)
                     else:  # Attention
@@ -315,18 +311,21 @@ with train_summary_writer.as_default():
                         if args.attention_type == "attention-gan":
                             A_attention_image = AttentionImage(A, A_heatmap)
                             B_attention_image = AttentionImage(B, B_heatmap)
-                            A2B, B2A, = sample(A, B, A_attention_image, B_attention_image)
+                            A2B, B2A = sample(A, B, A_attention_image, B_attention_image)
                         elif args.attention_type == "spa-gan":
-                            A2B, B2A, = sample(A_attention, B_attention)
+                            A2B, B2A = sample(A_attention, B_attention)
 
+                    # Save images
                     if args.attention_type != "none":  # Save with attention
                         if args.dataset == "mura":
-                            imgs = [A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A]
-                            save_mura_images_with_attention(imgs, clf, args.dataset, execution_id, ep_cnt, batch_count)
+                            imgs = [A, A_heatmap, A_attention_image.transformed_part, A2B,
+                                    B, B_heatmap, B_attention_image.transformed_part, B2A]
+                            save_mura_images_with_attention(imgs, clf, args.dataset, execution_id, ep_cnt, batch_count,
+                                                            attention_gan_original=args.attention_gan_original)
                         else:
-                            save_images_with_attention(A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A,
-                                                       clf,
-                                                       args.dataset, execution_id, ep_cnt, batch_count)
+                            save_images_with_attention(A, A_attention_image, A2B, B, B_attention_image, B2A,
+                                                       clf, args.dataset, execution_id, ep_cnt, batch_count,
+                                                       attention_gan_original=args.attention_gan_original)
                     else:  # Save without attention
                         if args.dataset == "mura":
                             imgs = [A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A]

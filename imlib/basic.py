@@ -10,7 +10,8 @@ from imlib.transform import immerge
 
 def save_mura_images(imgs, clf, dataset, execution_id, ep_cnt, batch_count):
     r, c = 2, 2
-    titles = ['Original', 'Translated', 'Original', 'Translated']
+    titles = ['Original', 'Translated',
+              'Original', 'Translated']
     classification = [['Normal', 'Abnormal'][int(np.argmax(clf.predict(x)))] for x in imgs]
     gen_imgs = np.concatenate(imgs)
     gen_imgs = 0.5 * gen_imgs + 0.5
@@ -30,7 +31,7 @@ def save_mura_images(imgs, clf, dataset, execution_id, ep_cnt, batch_count):
                 axs[i, j].imshow(gen_imgs[cnt][:, :, 0])
             if j in [0, 3]:
                 axs[i, j].set_title(
-                    f'{titles[j]} T: ({correct_classification[cnt]} | P: {classification[cnt]})')
+                    f'{titles[j]} (T: {correct_classification[cnt]} | P: {classification[cnt]})')
             else:
                 axs[i, j].set_title(f'{titles[j]}')
             axs[i, j].axis('off')
@@ -41,29 +42,26 @@ def save_mura_images(imgs, clf, dataset, execution_id, ep_cnt, batch_count):
     plt.close()
 
 
-def save_mura_images_with_attention(imgs, clf, dataset, execution_id, ep_cnt, batch_count):
+def save_mura_images_with_attention(imgs, clf, dataset, execution_id, ep_cnt, batch_count,
+                                    attention_gan_original=False):
     r, c = 2, 4
-    titles = ['Original', 'Attention', 'Input Image', 'Translated']
+    if attention_gan_original:
+        titles = ['Original', 'Attention', 'Translated', 'Output']
+    else:
+        titles = ['Original', 'Attention', 'Translated', 'Translated']
     classification = [['Normal', 'Abnormal'][int(np.argmax(clf.predict(x)))] for x in imgs]
     gen_imgs = np.concatenate(imgs)
     gen_imgs = 0.5 * gen_imgs + 0.5
-    if dataset == "mura":
-        correct_classification = ['Normal', 'Normal', 'Normal', 'Abnormal',
-                                  'Abnormal', 'Abnormal', 'Abnormal', 'Normal']
-    else:
-        correct_classification = ['A', 'A', 'A', 'B',
-                                  'B', 'A', 'A', 'A']
+    correct_classification = ['Normal', 'Normal', 'Normal', 'Abnormal',
+                              'Abnormal', 'Abnormal', 'Abnormal', 'Normal']
     fig, axs = plt.subplots(r, c, figsize=(30, 20))
     cnt = 0
     for i in range(r):
         for j in range(c):
-            if dataset == "mura":
-                axs[i, j].imshow(gen_imgs[cnt][:, :, 0], cmap='gray')
-            else:
-                axs[i, j].imshow(gen_imgs[cnt][:, :, 0])
+            axs[i, j].imshow(gen_imgs[cnt][:, :, 0], cmap='gray')
             if j in [0, 3]:
                 axs[i, j].set_title(
-                    f'{titles[j]} T: ({correct_classification[cnt]} | P: {classification[cnt]})')
+                    f'{titles[j]} (T: {correct_classification[cnt]} | P: {classification[cnt]})')
             else:
                 axs[i, j].set_title(f'{titles[j]}')
             axs[i, j].axis('off')
@@ -80,10 +78,11 @@ def save_images(A, A2B, B, B2A, dataset, execution_id, ep_cnt, batch_count):
     imwrite(img, f"{img_folder}/%d_%d.png" % (ep_cnt, batch_count))
 
 
-def save_images_with_attention(A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A, clf, dataset,
-                               execution_id, ep_cnt, batch_count):
+def save_images_with_attention(A, A_attention_image, A2B, B, B_attention_image, B2A, clf, dataset,
+                               execution_id, ep_cnt, batch_count, attention_gan_original=False):
     img = immerge(
-        np.concatenate([A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A], axis=0),
+        np.concatenate([A, A_attention_image.attention, A_attention_image.transformed_part, A2B,
+                        B, B_attention_image.attention, B_attention_image.transformed_part, B2A], axis=0),
         n_rows=2)
     classification = [['A', 'B'][int(np.argmax(clf.predict(x)))] for x in [A, A2B, B, B2A]]
     AB_correct, BA_correct = False, False

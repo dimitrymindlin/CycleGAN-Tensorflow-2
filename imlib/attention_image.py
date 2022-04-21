@@ -13,6 +13,7 @@ def add_images(foreground, background):
     img = tf.math.add(foreground, background)
     return scale_to_minus_one_one(tf.math.divide(img, tf.math.reduce_max(img)))
 
+
 def get_foreground(img, attention):
     """
     Expects img and attention to be in range [0,1]
@@ -28,6 +29,7 @@ def get_background(img, attention):
     img = tf.math.multiply(tf.math.subtract(1, attention), img)
     return tf.math.divide(img, tf.math.reduce_max(img))
 
+
 def multiply_images(img1, img2):
     img1 = scale_to_zero_one(img1)
     img2 = scale_to_zero_one(img2)
@@ -37,9 +39,10 @@ def multiply_images(img1, img2):
 
 class AttentionImage():
     def __init__(self, img, attention):
+        self.attention = attention
         self.foreground = None
         self.background = None
-        self.transformed_foreground = None
+        self.transformed_part = None  # Can be either transformed foreground or transformed image with attention
         self.get_fore_and_backgrouds_by_attention(img, attention)
 
     def get_fore_and_backgrouds_by_attention(self, img, attention):
