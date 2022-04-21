@@ -4,7 +4,8 @@ import os
 
 from matplotlib import pyplot as plt
 
-from imlib import dtype, immerge
+from imlib import dtype
+from imlib.transform import immerge
 
 
 def save_mura_images(imgs, clf, dataset, execution_id, ep_cnt, batch_count):
