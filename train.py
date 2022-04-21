@@ -295,49 +295,51 @@ with train_summary_writer.as_default():
                     G_loss_dict, D_loss_dict = train_step(A, B)
 
             # sample
-            if G_optimizer.iterations.numpy() % 200 == 0 or G_optimizer.iterations.numpy() == 1:
-                try:
-                    A, B = next(test_iter)
-                except StopIteration:  # When all elements finished
-                    # Create new iterator
-                    test_iter = iter(A_B_dataset_test)
+            if ep > 30:
+                if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1:
+                    try:
+                        A, B = next(test_iter)
+                    except StopIteration:  # When all elements finished
+                        # Create new iterator
+                        test_iter = iter(A_B_dataset_test)
 
-                if args.attention_type == "none":
-                    A2B, B2A, = sample(A, B)
-                else:  # Attention
-                    A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
-                                                                        attention_type=args.attention_type,
-                                                                        attention_intensity=args.attention_intensity)
-                    B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
-                                                                        attention_type=args.attention_type,
-                                                                        attention_intensity=args.attention_intensity)
-                    if args.attention_type == "attention-gan":
-                        A_attention_image = AttentionImage(A, A_heatmap)
-                        B_attention_image = AttentionImage(B, B_heatmap)
-                        A2B, B2A, = sample(A, B, A_attention_image, B_attention_image)
-                    elif args.attention_type == "spa-gan":
-                        A2B, B2A, = sample(A_attention, B_attention)
+                    if args.attention_type == "none":
+                        A2B, B2A, = sample(A, B)
+                    else:  # Attention
+                        A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
+                                                                            attention_type=args.attention_type,
+                                                                            attention_intensity=args.attention_intensity)
+                        B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
+                                                                            attention_type=args.attention_type,
+                                                                            attention_intensity=args.attention_intensity)
+                        if args.attention_type == "attention-gan":
+                            A_attention_image = AttentionImage(A, A_heatmap)
+                            B_attention_image = AttentionImage(B, B_heatmap)
+                            A2B, B2A, = sample(A, B, A_attention_image, B_attention_image)
+                        elif args.attention_type == "spa-gan":
+                            A2B, B2A, = sample(A_attention, B_attention)
 
-                if args.attention_type != "none":  # Save with attention
-                    if args.dataset == "mura":
-                        imgs = [A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A]
-                        save_mura_images_with_attention(imgs, clf, args.dataset, execution_id, ep_cnt, batch_count)
-                    else:
-                        save_images_with_attention(A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A, clf,
-                                                   args.dataset, execution_id, ep_cnt, batch_count)
-                else:  # Save without attention
-                    if args.dataset == "mura":
-                        imgs = [A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A]
-                        save_mura_images(imgs, clf, args.dataset, execution_id, ep_cnt, batch_count)
-                    else:
-                        save_images(A, A2B, B, B2A, args.dataset, execution_id, ep_cnt, batch_count)
-            batch_count += 1
-        # # summary
-        tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
-        tl.summary(D_loss_dict, step=G_optimizer.iterations, name='D_losses')
-        tl.summary({'learning rate': G_lr_scheduler.current_learning_rate}, step=G_optimizer.iterations,
-                   name='learning rate')
+                    if args.attention_type != "none":  # Save with attention
+                        if args.dataset == "mura":
+                            imgs = [A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A]
+                            save_mura_images_with_attention(imgs, clf, args.dataset, execution_id, ep_cnt, batch_count)
+                        else:
+                            save_images_with_attention(A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A,
+                                                       clf,
+                                                       args.dataset, execution_id, ep_cnt, batch_count)
+                    else:  # Save without attention
+                        if args.dataset == "mura":
+                            imgs = [A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A]
+                            save_mura_images(imgs, clf, args.dataset, execution_id, ep_cnt, batch_count)
+                        else:
+                            save_images(A, A2B, B, B2A, args.dataset, execution_id, ep_cnt, batch_count)
+                batch_count += 1
+            # # summary
+            tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
+            tl.summary(D_loss_dict, step=G_optimizer.iterations, name='D_losses')
+            tl.summary({'learning rate': G_lr_scheduler.current_learning_rate}, step=G_optimizer.iterations,
+                       name='learning rate')
 
         # save checkpoint
-        if ep > 20 and ep < 25:
+        if ep % 10 == 0:
             checkpoint.save(ep)
