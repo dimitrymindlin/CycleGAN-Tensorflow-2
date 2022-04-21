@@ -1,5 +1,4 @@
 import functools
-import json
 import os
 import time
 from datetime import datetime
@@ -18,45 +17,12 @@ import numpy as np
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
 from tf_keras_vis.gradcam import Gradcam
-from sklearn.metrics import accuracy_score
 
 import data
 import module
-from imlib.attention_image import AttentionImage, add_background_to_img
-
-
-def save_images(imgs, clf, ep_cnt, batch_count):
-    r, c = 2, 4
-    titles = ['Original', 'Attention', 'Input Image', 'Translated']
-    classification = [['Normal', 'Abnormal'][int(np.argmax(clf.predict(x)))] for x in imgs]
-    gen_imgs = np.concatenate(imgs)
-    gen_imgs = 0.5 * gen_imgs + 0.5
-    if args.dataset == "mura":
-        correct_classification = ['Normal', 'Normal', 'Normal', 'Abnormal',
-                                  'Abnormal', 'Abnormal', 'Abnormal', 'Normal']
-    else:
-        correct_classification = ['A', 'A', 'A', 'B',
-                                  'B', 'A', 'A', 'A']
-    fig, axs = plt.subplots(r, c, figsize=(30, 20))
-    cnt = 0
-    for i in range(r):
-        for j in range(c):
-            if args.dataset == "mura":
-                axs[i, j].imshow(gen_imgs[cnt][:, :, 0], cmap='gray')
-            else:
-                axs[i, j].imshow(gen_imgs[cnt][:, :, 0])
-            if j in [0, 3]:
-                axs[i, j].set_title(
-                    f'{titles[j]} T: ({correct_classification[cnt]} | P: {classification[cnt]})')
-            else:
-                axs[i, j].set_title(f'{titles[j]}')
-            axs[i, j].axis('off')
-            cnt += 1
-    img_folder = f'output_{args.dataset}/{execution_id}/images'
-    os.makedirs(img_folder, exist_ok=True)
-    fig.savefig(f"{img_folder}/%d_%d.png" % (ep_cnt, batch_count))
-    plt.close()
-
+from attention_strategies.attention_strategies import attention_gan_original, attention_gan_foreground
+from imlib import save_mura_images, save_mura_images_with_attention, save_images, save_images_with_attention
+from imlib.attention_image import AttentionImage, add_images
 
 # ==============================================================================
 # =                                   param                                    =
@@ -85,6 +51,7 @@ like experience replay."""
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
 py.arg('--attention_type', type=str, default="none", choices=['attention-gan', 'spa-gan', 'none'])
 py.arg('--attention_intensity', type=float, default=0.5)
+py.arg('--attention_gan_original', type=bool, default=True)
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 args = py.args()
 
@@ -227,19 +194,10 @@ def train_D(A, B, A2B, B2A):
 
 def train_step(A, B, A_attention_image=None, B_attention_image=None):
     if args.attention_type == "attention-gan":  # Attention Gan approach
-        # Transform important areas
-        A2B_foreground = G_A2B(A_attention_image.foreground, training=True)
-        A_attention_image.transformed_foreground = A2B_foreground
-        B2A_foreground = G_B2A(B_attention_image.foreground, training=True)
-        B_attention_image.transformed_foreground = B2A_foreground
-        # Combine new transformed foreground with background
-        A2B = add_background_to_img(A2B_foreground, A_attention_image.background)
-        B2A = add_background_to_img(B2A_foreground, B_attention_image.background)
-        # Cycle
-        A2B2A_foreground = G_B2A(A_attention_image.transformed_foreground, training=True)
-        A2B2A = add_background_to_img(A2B2A_foreground, A_attention_image.background)
-        B2A2B_foreground = G_A2B(B_attention_image.transformed_foreground, training=True)
-        B2A2B = add_background_to_img(B2A2B_foreground, B_attention_image.background)
+        if args.attention_gan_original:
+            A2B, B2A, A2B2A, B2A2B = attention_gan_original(A, B, G_A2B, G_B2A, A_attention_image, B_attention_image)
+        else:
+            A2B, B2A, A2B2A, B2A2 = attention_gan_foreground(G_A2B, G_B2A, A_attention_image, B_attention_image)
         A2B, B2A, G_loss_dict = train_G(A, B, A2B, B2A, A2B2A, B2A2B)
     else:  # spa-gan or none
         A2B, B2A, G_loss_dict = train_G(A, B)
@@ -260,8 +218,8 @@ def sample(A, B, A_attention_image=None, B_attention_image=None):
         A2B_foreground = G_A2B(A_attention_image.foreground, training=True)
         B2A_foreground = G_B2A(B_attention_image.foreground, training=True)
         # Combine new transformed foreground with background
-        A2B = add_background_to_img(A2B_foreground, A_attention_image.background)
-        B2A = add_background_to_img(B2A_foreground, B_attention_image.background)
+        A2B = add_images(A2B_foreground, A_attention_image.background)
+        B2A = add_images(B2A_foreground, B_attention_image.background)
     else:  # spa-gan or none
         A2B = G_A2B(A, training=False)
         B2A = G_B2A(B, training=False)
@@ -320,110 +278,59 @@ with train_summary_writer.as_default():
         for A, B in tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset):
             A_attention_image = None
             B_attention_image = None
-            if args.attention_type == "attention-gan":
-                # Attention-GAN splits fore and background and puts them together after transformation
-                _, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0, attention_type=args.attention_type,
-                                                          attention_intensity=args.attention_intensity)
-                _, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1, attention_type=args.attention_type,
-                                                          attention_intensity=args.attention_intensity)
-                A_attention_image = AttentionImage(A, A_heatmap)
-                B_attention_image = AttentionImage(B, B_heatmap)
-                G_loss_dict, D_loss_dict = train_step(A, B, A_attention_image, B_attention_image)
-            elif args.attention_type == "spa-gan":
-                # Spa-gan puts the attention on the input image -> changes input img
-                A, _ = attention_maps.get_gradcam(A, gradcam, 0, attention_type=args.attention_type,
-                                                  attention_intensity=args.attention_intensity)
-                B, _ = attention_maps.get_gradcam(B, gradcam, 1, attention_type=args.attention_type,
-                                                  attention_intensity=args.attention_intensity)
+            if args.attention_type == "none":
                 G_loss_dict, D_loss_dict = train_step(A, B)
-            else:  # none
-                G_loss_dict, D_loss_dict = train_step(A, B)
+            else:  # Attention
+                A, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0, attention_type=args.attention_type,
+                                                          attention_intensity=args.attention_intensity)
+                B, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1, attention_type=args.attention_type,
+                                                          attention_intensity=args.attention_intensity)
+                if args.attention_type == "attention-gan":
+                    # Attention-GAN splits fore and background and puts them together after transformation
+                    A_attention_image = AttentionImage(A, A_heatmap)
+                    B_attention_image = AttentionImage(B, B_heatmap)
+                    G_loss_dict, D_loss_dict = train_step(A, B, A_attention_image, B_attention_image)
+                else:  # Spa-gan
+                    # Spa-gan puts the attention on the input image -> changes input img
+                    G_loss_dict, D_loss_dict = train_step(A, B)
 
             # sample
             if G_optimizer.iterations.numpy() % 200 == 0 or G_optimizer.iterations.numpy() == 1:
-                A, B = next(test_iter)
-                if args.attention_type == "attention-gan":
-                    # Attention-GAN splits fore and background and puts them together after transformation
-                    A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
-                                                                        attention_type=args.attention_type,
-                                                                        attention_intensity=args.attention_intensity)
-                    B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
-                                                                        attention_type=args.attention_type,
-                                                                        attention_intensity=args.attention_intensity)
-                    A_attention_image = AttentionImage(A, A_heatmap)
-                    B_attention_image = AttentionImage(B, B_heatmap)
-                    A2B, B2A, = sample(A, B, A_attention_image, B_attention_image)
-                elif args.attention_type == "spa-gan":
-                    # Attention for images
-                    A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
-                                                                        attention_type=args.attention_type,
-                                                                        attention_intensity=args.attention_intensity)
-                    B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
-                                                                        attention_type=args.attention_type,
-                                                                        attention_intensity=args.attention_intensity)
-                    A2B, B2A, = sample(A_attention, B_attention)
-                else:
-                    A2B, B2A, = sample(A, B)
+                try:
+                    A, B = next(test_iter)
+                except StopIteration:  # When all elements finished
+                    # Create new iterator
+                    test_iter = iter(A_B_dataset_test)
 
-                if args.attention_type != "none":
+                if args.attention_type == "none":
+                    A2B, B2A, = sample(A, B)
+                else:  # Attention
+                    A_attention, A_heatmap = attention_maps.get_gradcam(A, gradcam, 0,
+                                                                        attention_type=args.attention_type,
+                                                                        attention_intensity=args.attention_intensity)
+                    B_attention, B_heatmap = attention_maps.get_gradcam(B, gradcam, 1,
+                                                                        attention_type=args.attention_type,
+                                                                        attention_intensity=args.attention_intensity)
+                    if args.attention_type == "attention-gan":
+                        A_attention_image = AttentionImage(A, A_heatmap)
+                        B_attention_image = AttentionImage(B, B_heatmap)
+                        A2B, B2A, = sample(A, B, A_attention_image, B_attention_image)
+                    elif args.attention_type == "spa-gan":
+                        A2B, B2A, = sample(A_attention, B_attention)
+
+                if args.attention_type != "none":  # Save with attention
                     if args.dataset == "mura":
                         imgs = [A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A]
-                        save_images(imgs, clf, ep_cnt, batch_count)
+                        save_mura_images_with_attention(imgs, clf, args.dataset, execution_id, ep_cnt, batch_count)
                     else:
-                        img = im.immerge(
-                            np.concatenate([A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A], axis=0),
-                            n_rows=2)
-                        classification = [['A', 'B'][int(np.argmax(clf.predict(x)))] for x in [A, A2B, B, B2A]]
-                        AB_correct, BA_correct = False, False
-                        if classification[0] == 'A' and classification[1] == "B":
-                            AB_correct = True
-                        if classification[2] == 'B' and classification[3] == "A":
-                            BA_correct = True
-                        img_folder = f'output_{args.dataset}/{execution_id}/images'
-                        try:
-                            im.imwrite(img,
-                                       f"{img_folder}/%d_%d_AB:{AB_correct}_BA:{BA_correct}.png" % (
-                                           ep_cnt, batch_count))
-                        except (AssertionError, AttributeError, OSError):
-                            print(f"Wasn't able to print image {ep_cnt}_{batch_count}")
-                            continue  # Some image contains nan ... just skip it
-                else:
+                        save_images_with_attention(A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A, clf,
+                                                   args.dataset, execution_id, ep_cnt, batch_count)
+                else:  # Save without attention
                     if args.dataset == "mura":
-                        imgs = [A, A2B, B, B2A]
-                        r, c = 2, 2
-                        titles = ['Original', 'Translated', 'Original', 'Translated']
-                        classification = [['Normal', 'Abnormal'][int(np.argmax(clf.predict(x)))] for x in imgs]
-                        gen_imgs = np.concatenate(imgs)
-                        gen_imgs = 0.5 * gen_imgs + 0.5
-                        if args.dataset == "mura":
-                            correct_classification = ['Normal', 'Abnormal',
-                                                      'Abnormal', 'Normal']
-                        else:
-                            correct_classification = ['A', 'B',
-                                                      'B', 'A']
-                        fig, axs = plt.subplots(r, c, figsize=(30, 20))
-                        cnt = 0
-                        for i in range(r):
-                            for j in range(c):
-                                if args.dataset == "mura":
-                                    axs[i, j].imshow(gen_imgs[cnt][:, :, 0], cmap='gray')
-                                else:
-                                    axs[i, j].imshow(gen_imgs[cnt][:, :, 0])
-                                if j in [0, 3]:
-                                    axs[i, j].set_title(
-                                        f'{titles[j]} T: ({correct_classification[cnt]} | P: {classification[cnt]})')
-                                else:
-                                    axs[i, j].set_title(f'{titles[j]}')
-                                axs[i, j].axis('off')
-                                cnt += 1
-                        img_folder = f'output_{args.dataset}/{execution_id}/images'
-                        os.makedirs(img_folder, exist_ok=True)
-                        fig.savefig(f"{img_folder}/%d_%d.png" % (ep_cnt, batch_count))
-                        plt.close()
+                        imgs = [A, A_heatmap, A_attention, A2B, B, B_heatmap, B_attention, B2A]
+                        save_mura_images(imgs, clf, args.dataset, execution_id, ep_cnt, batch_count)
                     else:
-                        img = im.immerge(np.concatenate([A, A2B, B, B2A], axis=0), n_rows=2)
-                        img_folder = f'output_{args.dataset}/{execution_id}/images'
-                        im.imwrite(img, f"{img_folder}/%d_%d.png" % (ep_cnt, batch_count))
+                        save_images(A, A2B, B, B2A, args.dataset, execution_id, ep_cnt, batch_count)
             batch_count += 1
         # # summary
         tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')

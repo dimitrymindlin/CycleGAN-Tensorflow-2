@@ -3,7 +3,7 @@ import tensorflow as tf
 from imlib import scale_to_zero_one, scale_to_minus_one_one
 
 
-def add_background_to_img(foreground, background):
+def add_images(foreground, background):
     """
     Expects foreground and background to be in range [-1,1]
     Return image in [-1,1]
@@ -27,6 +27,12 @@ def get_background(img, attention):
     """
     img = tf.math.multiply(tf.math.subtract(1, attention), img)
     return tf.math.divide(img, tf.math.reduce_max(img))
+
+def multiply_images(img1, img2):
+    img1 = scale_to_zero_one(img1)
+    img2 = scale_to_zero_one(img2)
+    img = tf.math.multiply(img1, img2)
+    return scale_to_minus_one_one(tf.math.divide(img, tf.math.reduce_max(img)))
 
 
 class AttentionImage():
