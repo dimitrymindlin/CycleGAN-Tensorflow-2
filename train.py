@@ -22,13 +22,13 @@ import data
 import module
 from attention_strategies.attention_strategies import attention_gan_original, attention_gan_foreground, spa_gan
 from imlib import save_mura_images, save_mura_images_with_attention, save_images, save_images_with_attention
-from imlib.attention_image import AttentionImage, add_images
+from imlib.attention_image import AttentionImage
 
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
 
-py.arg('--dataset', default='apple2orange')
+py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=520)  # load image to this size
 py.arg('--crop_size', type=int, default=512)  # then crop to this size
@@ -43,7 +43,7 @@ py.arg('--gradient_penalty_weight', type=float, default=1)
 py.arg('--cycle_loss_weight', type=float, default=1)
 py.arg('--counterfactual_loss_weight', type=float, default=1)
 py.arg('--identity_loss_weight', type=float, default=0.0)
-py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
+py.arg('--pool_size', type=int, default=25)  # pool size to store fake samples
 """pool_size: the discriminator is trained against the current batch of generated images as well as images generated on 
 previous iterations. Essentially, we remember the last pool_size generated images then randomly sample from this pool 
 to create a batch_size batch of images to do one iteration of backprop on. This helps to stabilize training, kind of 
