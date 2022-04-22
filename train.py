@@ -310,7 +310,7 @@ with train_summary_writer.as_default():
                 G_loss_dict, D_loss_dict = train_step(A_attention_image, B_attention_image)
 
             # sample
-            if ep == 0 or ep > (args.epochs/2):
+            if ep == 0 or ep > int((args.epochs/2)):
                 if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1:
                     try:
                         A, B = next(test_iter)
@@ -330,19 +330,19 @@ with train_summary_writer.as_default():
                         if args.dataset == "mura":
                             imgs = [A, A_attention_image.attention, A_attention_image.transformed_part, A2B,
                                     B, B_attention_image.attention, B_attention_image.transformed_part, B2A]
-                            save_mura_images_with_attention(imgs, clf, args.dataset, execution_id, ep_cnt, batch_count,
+                            save_mura_images_with_attention(imgs, clf, args.dataset, execution_id, ep, batch_count,
                                                             attention_gan_original=args.attention_gan_original)
                         else:
                             save_images_with_attention(A_attention_image, A2B, B_attention_image, B2A,
-                                                       clf, args.dataset, execution_id, ep_cnt, batch_count,
+                                                       clf, args.dataset, execution_id, ep, batch_count,
                                                        args.attention_type)
                     else:  # Save without attention
                         if args.dataset == "mura":
                             imgs = [A, A2B, B, B2A]
-                            save_mura_images(imgs, clf, args.dataset, execution_id, ep_cnt, batch_count)
+                            save_mura_images(imgs, clf, args.dataset, execution_id, ep, batch_count)
                         else:
-                            save_images(A, A2B, B, B2A, args.dataset, execution_id, ep_cnt, batch_count)
-                batch_count += 1
+                            save_images(A, A2B, B, B2A, args.dataset, execution_id, ep, batch_count)
+            batch_count += 1
             # # summary
             tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
             tl.summary(D_loss_dict, step=G_optimizer.iterations, name='D_losses')
