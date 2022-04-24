@@ -232,7 +232,7 @@ def sample(A, B):
             A2B, B2A = attention_gan_foreground(A, B, G_A2B, G_B2A, training=False)
     elif args.attention_type == "spa-gan":
         A2B, B2A = spa_gan(A, B, G_A2B, G_B2A, training=False)
-    else:  # spa-gan or none
+    else:  # none
         A2B = G_A2B(A, training=False)
         B2A = G_B2A(B, training=False)
     return A2B, B2A
