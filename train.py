@@ -21,7 +21,8 @@ from tf_keras_vis.gradcam import Gradcam
 import data
 import module
 from attention_strategies.attention_strategies import attention_gan_original, attention_gan_foreground, spa_gan
-from imlib import save_mura_images, save_mura_images_with_attention, save_images, save_images_with_attention
+from imlib import save_mura_images, save_mura_images_with_attention, save_images, save_images_with_attention, \
+    generate_image
 from imlib.attention_image import AttentionImage
 
 # ==============================================================================
@@ -33,8 +34,8 @@ py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=520)  # load image to this size
 py.arg('--crop_size', type=int, default=512)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
-py.arg('--epochs', type=int, default=50)
-py.arg('--epoch_decay', type=int, default=25)  # epoch to start decaying learning rate
+py.arg('--epochs', type=int, default=30)
+py.arg('--epoch_decay', type=int, default=15)  # epoch to start decaying learning rate
 py.arg('--lr', type=float, default=0.0002)
 py.arg('--beta_1', type=float, default=0.5)
 py.arg('--adversarial_loss_mode', default='lsgan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
@@ -43,7 +44,7 @@ py.arg('--gradient_penalty_weight', type=float, default=1)
 py.arg('--cycle_loss_weight', type=float, default=1)
 py.arg('--counterfactual_loss_weight', type=float, default=1)
 py.arg('--identity_loss_weight', type=float, default=0.0)
-py.arg('--pool_size', type=int, default=25)  # pool size to store fake samples
+py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 """pool_size: the discriminator is trained against the current batch of generated images as well as images generated on 
 previous iterations. Essentially, we remember the last pool_size generated images then randomly sample from this pool 
 to create a batch_size batch of images to do one iteration of backprop on. This helps to stabilize training, kind of 
@@ -296,6 +297,8 @@ with train_summary_writer.as_default():
         if ep < ep_cnt:
             continue
 
+        mean_epoch_loss = tf.metrics.Mean()
+
         # update epoch counter
         ep_cnt.assign_add(1)
 
@@ -310,7 +313,7 @@ with train_summary_writer.as_default():
                 G_loss_dict, D_loss_dict = train_step(A_attention_image, B_attention_image)
 
             # sample
-            if ep == 0 or ep > int((args.epochs/2)):
+            if ep == 0 or ep >= 10:
                 if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1:
                     try:
                         A, B = next(test_iter)
@@ -326,28 +329,16 @@ with train_summary_writer.as_default():
                         A2B, B2A = sample(A_attention_image, B_attention_image)
 
                     # Save images
-                    if args.attention_type != "none":  # Save with attention
-                        if args.dataset == "mura":
-                            imgs = [A, A_attention_image.attention, A_attention_image.transformed_part, A2B,
-                                    B, B_attention_image.attention, B_attention_image.transformed_part, B2A]
-                            save_mura_images_with_attention(imgs, clf, args.dataset, execution_id, ep, batch_count,
-                                                            attention_gan_original=args.attention_gan_original)
-                        else:
-                            save_images_with_attention(A_attention_image, A2B, B_attention_image, B2A,
-                                                       clf, args.dataset, execution_id, ep, batch_count,
-                                                       args.attention_type)
-                    else:  # Save without attention
-                        if args.dataset == "mura":
-                            imgs = [A, A2B, B, B2A]
-                            save_mura_images(imgs, clf, args.dataset, execution_id, ep, batch_count)
-                        else:
-                            save_images(A, A2B, B, B2A, args.dataset, execution_id, ep, batch_count)
+                    generate_image(args, clf, A, B, A2B, B2A,
+                                   execution_id, ep, batch_count,
+                                   A_attention_image=A_attention_image,
+                                   B_attention_image=B_attention_image)
             batch_count += 1
             # # summary
-            tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
-            tl.summary(D_loss_dict, step=G_optimizer.iterations, name='D_losses')
-            tl.summary({'learning rate': G_lr_scheduler.current_learning_rate}, step=G_optimizer.iterations,
-                       name='learning rate')
+        tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
+        tl.summary(D_loss_dict, step=G_optimizer.iterations, name='D_losses')
+        tl.summary({'learning rate': G_lr_scheduler.current_learning_rate}, step=G_optimizer.iterations,
+                   name='learning rate')
 
         # save checkpoint
         if ep % 10 == 0:
