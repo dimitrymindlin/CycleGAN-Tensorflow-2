@@ -2,11 +2,6 @@ import functools
 import os
 import time
 from datetime import datetime
-
-from matplotlib import pyplot as plt
-
-import attention_maps
-import imlib as im
 import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
@@ -21,8 +16,7 @@ from tf_keras_vis.gradcam import Gradcam
 import data
 import module
 from attention_strategies.attention_strategies import attention_gan_original, attention_gan_foreground, spa_gan
-from imlib import save_mura_images, save_mura_images_with_attention, save_images, save_images_with_attention, \
-    generate_image
+from imlib import generate_image
 from imlib.attention_image import AttentionImage
 
 # ==============================================================================
@@ -118,30 +112,14 @@ class_B_ground_truth = np.stack([np.zeros(args.batch_size), np.ones(args.batch_s
 @tf.function
 def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
     with tf.GradientTape() as t:
-        if args.attention_type == "none":
-            # Transformation
-            A2B = G_A2B(A, training=True)
-            B2A = G_B2A(B, training=True)
-            # Cycle
-            A2B2A = G_B2A(A2B, training=True)
-            B2A2B = G_A2B(B2A, training=True)
-            # Identity
-            A2A = G_B2A(A, training=True)
-            B2B = G_A2B(B, training=True)
-            A2A_id_loss = identity_loss_fn(A, A2A)
-            B2B_id_loss = identity_loss_fn(B, B2B)
-            # cycle
-            A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
-            B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
-        else:
-            # Identity
-            A2A = G_B2A(A.img, training=True)
-            B2B = G_A2B(B.img, training=True)
-            A2A_id_loss = identity_loss_fn(A.img, A2A)
-            B2B_id_loss = identity_loss_fn(B.img, B2B)
-            # cycle
-            A2B2A_cycle_loss = cycle_loss_fn(A.img, A2B2A)
-            B2A2B_cycle_loss = cycle_loss_fn(B.img, B2A2B)
+        # Identity
+        A2A = G_B2A(A, training=True)
+        B2B = G_A2B(B, training=True)
+        A2A_id_loss = identity_loss_fn(A, A2A)
+        B2B_id_loss = identity_loss_fn(B, B2B)
+        # cycle
+        A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
+        B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
 
         A2B_d_logits = D_B(A2B, training=True)
         B2A_d_logits = D_A(B2A, training=True)
@@ -200,7 +178,6 @@ def train_D(A, B, A2B, B2A):
             'D_B_gp': D_B_gp,
             }
 
-
 def train_step(A, B):
     """
     Parameters
@@ -214,12 +191,18 @@ def train_step(A, B):
             A2B, B2A, A2B2A, B2A2B = attention_gan_original(A, B, G_A2B, G_B2A, training=True)
         else:
             A2B, B2A, A2B2A, B2A2B = attention_gan_foreground(A, B, G_A2B, G_B2A, training=True)
-        A2B, B2A, G_loss_dict = train_G(A, B, A2B, B2A, A2B2A, B2A2B)
+        A2B, B2A, G_loss_dict = train_G(A.img, B.img, A2B, B2A, A2B2A, B2A2B)
     elif args.attention_type == "spa-gan":
         A2B, B2A, A2B2A, B2A2B = spa_gan(A, B, G_A2B, G_B2A, training=True)
-        A2B, B2A, G_loss_dict = train_G(A, B, A2B, B2A, A2B2A, B2A2B)
+        A2B, B2A, G_loss_dict = train_G(A.img, B.img, A2B, B2A, A2B2A, B2A2B)
     else:
-        A2B, B2A, G_loss_dict = train_G(A, B)
+        # Transformation
+        A2B = G_A2B(A, training=True)
+        B2A = G_B2A(B, training=True)
+        # Cycle
+        A2B2A = G_B2A(A2B, training=True)
+        B2A2B = G_A2B(B2A, training=True)
+        A2B, B2A, G_loss_dict = train_G(A, B, A2B, B2A, A2B2A, B2A2B)
 
     # cannot autograph `A2B_pool`
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
