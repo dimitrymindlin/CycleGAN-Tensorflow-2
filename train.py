@@ -2,6 +2,7 @@ import functools
 import os
 import time
 from datetime import datetime
+
 import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
@@ -101,6 +102,19 @@ G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epo
 D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
 G_optimizer = keras.optimizers.Adam(learning_rate=G_lr_scheduler, beta_1=args.beta_1)
 D_optimizer = keras.optimizers.Adam(learning_rate=D_lr_scheduler, beta_1=args.beta_1)
+optimizer = keras.optimizers.Adam(learning_rate=D_lr_scheduler, beta_1=args.beta_1)
+D_A.compile(loss='mse',
+            optimizer=D_optimizer,
+            metrics=['binary_crossentropy'])
+D_B.compile(loss='mse',
+            optimizer=D_optimizer,
+            metrics=['binary_crossentropy'])
+
+patch = int(512 / 2 ** 3)
+disc_patch = (patch, patch, 1)
+valid = np.ones((args.batch_size,) + disc_patch)
+fake = np.zeros((args.batch_size,) + disc_patch)
+
 class_A_ground_truth = np.stack([np.ones(args.batch_size), np.zeros(args.batch_size)]).T
 class_B_ground_truth = np.stack([np.zeros(args.batch_size), np.ones(args.batch_size)]).T
 
@@ -109,7 +123,7 @@ class_B_ground_truth = np.stack([np.zeros(args.batch_size), np.ones(args.batch_s
 # =                                 train step                                 =
 # ==============================================================================
 
-@tf.function
+# @tf.function
 def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
     with tf.GradientTape() as t:
         # Identity
@@ -147,36 +161,46 @@ def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
                       'B2A_counterfactual_loss': B2A_counterfactual_loss}
 
 
-@tf.function
+# @tf.function
 def train_D(A, B, A2B, B2A):
     with tf.GradientTape() as t:
-        A_d_logits = D_A(A, training=True)
-        B2A_d_logits = D_A(B2A, training=True)
-        B_d_logits = D_B(B, training=True)
-        A2B_d_logits = D_B(A2B, training=True)
+        fake_P = A2B
+        fake_N = B2A
+        # Train the discriminators (original images = real (valid) / translated = Fake)
+        dN_loss_real = D_A.train_on_batch(A, valid)
+        dN_loss_fake = D_A.train_on_batch(fake_N, fake)
+        dN_loss = np.add(dN_loss_real, dN_loss_fake)
 
-        # Get classes for accuracy
-        """prediction_A_d = tf.math.argmax(tf.nn.softmax(A_d_logits), 0)
-        prediction_B2A_d = tf.math.argmax(tf.nn.softmax(B2A_d_logits), 0)
-        prediction_B_d = tf.math.argmax(tf.nn.softmax(B_d_logits), 0)
-        prediction_A2B_d = tf.math.argmax(tf.nn.softmax(A2B_d_logits), 0)
-        y_pred = [prediction_A_d, prediction_B2A_d, prediction_B_d, prediction_A2B_d]"""
+        dP_loss_real = D_B.train_on_batch(B, valid)
+        dP_loss_fake = D_B.train_on_batch(fake_P, fake)
+        dP_loss = np.add(dP_loss_real, dP_loss_fake)
+
+        # Total disciminator loss
+        d_loss = 0.5 * np.add(dN_loss, dP_loss)
+
+        A_d_logits = D_A(A, training=False)
+        B2A_d_logits = D_A(B2A, training=False)
+        B_d_logits = D_B(B, training=False)
+        A2B_d_logits = D_B(A2B, training=False)
 
         A_d_loss, B2A_d_loss = d_loss_fn(A_d_logits, B2A_d_logits)
         B_d_loss, A2B_d_loss = d_loss_fn(B_d_logits, A2B_d_logits)
-        D_A_gp = gan.gradient_penalty(functools.partial(D_A, training=True), A, B2A, mode=args.gradient_penalty_mode)
-        D_B_gp = gan.gradient_penalty(functools.partial(D_B, training=True), B, A2B, mode=args.gradient_penalty_mode)
 
-        D_loss = (A_d_loss + B2A_d_loss) + (B_d_loss + A2B_d_loss) + (D_A_gp + D_B_gp) * args.gradient_penalty_weight
+        D_loss = (A_d_loss + B2A_d_loss) + (B_d_loss + A2B_d_loss)
 
     D_grad = t.gradient(D_loss, D_A.trainable_variables + D_B.trainable_variables)
     D_optimizer.apply_gradients(zip(D_grad, D_A.trainable_variables + D_B.trainable_variables))
 
     return {'A_d_loss': A_d_loss + B2A_d_loss,
             'B_d_loss': B_d_loss + A2B_d_loss,
-            'D_A_gp': D_A_gp,
-            'D_B_gp': D_B_gp,
+            'Total_loss': (A_d_loss + B2A_d_loss + B_d_loss + A2B_d_loss) / 2,
+            'dN_loss': dN_loss,
+            'dP_loss': dP_loss,
+            'A_d_accuracy': dN_loss[1],
+            'B_d_accuracy': dP_loss[1],
+            'Total_accuracy': d_loss[1]
             }
+
 
 def train_step(A, B):
     """
@@ -295,8 +319,14 @@ with train_summary_writer.as_default():
                 B_attention_image = AttentionImage(B, 1, gradcam, args.attention_type, args.attention_intensity)
                 G_loss_dict, D_loss_dict = train_step(A_attention_image, B_attention_image)
 
-            # sample
-            if ep == 0 or ep >= 10:
+            # summary
+            tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
+            tl.summary(D_loss_dict, step=G_optimizer.iterations, name='D_losses')
+            tl.summary({'learning rate': G_lr_scheduler.current_learning_rate}, step=G_optimizer.iterations,
+                       name='learning rate')
+
+            # sample every few epochs
+            if ep == 0 or ep > 15 or ep % 3 == 0:
                 if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1:
                     try:
                         A, B = next(test_iter)
@@ -316,13 +346,9 @@ with train_summary_writer.as_default():
                                    execution_id, ep, batch_count,
                                    A_attention_image=A_attention_image,
                                    B_attention_image=B_attention_image)
+
             batch_count += 1
-            # # summary
-        tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
-        tl.summary(D_loss_dict, step=G_optimizer.iterations, name='D_losses')
-        tl.summary({'learning rate': G_lr_scheduler.current_learning_rate}, step=G_optimizer.iterations,
-                   name='learning rate')
 
         # save checkpoint
-        if ep % 10 == 0:
+        if ep % 5 == 0:
             checkpoint.save(ep)
