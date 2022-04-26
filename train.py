@@ -167,11 +167,11 @@ def train_D(A, B, A2B, B2A):
         # Train the discriminators (original images = real (valid) / translated = Fake)
         D_A_real = D_A.train_on_batch(A, valid)
         D_A_fake = D_A.train_on_batch(B2A, fake)
-        D_A_loss = np.add(D_A_real, D_A_fake)
+        D_A_loss = 0.5 * np.add(D_A_real, D_A_fake)
 
         D_B_real = D_B.train_on_batch(B, valid)
         D_B_fake = D_B.train_on_batch(A2B, fake)
-        D_B_loss = np.add(D_B_real, D_B_fake)
+        D_B_loss = 0.5 * np.add(D_B_real, D_B_fake)
 
         # Total disciminator loss
         total_loss = 0.5 * np.add(D_A_loss, D_B_loss)
