@@ -143,7 +143,7 @@ def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
         A2B_counterfactual_loss = counterfactual_loss_nf(class_B_ground_truth, clf(A2B))
         B2A_counterfactual_loss = counterfactual_loss_nf(class_A_ground_truth, clf(B2A))
 
-        G_loss = (A2B_g_loss + B2A_g_loss) * args.discriminator_loss \
+        G_loss = (A2B_g_loss + B2A_g_loss) * args.discriminator_loss_weight \
                  + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
                  + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
                  (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight
