@@ -45,7 +45,7 @@ to create a batch_size batch of images to do one iteration of backprop on. This 
 like experience replay."""
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
 py.arg('--attention_type', type=str, default="attention-gan", choices=['attention-gan', 'spa-gan', 'none'])
-py.arg('--attention_intensity', type=float, default=0.3)
+py.arg('--attention_intensity', type=float, default=0.5)
 py.arg('--attention_gan_original', type=bool, default=False)
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 args = py.args()
