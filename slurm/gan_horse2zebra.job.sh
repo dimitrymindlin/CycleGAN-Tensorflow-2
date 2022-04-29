@@ -5,7 +5,7 @@ cd /media/compute/homes/dmindlin/CycleGAN-Tensorflow-2
 
 python3 -m train \
   --dataset horse2zebra \
-  --generator unet \
+  --generator resnet \
   --attention_type spa-gan \
   --attention_gan_original False \
   --discriminator_loss_weight 5 \
