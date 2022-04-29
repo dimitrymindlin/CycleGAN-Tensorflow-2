@@ -64,13 +64,9 @@ def save_mura_images(imgs, clf, dataset, execution_id, ep_cnt, batch_count):
     plt.close()
 
 
-def save_mura_images_with_attention(imgs, clf, dataset, execution_id, ep_cnt, batch_count,
-                                    attention_gan_original=False):
+def save_mura_images_with_attention(imgs, clf, dataset, execution_id, ep_cnt, batch_count):
     r, c = 2, 4
-    if attention_gan_original:
-        titles = ['Original', 'Attention', 'Translated', 'Output']
-    else:
-        titles = ['Original', 'Attention', 'Translated', 'Translated']
+    titles = ['Original', 'Attention', 'Translated', 'Output']
     classification = [['Normal', 'Abnormal'][int(np.argmax(clf.predict(x)))] for x in imgs]
     gen_imgs = np.concatenate(imgs)
     gen_imgs = 0.5 * gen_imgs + 0.5

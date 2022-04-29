@@ -38,21 +38,21 @@ def multiply_images(img1, img2):
     return scale_to_minus_one_one(tf.math.divide(img, tf.math.reduce_max(img)))
 
 
-class AttentionImage():
-    def __init__(self, img, class_label, gradcam, attention_type, attention_intensity):
+class ImageHolder():
+    def __init__(self, img, class_label=None, gradcam=None, attention_type=None, attention=True):
         self.img = img  # original image
         self.attention = None  # heatmap
         self.foreground = None  # original image + heatmap
         self.background = None  # original image - heatmap
         self.enhanced_img = None  # original image * (heatmap + intensity)
         self.transformed_part = None  # depending on strategy, the part that should be transformed
-        self.get_attention(class_label, gradcam, attention_type, attention_intensity)
-        self.get_fore_and_backgroud_by_attention()
+        if attention:
+            self.get_attention(class_label, gradcam, attention_type)
+            self.get_fore_and_backgroud_by_attention()
 
-    def get_attention(self, class_label, gradcam, attention_type, attention_intensity):
+    def get_attention(self, class_label, gradcam, attention_type):
         enhanced_img, attention = attention_maps.get_gradcam(self.img, gradcam, class_label,
-                                                             attention_type=attention_type,
-                                                             attention_intensity=attention_intensity)
+                                                             attention_type=attention_type)
         self.attention = attention
         self.enhanced_img = enhanced_img
 

@@ -1,6 +1,6 @@
 ### Attention Gan Original
 # From "Attention-GAN for Object Transfiguration in Wild Images"
-from imlib.attention_image import add_images, multiply_images
+from imlib.image_holder import add_images, multiply_images
 
 
 def attention_gan_original(A, B, G_A2B, G_B2A, training=True):
@@ -74,6 +74,17 @@ def spa_gan(A, B, G_A2B, G_B2A, training=True):
         # Cycle
         A2B2A = G_B2A(A2B, training=training)
         B2A2B = G_A2B(A2B, training=training)
+        return A2B, B2A, A2B2A, B2A2B
+    else:
+        return A2B, B2A
+
+def no_attention(A, B, G_A2B, G_B2A, training=True):
+    A2B = G_A2B(A, training=True)
+    B2A = G_B2A(B, training=True)
+    if training:
+        # Cycle
+        A2B2A = G_B2A(A2B, training=True)
+        B2A2B = G_A2B(B2A, training=True)
         return A2B, B2A, A2B2A, B2A2B
     else:
         return A2B, B2A
