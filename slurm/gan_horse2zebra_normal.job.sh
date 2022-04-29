@@ -10,4 +10,4 @@ python3 -m train \
   --attention_gan_original False \
   --discriminator_loss_weight 5 \
   --cycle_loss_weight 10 \
-  --counterfactual_loss_weight 1
+  --counterfactual_loss_weight 0
