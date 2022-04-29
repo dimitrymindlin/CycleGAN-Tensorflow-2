@@ -1,5 +1,3 @@
-import functools
-import os
 import time
 from datetime import datetime
 
@@ -29,11 +27,11 @@ py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=520)  # load image to this size
 py.arg('--crop_size', type=int, default=512)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
-py.arg('--epochs', type=int, default=40)
-py.arg('--epoch_decay', type=int, default=20)  # epoch to start decaying learning rate
+py.arg('--epochs', type=int, default=30)
+py.arg('--epoch_decay', type=int, default=10)  # epoch to start decaying learning rate
 py.arg('--lr', type=float, default=0.0002)
 py.arg('--beta_1', type=float, default=0.5)
-py.arg('--adversarial_loss_mode', default='lsgan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
+py.arg('--adversarial_loss_mode', default='gan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
 py.arg('--discriminator_loss_weight', type=float, default=1)
 py.arg('--cycle_loss_weight', type=float, default=1)
 py.arg('--counterfactual_loss_weight', type=float, default=1)
@@ -90,7 +88,7 @@ D_B = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
 d_loss_fn, g_loss_fn = gan.get_adversarial_losses_fn(args.adversarial_loss_mode)
 cycle_loss_fn = tf.losses.MeanAbsoluteError()
 identity_loss_fn = tf.losses.MeanAbsoluteError()
-counterfactual_loss_nf = tf.losses.MeanSquaredError()
+counterfactual_loss_fn = tf.losses.MeanSquaredError()
 
 if args.dataset == "mura":
     clf = tf.keras.models.load_model(f"checkpoints/2022-03-24--12.42/model", compile=False)
@@ -140,8 +138,8 @@ def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
         A2B_g_loss = g_loss_fn(A2B_d_logits)
         B2A_g_loss = g_loss_fn(B2A_d_logits)
 
-        A2B_counterfactual_loss = counterfactual_loss_nf(class_B_ground_truth, clf(A2B))
-        B2A_counterfactual_loss = counterfactual_loss_nf(class_A_ground_truth, clf(B2A))
+        A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth, clf(A2B))
+        B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth, clf(B2A))
 
         G_loss = (A2B_g_loss + B2A_g_loss) * args.discriminator_loss_weight \
                  + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
