@@ -317,6 +317,8 @@ with train_summary_writer.as_default():
                     # Get images
                     if args.attention_type == "none":
                         A2B, B2A, = sample(A, B)
+                        A_attention_image = None
+                        B_attention_image = None
                     else:  # Attention
                         A_attention_image = AttentionImage(A, 0, gradcam, args.attention_type, args.attention_intensity)
                         B_attention_image = AttentionImage(B, 1, gradcam, args.attention_type, args.attention_intensity)
