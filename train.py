@@ -108,7 +108,7 @@ D_B.compile(loss='mse',
             optimizer=D_optimizer,
             metrics=['accuracy'])
 
-patch = int(512 / 2 ** 3)
+patch = int(512 / 2 ** 4)
 disc_patch = (patch, patch, 1)
 valid = np.ones((args.batch_size,) + disc_patch)
 fake = np.zeros((args.batch_size,) + disc_patch)

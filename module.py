@@ -1,8 +1,8 @@
 import tensorflow as tf
 import tensorflow_addons as tfa
 import tensorflow.keras as keras
-from keras import Input, Model
-from keras.layers import Conv2D, ReLU, LeakyReLU, UpSampling2D, Dropout, Concatenate
+from tensorflow.keras.layers import Input, LeakyReLU, Dropout, LeakyReLU, ReLU, Concatenate, UpSampling2D, Conv2D
+from tensorflow.keras.models import Model
 from tensorflow_addons.layers import InstanceNormalization
 
 
@@ -24,7 +24,7 @@ def _get_norm_layer(norm):
 
 def ResnetGenerator(input_shape=(256, 256, 3),
                     output_channels=3,
-                    filters=64,
+                    filters=32,
                     n_downsamplings=2,
                     n_blocks=9,
                     norm='instance_norm'):
@@ -150,13 +150,12 @@ def ConvDiscriminator(input_shape=(256, 256, 3),
 
     # 2
     dim = min(dim * 2, dim_ * 8)
-    h = keras.layers.Conv2D(dim, 4, strides=1, padding='same', use_bias=False)(h)
+    h = keras.layers.Conv2D(dim, 4, strides=2, padding='same', use_bias=False)(h)
     h = Norm()(h)
     h = tf.nn.leaky_relu(h, alpha=0.2)
 
     # 3
     h = keras.layers.Conv2D(1, 4, strides=1, padding='same')(h)
-
     return keras.Model(inputs=inputs, outputs=h)
 
 
