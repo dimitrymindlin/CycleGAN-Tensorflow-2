@@ -214,7 +214,7 @@ with train_summary_writer.as_default():
         ep_cnt.assign_add(1)
 
         # train for an epoch
-        for A, B in tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset):
+        for batch_count, (A, B) in enumerate(tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset)):
             G_loss_dict, D_loss_dict = train_step(A, B)
 
             # # summary
@@ -232,7 +232,7 @@ with train_summary_writer.as_default():
 
                 A2B, B2A, A2B2A, B2A2B = sample(A, B)
                 img = im.immerge(np.concatenate([A, A2B, A2B2A, B, B2A, B2A2B], axis=0), n_rows=2)
-                im.imwrite(img, py.join(sample_dir, 'iter-%09d.jpg' % G_optimizer.iterations.numpy()))
+                im.imwrite(img, py.join(sample_dir, '%d_%d.png' % (ep, batch_count)))
 
         # save checkpoint
         if ep % 5 == 0:
