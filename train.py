@@ -1,4 +1,5 @@
 import functools
+from datetime import datetime, time
 
 import imlib as im
 import numpy as np
@@ -35,6 +36,19 @@ py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 args = py.args()
 
 # output_dir
+execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
+# output_dir
+try:
+    output_dir = py.join(f'output_{args.dataset}/{execution_id}')
+    py.mkdir(output_dir)
+except FileExistsError:
+    time.sleep(60)
+    execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
+    output_dir = py.join(f'output_{args.dataset}/{execution_id}')
+    py.mkdir(output_dir)
+
+TF_LOG_DIR = f"logs/{args.dataset}/"
+
 output_dir = py.join('output', args.dataset)
 py.mkdir(output_dir)
 
@@ -183,11 +197,11 @@ except Exception as e:
     print(e)
 
 # summary
-train_summary_writer = tf.summary.create_file_writer(py.join(output_dir, 'summaries', 'train'))
+train_summary_writer = tf.summary.create_file_writer(py.join(TF_LOG_DIR + execution_id))
 
 # sample
 test_iter = iter(A_B_dataset_test)
-sample_dir = py.join(output_dir, 'samples_training')
+sample_dir = py.join(output_dir, 'images')
 py.mkdir(sample_dir)
 
 # main loop
@@ -216,4 +230,5 @@ with train_summary_writer.as_default():
                 im.imwrite(img, py.join(sample_dir, 'iter-%09d.jpg' % G_optimizer.iterations.numpy()))
 
         # save checkpoint
-        checkpoint.save(ep)
+        if ep % 5 == 0:
+            checkpoint.save(ep)
