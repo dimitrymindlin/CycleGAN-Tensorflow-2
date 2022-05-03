@@ -79,8 +79,8 @@ def spa_gan(A, B, G_A2B, G_B2A, training=True):
         return A2B, B2A
 
 def no_attention(A, B, G_A2B, G_B2A, training=True):
-    A2B = G_A2B(A, training=True)
-    B2A = G_B2A(B, training=True)
+    A2B = G_A2B(A.img, training=True)
+    B2A = G_B2A(B.img, training=True)
     if training:
         # Cycle
         A2B2A = G_B2A(A2B, training=True)
