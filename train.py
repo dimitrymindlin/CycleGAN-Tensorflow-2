@@ -224,7 +224,12 @@ with train_summary_writer.as_default():
 
             # sample
             if G_optimizer.iterations.numpy() % 100 == 0:
-                A, B = next(test_iter)
+                try:
+                    A, B = next(test_iter)
+                except StopIteration:  # When all elements finished
+                    # Create new iterator
+                    test_iter = iter(A_B_dataset_test)
+
                 A2B, B2A, A2B2A, B2A2B = sample(A, B)
                 img = im.immerge(np.concatenate([A, A2B, A2B2A, B, B2A, B2A2B], axis=0), n_rows=2)
                 im.imwrite(img, py.join(sample_dir, 'iter-%09d.jpg' % G_optimizer.iterations.numpy()))
