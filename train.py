@@ -49,7 +49,6 @@ except FileExistsError:
 
 TF_LOG_DIR = f"logs/{args.dataset}/"
 
-output_dir = py.join('output', args.dataset)
 py.mkdir(output_dir)
 
 # save settings
