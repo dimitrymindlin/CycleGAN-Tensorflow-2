@@ -13,7 +13,6 @@ import tqdm
 import data
 import module
 
-
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
@@ -54,22 +53,22 @@ py.mkdir(output_dir)
 # save settings
 py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 
-
 # ==============================================================================
 # =                                    data                                    =
 # ==============================================================================
 
 A_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainA'), '*.jpg')
 B_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainB'), '*.jpg')
-A_B_dataset, len_dataset = data.make_zip_dataset(A_img_paths, B_img_paths, args.batch_size, args.load_size, args.crop_size, training=True, repeat=False)
+A_B_dataset, len_dataset = data.make_zip_dataset(A_img_paths, B_img_paths, args.batch_size, args.load_size,
+                                                 args.crop_size, training=True, repeat=False)
 
 A2B_pool = data.ItemPool(args.pool_size)
 B2A_pool = data.ItemPool(args.pool_size)
 
 A_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testA'), '*.jpg')
 B_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testB'), '*.jpg')
-A_B_dataset_test, _ = data.make_zip_dataset(A_img_paths_test, B_img_paths_test, args.batch_size, args.load_size, args.crop_size, training=False, repeat=True)
-
+A_B_dataset_test, _ = data.make_zip_dataset(A_img_paths_test, B_img_paths_test, args.batch_size, args.load_size,
+                                            args.crop_size, training=False, repeat=True)
 
 # ==============================================================================
 # =                                   models                                   =
@@ -81,6 +80,11 @@ G_B2A = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
 D_A = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
 D_B = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
 
+patch = int(512 / 2 ** 3)
+disc_patch = (patch, patch, 1)
+valid = np.ones((args.batch_size,) + disc_patch)
+fake = np.zeros((args.batch_size,) + disc_patch)
+
 d_loss_fn, g_loss_fn = gan.get_adversarial_losses_fn(args.adversarial_loss_mode)
 cycle_loss_fn = tf.losses.MeanAbsoluteError()
 identity_loss_fn = tf.losses.MeanAbsoluteError()
@@ -89,6 +93,14 @@ G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epo
 D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
 G_optimizer = keras.optimizers.Adam(learning_rate=G_lr_scheduler, beta_1=args.beta_1)
 D_optimizer = keras.optimizers.Adam(learning_rate=D_lr_scheduler, beta_1=args.beta_1)
+
+### Compile Discriminator Models
+D_A.compile(loss='mse',
+            optimizer=D_optimizer,
+            metrics=['accuracy'])
+D_B.compile(loss='mse',
+            optimizer=D_optimizer,
+            metrics=['accuracy'])
 
 
 # ==============================================================================
@@ -115,7 +127,8 @@ def train_G(A, B):
         A2A_id_loss = identity_loss_fn(A, A2A)
         B2B_id_loss = identity_loss_fn(B, B2B)
 
-        G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
+        G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + (
+                    A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
 
     G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
     G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
@@ -130,26 +143,25 @@ def train_G(A, B):
 
 @tf.function
 def train_D(A, B, A2B, B2A):
-    with tf.GradientTape() as t:
-        A_d_logits = D_A(A, training=True)
-        B2A_d_logits = D_A(B2A, training=True)
-        B_d_logits = D_B(B, training=True)
-        A2B_d_logits = D_B(A2B, training=True)
+    # Train the discriminators (original images = real (valid) / translated = Fake)
+    D_A_real = D_A.train_on_batch(A, valid)
+    D_A_fake = D_A.train_on_batch(B2A, fake)
+    D_A_loss = 0.5 * np.add(D_A_real, D_A_fake)
 
-        A_d_loss, B2A_d_loss = d_loss_fn(A_d_logits, B2A_d_logits)
-        B_d_loss, A2B_d_loss = d_loss_fn(B_d_logits, A2B_d_logits)
-        D_A_gp = gan.gradient_penalty(functools.partial(D_A, training=True), A, B2A, mode=args.gradient_penalty_mode)
-        D_B_gp = gan.gradient_penalty(functools.partial(D_B, training=True), B, A2B, mode=args.gradient_penalty_mode)
+    D_B_real = D_B.train_on_batch(B, valid)
+    D_B_fake = D_B.train_on_batch(A2B, fake)
+    D_B_loss = 0.5 * np.add(D_B_real, D_B_fake)
 
-        D_loss = (A_d_loss + B2A_d_loss) + (B_d_loss + A2B_d_loss) + (D_A_gp + D_B_gp) * args.gradient_penalty_weight
+    # Total disciminator loss
+    total_loss = 0.5 * np.add(D_A_loss, D_B_loss)
 
-    D_grad = t.gradient(D_loss, D_A.trainable_variables + D_B.trainable_variables)
-    D_optimizer.apply_gradients(zip(D_grad, D_A.trainable_variables + D_B.trainable_variables))
-
-    return {'A_d_loss': A_d_loss + B2A_d_loss,
-            'B_d_loss': B_d_loss + A2B_d_loss,
-            'D_A_gp': D_A_gp,
-            'D_B_gp': D_B_gp}
+    return {'D_A_loss': D_A_loss[0],
+            'D_B_loss': D_B_loss[0],
+            'D_A_accuracy': D_A_loss[1],
+            'D_B_accuracy': D_B_loss[1],
+            'Total_loss': total_loss[0],
+            'Total_accuracy': total_loss[1]
+            }
 
 
 def train_step(A, B):
@@ -219,7 +231,8 @@ with train_summary_writer.as_default():
             # # summary
             tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
             tl.summary(D_loss_dict, step=G_optimizer.iterations, name='D_losses')
-            tl.summary({'learning rate': G_lr_scheduler.current_learning_rate}, step=G_optimizer.iterations, name='learning rate')
+            tl.summary({'learning rate': G_lr_scheduler.current_learning_rate}, step=G_optimizer.iterations,
+                       name='learning rate')
 
             # sample
             if G_optimizer.iterations.numpy() % 100 == 0:
