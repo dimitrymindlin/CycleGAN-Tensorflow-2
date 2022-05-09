@@ -43,7 +43,7 @@ previous iterations. Essentially, we remember the last pool_size generated image
 to create a batch_size batch of images to do one iteration of backprop on. This helps to stabilize training, kind of 
 like experience replay."""
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
-py.arg('--attention_type', type=str, default="none",
+py.arg('--attention_type', type=str, default="attention-gan-original",
        choices=['attention-gan-foreground', 'spa-gan', 'none', 'attention-gan-original'])
 py.arg('--attention_intensity', type=float, default=0.5)
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
@@ -178,10 +178,10 @@ def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
 # @tf.function
 def train_D(A, B, A2B, B2A):
     if args.attention_type == "attention-gan-original":
-        A = A.foreground
-        B = B.foreground
         A2B = A.transformed_part
         B2A = B.transformed_part
+        A = A.foreground
+        B = B.foreground
     else:
         A = A.img
         B = B.img
