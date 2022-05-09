@@ -7,8 +7,7 @@ python3 -m train \
   --dataset horse2zebra \
   --generator resnet \
   --attention_type spa-gan \
-  --attention_gan_original True \
-  --discriminator_loss_weight 1 \
+  --discriminator_loss_weight 10 \
   --cycle_loss_weight 10 \
   --counterfactual_loss_weight 0
 
