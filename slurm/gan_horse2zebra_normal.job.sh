@@ -7,6 +7,6 @@ python3 -m train \
   --dataset horse2zebra \
   --generator resnet \
   --attention_type attention-gan-original \
-  --discriminator_loss_weight 1 \
-  --cycle_loss_weight 10 \
+  --discriminator_loss_weight 10 \
+  --cycle_loss_weight 5 \
   --counterfactual_loss_weight 0
