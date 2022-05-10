@@ -43,7 +43,7 @@ previous iterations. Essentially, we remember the last pool_size generated image
 to create a batch_size batch of images to do one iteration of backprop on. This helps to stabilize training, kind of 
 like experience replay."""
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
-py.arg('--attention_type', type=str, default="attention-gan-original",
+py.arg('--attention_type', type=str, default="none",
        choices=['attention-gan-foreground', 'spa-gan', 'none', 'attention-gan-original'])
 py.arg('--attention_intensity', type=float, default=0.5)
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
@@ -139,16 +139,10 @@ def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
         A2A_id_loss = identity_loss_fn(A, A2A)
         B2B_id_loss = identity_loss_fn(B, B2B)
         # cycle loss
-        if args.attention_type == "spa-gan":
-            A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
-            B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
-            A2B_d_logits = D_B(A2B, training=True)
-            B2A_d_logits = D_A(B2A, training=True)
-        else:
-            A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
-            B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
-            A2B_d_logits = D_B(A2B, training=True)
-            B2A_d_logits = D_A(B2A, training=True)
+        A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
+        B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
+        A2B_d_logits = D_B(A2B, training=True)
+        B2A_d_logits = D_A(B2A, training=True)
         # adversarial loss
         A2B_g_loss = g_loss_fn(A2B_d_logits)
         B2A_g_loss = g_loss_fn(B2A_d_logits)
@@ -233,7 +227,7 @@ def train_step(A_holder, B_holder):
 
 
 # @tf.function
-def sample(A, B):
+def sample(A_holder, B_holder):
     """
     Parameters
     ----------
@@ -241,19 +235,7 @@ def sample(A, B):
     B AttentionImage if attention mode, else normal image tensor
     -------
     """
-    if args.attention_type == "none":
-        A2B = G_A2B(A, training=False)
-        B2A = G_B2A(B, training=False)
-    elif args.attention_type == "attention-gan-original":
-        A2B, B2A = attention_gan_original(A, B, G_A2B, G_B2A, training=False)
-    elif args.attention_type == "attention-gan-foreground":
-        A2B, B2A = attention_gan_foreground(A, B, G_A2B, G_B2A, training=False)
-    elif args.attention_type == "spa-gan":
-        A2B, B2A = spa_gan(A, B, G_A2B, G_B2A, training=False)
-    else:  # none
-        A2B = G_A2B(A, training=False)
-        B2A = G_B2A(B, training=False)
-    return A2B, B2A
+    return attention_strategy(A_holder, B_holder, G_A2B, G_B2A, training=False)
 
 
 # ==============================================================================
@@ -330,14 +312,9 @@ with train_summary_writer.as_default():
                         # Create new iterator
                         test_iter = iter(A_B_dataset_test)
                     # Get images
-                    if args.attention_type == "none":
-                        A2B, B2A, = sample(A, B)
-                        A_holder = None
-                        B_holder = None
-                    else:  # Attention
-                        A_holder = ImageHolder(A, 0, gradcam, args.attention_type)
-                        B_holder = ImageHolder(B, 1, gradcam, args.attention_type)
-                        A2B, B2A = sample(A_holder, B_holder)
+                    A_holder = ImageHolder(A, 0, gradcam, args.attention_type)
+                    B_holder = ImageHolder(B, 1, gradcam, args.attention_type)
+                    A2B, B2A = sample(A_holder, B_holder)
 
                     # Save images
                     generate_image(args, clf, A, B, A2B, B2A,
