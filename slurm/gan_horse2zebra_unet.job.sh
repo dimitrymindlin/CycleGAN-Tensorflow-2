@@ -9,4 +9,4 @@ python3 -m train \
   --attention_type spa-gan \
   --discriminator_loss_weight 1 \
   --cycle_loss_weight 5 \
-  --counterfactual_loss_weight 1
+  --counterfactual_loss_weight 0
