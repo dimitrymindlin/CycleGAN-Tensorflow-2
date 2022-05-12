@@ -29,14 +29,14 @@ py.arg('--load_size', type=int, default=520)  # load image to this size
 py.arg('--crop_size', type=int, default=512)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
 py.arg('--epochs', type=int, default=70)
-py.arg('--epoch_decay', type=int, default=35)  # epoch to start decaying learning rate
+py.arg('--epoch_decay', type=int, default=50)  # epoch to start decaying learning rate
 py.arg('--lr', type=float, default=0.0002)
 py.arg('--beta_1', type=float, default=0.5)
-py.arg('--adversarial_loss_mode', default='gan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
+py.arg('--adversarial_loss_mode', default='lsgan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
 py.arg('--discriminator_loss_weight', type=float, default=1)
 py.arg('--cycle_loss_weight', type=float, default=1)
 py.arg('--counterfactual_loss_weight', type=float, default=1)
-py.arg('--identity_loss_weight', type=float, default=0.0)
+py.arg('--identity_loss_weight', type=float, default=1)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 """pool_size: the discriminator is trained against the current batch of generated images as well as images generated on 
 previous iterations. Essentially, we remember the last pool_size generated images then randomly sample from this pool 
@@ -134,10 +134,10 @@ else:
 def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
     with tf.GradientTape() as t:
         # Identity loss
-        """A2A = G_A2B(A, training=True)
-        B2B = G_B2A(B, training=True)
+        A2A = G_B2A(A, training=True)
+        B2B = G_A2B(B, training=True)
         A2A_id_loss = identity_loss_fn(A, A2A)
-        B2B_id_loss = identity_loss_fn(B, B2B)"""
+        B2B_id_loss = identity_loss_fn(B, B2B)
         # cycle loss
         A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
         B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
@@ -153,9 +153,8 @@ def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
         # combined loss
         G_loss = (A2B_g_loss + B2A_g_loss) * args.discriminator_loss_weight \
                  + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
+                 + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
                  (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight
-
-        #+ (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
 
     G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
     G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
@@ -164,6 +163,8 @@ def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
                       'B2A_g_loss': B2A_g_loss,
                       'A2B2A_cycle_loss': A2B2A_cycle_loss,
                       'B2A2B_cycle_loss': B2A2B_cycle_loss,
+                      'A2A_id_loss': A2A_id_loss,
+                      'B2B_id_loss': B2B_id_loss,
                       'A2B_counterfactual_loss': A2B_counterfactual_loss,
                       'B2A_counterfactual_loss': B2A_counterfactual_loss}
 
