@@ -131,19 +131,23 @@ else:
 # ==============================================================================
 
 # @tf.function
-def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
+def train_G(A, B):
     with tf.GradientTape() as t:
+        A2B = G_A2B(A, training=True)
+        B2A = G_B2A(B, training=True)
         # Identity loss
         A2A = G_A2B(A, training=True)
         B2B = G_B2A(B, training=True)
         A2A_id_loss = identity_loss_fn(A, A2A)
         B2B_id_loss = identity_loss_fn(B, B2B)
         # cycle loss
+        A2B2A = G_B2A(A2B, training=True)
+        B2A2B = G_A2B(B2A, training=True)
         A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
         B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
+        # adversarial loss
         A2B_d_logits = D_B(A2B, training=True)
         B2A_d_logits = D_A(B2A, training=True)
-        # adversarial loss
         A2B_g_loss = g_loss_fn(A2B_d_logits)
         B2A_g_loss = g_loss_fn(B2A_d_logits)
         # counterfactual loss
