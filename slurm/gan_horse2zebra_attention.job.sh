@@ -9,6 +9,6 @@ python3 -m train \
   --epochs 200 \
   --epoch_decay 100 \
   --attention_type attention-gan-original \
-  --discriminator_loss_weight 1 \
+  --discriminator_loss_weight 5 \
   --cycle_loss_weight 10 \
   --counterfactual_loss_weight 0
