@@ -35,7 +35,8 @@ py.arg('--beta_1', type=float, default=0.5)
 py.arg('--adversarial_loss_mode', default='lsgan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
 py.arg('--discriminator_loss_weight', type=float, default=1)
 py.arg('--cycle_loss_weight', type=float, default=1)
-py.arg('--counterfactual_loss_weight', type=float, default=1)
+py.arg('--counterfactual_loss_weight', type=float, default=0)
+py.arg('--feature_map_loss_weight', type=float, default=0)
 py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 """pool_size: the discriminator is trained against the current batch of generated images as well as images generated on 
@@ -83,8 +84,9 @@ B2A_pool = data.ItemPool(args.pool_size)
 # ==============================================================================
 
 G_A2B, G_B2A = module.get_generators(args)
-feature_map_G_A2B = tf.keras.models.Model(inputs=G_A2B.inputs, outputs=G_A2B.get_layer(name="upsampling_0").output)
-feature_map_G_B2A = tf.keras.models.Model(inputs=G_B2A.inputs, outputs=G_B2A.get_layer(name="upsampling_0").output)
+if args.feature_map_loss_weight > 0:
+    feature_map_G_A2B = tf.keras.models.Model(inputs=G_A2B.inputs, outputs=G_A2B.get_layer(name="upsampling_0").output)
+    feature_map_G_B2A = tf.keras.models.Model(inputs=G_B2A.inputs, outputs=G_B2A.get_layer(name="upsampling_0").output)
 
 if args.discriminator == "patch-gan":
     D_A = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
@@ -116,7 +118,7 @@ D_B.compile(loss='mse',
             optimizer=D_optimizer,
             metrics=['accuracy'])
 
-patch = int(512 / 2 ** 4)
+patch = int(args.crop_size / 2 ** 4)
 disc_patch = (patch, patch, 1)
 valid = np.ones((args.batch_size,) + disc_patch)
 fake = np.zeros((args.batch_size,) + disc_patch)
@@ -141,11 +143,6 @@ else:
 # @tf.function
 def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
     with tf.GradientTape() as t:
-        # Identity loss
-        A2A = G_B2A(A, training=True)
-        B2B = G_A2B(B, training=True)
-        A2A_id_loss = identity_loss_fn(A, A2A)
-        B2B_id_loss = identity_loss_fn(B, B2B)
         # cycle loss
         A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
         B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
@@ -154,39 +151,56 @@ def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
         # adversarial loss
         A2B_g_loss = g_loss_fn(A2B_d_logits)
         B2A_g_loss = g_loss_fn(B2A_d_logits)
-        # counterfactual loss
-        A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth, clf(A2B))
-        B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth, clf(B2A))
-        # feature map loss
-        A2B_feature_map_real = feature_map_G_A2B(A)
-        A2B_feature_map_fake = feature_map_G_A2B(B2A)
-        for i in range(A2B_feature_map_real.shape[3]):
-            loss_sum = feature_map_loss_fn(A2B_feature_map_real[:, :, :, i], A2B_feature_map_fake[:, :, :, i])
-        feature_map_loss_GA2B = loss_sum / A2B_feature_map_real.shape[3]
-        B2A_feature_map_real = feature_map_G_B2A(B)
-        B2A_feature_map_fake = feature_map_G_B2A(A2B)
-        for i in range(B2A_feature_map_real.shape[3]):
-            loss_sum = feature_map_loss_fn(B2A_feature_map_real[:, :, :, i], B2A_feature_map_fake[:, :, :, i])
-        feature_map_loss_GB2A = loss_sum / B2A_feature_map_fake.shape[3]
-
         # combined loss
         G_loss = (A2B_g_loss + B2A_g_loss) * args.discriminator_loss_weight \
-                 + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
-                 + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
-                 (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight + \
-                 feature_map_loss_GA2B + feature_map_loss_GB2A
-
-    G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
-    G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
-
-    return A2B, B2A, {'A2B_g_loss': A2B_g_loss,
+                 + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight
+        # Identity loss
+        #if args.identity_loss_weight > 0:
+        A2A = G_B2A(A, training=True)
+        B2B = G_A2B(B, training=True)
+        A2A_id_loss = identity_loss_fn(A, A2A)
+        B2B_id_loss = identity_loss_fn(B, B2B)
+        G_loss += (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
+        loss_dict = {'A2B_g_loss': A2B_g_loss,
                       'B2A_g_loss': B2A_g_loss,
                       'A2B2A_cycle_loss': A2B2A_cycle_loss,
                       'B2A2B_cycle_loss': B2A2B_cycle_loss,
                       'A2A_id_loss': A2A_id_loss,
-                      'B2B_id_loss': B2B_id_loss,
-                      'A2B_counterfactual_loss': A2B_counterfactual_loss,
-                      'B2A_counterfactual_loss': B2A_counterfactual_loss}
+                      'B2B_id_loss': B2B_id_loss}
+        # counterfactual loss
+        if args.counterfactual_loss_weight > 0:
+            A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth, clf(A2B))
+            B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth, clf(B2A))
+            G_loss += (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight
+            loss_dict["A2B_counterfactual_loss"] = A2B_counterfactual_loss
+            loss_dict["B2A_counterfactual_loss"] = B2A_counterfactual_loss
+        # feature map loss
+        if args.feature_map_loss_weight > 0:
+            A2B_feature_map_real = feature_map_G_A2B(A)
+            A2B_feature_map_fake = feature_map_G_A2B(B2A)
+            for i in range(A2B_feature_map_real.shape[3]):
+                loss_sum = feature_map_loss_fn(A2B_feature_map_real[:, :, :, i], A2B_feature_map_fake[:, :, :, i])
+            A2B_feature_map_loss = loss_sum / A2B_feature_map_real.shape[3]
+            B2A_feature_map_real = feature_map_G_B2A(B)
+            B2A_feature_map_fake = feature_map_G_B2A(A2B)
+            for i in range(B2A_feature_map_real.shape[3]):
+                loss_sum = feature_map_loss_fn(B2A_feature_map_real[:, :, :, i], B2A_feature_map_fake[:, :, :, i])
+            B2A_feature_map_loss = loss_sum / B2A_feature_map_fake.shape[3]
+            G_loss += (A2B_feature_map_loss + B2A_feature_map_loss) * args.feature_map_loss_weight
+            loss_dict["A2B_feature_map_loss"] = A2B_feature_map_loss
+            loss_dict["B2A_feature_map_loss"] = B2A_feature_map_loss
+
+        # combined loss
+        """G_loss = (A2B_g_loss + B2A_g_loss) * args.discriminator_loss_weight \
+                 + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
+                 + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
+                 (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight + \
+                 (A2B_feature_map_loss + B2A_feature_map_loss) * args.feature_map_loss_weight"""
+
+    G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
+    G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
+
+    return A2B, B2A, loss_dict
 
 
 # @tf.function

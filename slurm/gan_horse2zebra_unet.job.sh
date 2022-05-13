@@ -8,5 +8,6 @@ python3 -m train \
   --generator resnet \
   --attention_type spa-gan \
   --discriminator_loss_weight 1 \
-  --cycle_loss_weight 5 \
-  --counterfactual_loss_weight 0
+  --cycle_loss_weight 10 \
+  --counterfactual_loss_weight 0 \
+  --feature_map_loss_weight 1
