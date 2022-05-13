@@ -16,11 +16,11 @@ def enhance_img(cam, attention_intensity):
     return cam
 
 
-def get_gradcam(img, gradcam, class_index, attention_type, attention_intensity=0.5):
+def get_gradcam(img, gradcam, class_index, attention_type, attention_intensity=1):
     # Generate cam map
     cam = gradcam(CategoricalScore(class_index), img)  # returns img in [0,1]
     if np.max(cam) == 0 and np.min(cam) == 0:
-        cam += 0.2
+        cam += 1
     # Turn to [1,512,512,3]
     cam = tf.expand_dims(cam, axis=-1)
     cam = tf.image.grayscale_to_rgb(tf.convert_to_tensor(cam))
@@ -29,6 +29,7 @@ def get_gradcam(img, gradcam, class_index, attention_type, attention_intensity=0
 
     if attention_type == "spa-gan":
         cam = enhance_img(cam, attention_intensity)
+        cam = tf.ones(shape=cam.shape)
 
     # Interpolate by multiplication and normalise
     img = cam * img
