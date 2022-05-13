@@ -159,6 +159,24 @@ def ConvDiscriminator(input_shape=(256, 256, 3),
     return keras.Model(inputs=inputs, outputs=h)
 
 
+def ClassicDiscriminator(input_shape=(256, 256, 3),
+                         dim=64, ):
+    model = tf.keras.Sequential()
+    model.add(keras.layers.Conv2D(dim, (5, 5), strides=(2, 2), padding='same',
+                                  input_shape=[input_shape[0], input_shape[1], input_shape[2]]))
+    model.add(keras.layers.LeakyReLU())
+    model.add(keras.layers.Dropout(0.3))
+
+    model.add(keras.layers.Conv2D(128, (5, 5), strides=(2, 2), padding='same'))
+    model.add(keras.layers.LeakyReLU())
+    model.add(keras.layers.Dropout(0.3))
+
+    model.add(keras.layers.Flatten())
+    model.add(keras.layers.Dense(1))
+
+    return model
+
+
 # ==============================================================================
 # =                          learning rate scheduler                           =
 # ==============================================================================
@@ -178,7 +196,7 @@ class LinearDecay(keras.optimizers.schedules.LearningRateSchedule):
         self.current_learning_rate.assign(tf.cond(
             step >= self._step_decay,
             true_fn=lambda: self._initial_learning_rate * (
-                        1 - 1 / (self._steps - self._step_decay) * (step - self._step_decay)),
+                    1 - 1 / (self._steps - self._step_decay) * (step - self._step_decay)),
             false_fn=lambda: self._initial_learning_rate
         ))
         return self.current_learning_rate

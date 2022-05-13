@@ -25,8 +25,8 @@ from imlib.image_holder import ImageHolder
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
-py.arg('--load_size', type=int, default=520)  # load image to this size
-py.arg('--crop_size', type=int, default=512)  # then crop to this size
+py.arg('--load_size', type=int, default=256)  # load image to this size
+py.arg('--crop_size', type=int, default=256)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
 py.arg('--epochs', type=int, default=70)
 py.arg('--epoch_decay', type=int, default=50)  # epoch to start decaying learning rate
@@ -47,6 +47,7 @@ py.arg('--attention_type', type=str, default="none",
        choices=['attention-gan-foreground', 'spa-gan', 'none', 'attention-gan-original'])
 py.arg('--attention_intensity', type=float, default=0.5)
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
+py.arg('--discriminator', type=str, default="classic", choices=['classic', 'patch-gan'])
 args = py.args()
 
 execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
@@ -83,8 +84,12 @@ B2A_pool = data.ItemPool(args.pool_size)
 
 G_A2B, G_B2A = module.get_generators(args)
 
-D_A = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
-D_B = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
+if args.discriminator == "patch-gan":
+    D_A = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
+    D_B = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
+else:
+    D_A = module.ClassicDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
+    D_B = module.ClassicDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
 
 d_loss_fn, g_loss_fn = gan.get_adversarial_losses_fn(args.adversarial_loss_mode)
 cycle_loss_fn = tf.losses.MeanAbsoluteError()
