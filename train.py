@@ -47,7 +47,7 @@ py.arg('--attention_type', type=str, default="none",
        choices=['attention-gan-foreground', 'spa-gan', 'none', 'attention-gan-original'])
 py.arg('--attention_intensity', type=float, default=0.5)
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
-py.arg('--discriminator', type=str, default="classic", choices=['classic', 'patch-gan'])
+py.arg('--discriminator', type=str, default="patch-gan", choices=['classic', 'patch-gan'])
 args = py.args()
 
 execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
