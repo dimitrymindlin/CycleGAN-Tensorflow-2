@@ -35,3 +35,14 @@ def get_gradcam(img, gradcam, class_index, attention_type, attention_intensity=1
     img = cam * img
     img /= np.max(img)
     return scale_to_minus_one_one(img), scale_to_minus_one_one(cam)  # [-1,1]
+
+
+def get_activations_at(input_image, i):
+    # index the layer
+    out_layer = resnet_50.layers[i]
+
+    # change the output of the model
+    model = tf.keras.models.Model(inputs=resnet_50.inputs, outputs=out_layer.output)
+
+    # return the activations
+    return model.predict(input_image)

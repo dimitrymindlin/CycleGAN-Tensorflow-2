@@ -36,7 +36,7 @@ py.arg('--adversarial_loss_mode', default='lsgan', choices=['gan', 'hinge_v1', '
 py.arg('--discriminator_loss_weight', type=float, default=1)
 py.arg('--cycle_loss_weight', type=float, default=1)
 py.arg('--counterfactual_loss_weight', type=float, default=1)
-py.arg('--identity_loss_weight', type=float, default=1)
+py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 """pool_size: the discriminator is trained against the current batch of generated images as well as images generated on 
 previous iterations. Essentially, we remember the last pool_size generated images then randomly sample from this pool 
@@ -83,6 +83,8 @@ B2A_pool = data.ItemPool(args.pool_size)
 # ==============================================================================
 
 G_A2B, G_B2A = module.get_generators(args)
+feature_map_G_A2B = tf.keras.models.Model(inputs=G_A2B.inputs, outputs=G_A2B.get_layer(name="upsampling_0").output)
+feature_map_G_B2A = tf.keras.models.Model(inputs=G_B2A.inputs, outputs=G_B2A.get_layer(name="upsampling_0").output)
 
 if args.discriminator == "patch-gan":
     D_A = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
@@ -95,6 +97,7 @@ d_loss_fn, g_loss_fn = gan.get_adversarial_losses_fn(args.adversarial_loss_mode)
 cycle_loss_fn = tf.losses.MeanAbsoluteError()
 identity_loss_fn = tf.losses.MeanAbsoluteError()
 counterfactual_loss_fn = tf.losses.MeanSquaredError()
+feature_map_loss_fn = tf.losses.MeanAbsoluteError()
 
 if args.dataset == "mura":
     clf = tf.keras.models.load_model(f"checkpoints/2022-03-24--12.42/model", compile=False)
@@ -154,12 +157,24 @@ def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
         # counterfactual loss
         A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth, clf(A2B))
         B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth, clf(B2A))
+        # feature map loss
+        A2B_feature_map_real = feature_map_G_A2B(A)
+        A2B_feature_map_fake = feature_map_G_A2B(B2A)
+        for i in range(A2B_feature_map_real.shape[3]):
+            loss_sum = feature_map_loss_fn(A2B_feature_map_real[:, :, :, i], A2B_feature_map_fake[:, :, :, i])
+        feature_map_loss_GA2B = loss_sum / A2B_feature_map_real.shape[3]
+        B2A_feature_map_real = feature_map_G_B2A(B)
+        B2A_feature_map_fake = feature_map_G_B2A(A2B)
+        for i in range(B2A_feature_map_real.shape[3]):
+            loss_sum = feature_map_loss_fn(B2A_feature_map_real[:, :, :, i], B2A_feature_map_fake[:, :, :, i])
+        feature_map_loss_GB2A = loss_sum / B2A_feature_map_fake.shape[3]
 
         # combined loss
         G_loss = (A2B_g_loss + B2A_g_loss) * args.discriminator_loss_weight \
                  + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
                  + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
-                 (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight
+                 (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight + \
+                 feature_map_loss_GA2B + feature_map_loss_GB2A
 
     G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
     G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))

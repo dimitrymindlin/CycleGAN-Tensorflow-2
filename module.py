@@ -66,9 +66,9 @@ def ResnetGenerator(input_shape=(256, 256, 3),
         h = _residual_block(h)
 
     # 4
-    for _ in range(n_downsamplings):
+    for i in range(n_downsamplings):
         filters //= 2
-        h = keras.layers.Conv2DTranspose(filters, 3, strides=2, padding='same', use_bias=False)(h)
+        h = keras.layers.Conv2DTranspose(filters, 3, strides=2, padding='same', use_bias=False, name=f"upsampling_{i}")(h)
         h = Norm()(h)
         h = tf.nn.relu(h)
 
