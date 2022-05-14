@@ -13,31 +13,31 @@ def add_images(foreground, background):
     """
     foreground = scale_to_zero_one(foreground)
     background = scale_to_zero_one(background)
-    img = tf.math.add(foreground, background)
-    return scale_to_minus_one_one(tf.math.divide(img, tf.math.reduce_max(img)))
+    new = tf.math.add(foreground, background)
+    return scale_to_minus_one_one(tf.math.divide(new, tf.math.reduce_max(new)))
 
 
 def get_foreground(img, attention):
     """
     Expects img and attention to be in range [0,1]
     """
-    img = tf.math.multiply(attention, img)
-    return tf.math.divide(img, tf.math.reduce_max(img))
+    new = tf.math.multiply(attention, img)
+    return scale_to_minus_one_one(tf.math.divide(new, tf.math.reduce_max(new)))
 
 
 def get_background(img, attention):
     """
     Expects img and attention to be in range [0,1]
     """
-    img = tf.math.multiply(tf.math.subtract(1, attention), img)
-    return tf.math.divide(img, tf.math.reduce_max(img))
+    new = tf.math.multiply(tf.math.subtract(1, attention), img)
+    return scale_to_minus_one_one(tf.math.divide(new, tf.math.reduce_max(new)))
 
 
 def multiply_images(img1, img2):
     img1 = scale_to_zero_one(img1)
     img2 = scale_to_zero_one(img2)
-    img = tf.math.multiply(img1, img2)
-    return scale_to_minus_one_one(tf.math.divide(img, tf.math.reduce_max(img)))
+    new = tf.math.multiply(img1, img2)
+    return scale_to_minus_one_one(new)
 
 
 class ImageHolder():
