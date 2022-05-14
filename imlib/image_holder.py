@@ -1,7 +1,9 @@
+import matplotlib.pyplot as plt
 import tensorflow as tf
 
 import attention_maps
 from imlib import scale_to_zero_one, scale_to_minus_one_one
+import numpy as np
 
 
 def add_images(foreground, background):
@@ -51,8 +53,8 @@ class ImageHolder():
             self.get_fore_and_backgroud_by_attention()
 
     def get_attention(self, class_label, gradcam, attention_type):
-        enhanced_img, attention = attention_maps.get_gradcam(self.img, gradcam, class_label,
-                                                             attention_type=attention_type)
+        enhanced_img, attention = attention_maps.apply_gradcam(self.img, gradcam, class_label,
+                                                               attention_type=attention_type)
         self.attention = attention
         self.enhanced_img = enhanced_img
 

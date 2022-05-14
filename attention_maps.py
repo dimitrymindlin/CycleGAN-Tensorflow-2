@@ -6,43 +6,34 @@ from tf_keras_vis.utils.scores import CategoricalScore
 from imlib import scale_to_zero_one, scale_to_minus_one_one
 
 
-def enhance_img(cam, attention_intensity):
+def shift_values_above_intensity(cam, attention_intensity: float):
     """
-    For Spagan, enhance important parts but don't delete unimportant ones
-    expects cam to be image [0,1]
+    makes sure all values are above attention_intensity value.
     """
     cam += attention_intensity
     cam /= np.max(cam)
     return cam
 
 
-def get_gradcam(img, gradcam, class_index, attention_type, attention_intensity=1):
+def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity=1):
+    """
+    Applys gradcam to an image and returns the heatmap as well as the enhanced img.
+    """
     # Generate cam map
-    cam = gradcam(CategoricalScore(class_index), img)  # returns img in [0,1]
+    cam = gradcam(CategoricalScore(class_index), img)  # returns ndarray in [0,1]
     if np.max(cam) == 0 and np.min(cam) == 0:
         cam += 1
-    # Turn to [1,512,512,3]
+    # Turn to batched 3-channel array
     cam = tf.expand_dims(cam, axis=-1)
     cam = tf.image.grayscale_to_rgb(tf.convert_to_tensor(cam))
     # Convert img to same pixel values [0, 1]
     img = scale_to_zero_one(img)
 
     if attention_type == "spa-gan":
-        cam = enhance_img(cam, attention_intensity)
-        cam = tf.ones(shape=cam.shape)
+        cam = shift_values_above_intensity(cam, attention_intensity)
+        cam = tf.ones(shape=cam.shape) # TODO: Delete, only for testing
 
     # Interpolate by multiplication and normalise
     img = cam * img
     img /= np.max(img)
     return scale_to_minus_one_one(img), scale_to_minus_one_one(cam)  # [-1,1]
-
-
-def get_activations_at(input_image, i):
-    # index the layer
-    out_layer = resnet_50.layers[i]
-
-    # change the output of the model
-    model = tf.keras.models.Model(inputs=resnet_50.inputs, outputs=out_layer.output)
-
-    # return the activations
-    return model.predict(input_image)

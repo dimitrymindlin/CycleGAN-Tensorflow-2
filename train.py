@@ -302,19 +302,19 @@ test_iter = iter(A_B_dataset_test)
 sample_dir = py.join(output_dir, 'images')
 py.mkdir(sample_dir)
 
-# Create GradCAM++ object
+# Create GradCAM object
 if args.attention == "gradcam":
     gradcam = Gradcam(clf, model_modifier=ReplaceToLinear(), clone=True)
-else:
+elif args.attention == "gradcam-plus-plus":
     gradcam = GradcamPlusPlus(clf, model_modifier=ReplaceToLinear(), clone=True)
+else:
+    gradcam = None
 
 # main loop
 with train_summary_writer.as_default():
     for ep in tqdm.trange(args.epochs, desc='Epoch Loop'):
         if ep < ep_cnt:
             continue
-
-        mean_epoch_loss = tf.metrics.Mean()
 
         # update epoch counter
         ep_cnt.assign_add(1)
