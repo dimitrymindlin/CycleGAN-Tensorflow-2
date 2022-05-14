@@ -1,5 +1,8 @@
 ### Attention Gan Original
 # From "Attention-GAN for Object Transfiguration in Wild Images"
+import matplotlib.pyplot as plt
+import numpy as np
+
 from imlib.image_holder import add_images, multiply_images
 
 
@@ -65,15 +68,15 @@ def attention_gan_foreground(A, B, G_A2B, G_B2A, training=True):
 
 
 def spa_gan(A, B, G_A2B, G_B2A, training=True):
-    # Transform enhanced areas
+    # Transform enhanced img
     A2B = G_A2B(A.enhanced_img, training=training)
     A.transformed_part = A2B
     B2A = G_B2A(B.enhanced_img, training=training)
     B.transformed_part = B2A
     if training:
-        # Cycle
+        # Cycle back transformed enhanced img
         A2B2A = G_B2A(A2B, training=training)
-        B2A2B = G_A2B(A2B, training=training)
+        B2A2B = G_A2B(B2A, training=training)
         return A2B, B2A, A2B2A, B2A2B
     else:
         return A2B, B2A
