@@ -17,9 +17,9 @@ def attention_gan_original(A, B, G_A2B, G_B2A, training=True):
     A2B_transformed = G_A2B(A.img, training=training)
     B2A_transformed = G_B2A(B.img, training=training)
     # Combine new transformed image with attention
-    A2B_transformed_attention = multiply_images(A2B_transformed, A.foreground)
+    A2B_transformed_attention = multiply_images(A2B_transformed, A.attention)
     A.transformed_part = A2B_transformed_attention
-    B2A_transformed_attention = multiply_images(B2A_transformed, B.foreground)
+    B2A_transformed_attention = multiply_images(B2A_transformed, B.attention)
     B.transformed_part = B2A_transformed_attention
     # Add background to new img
     A2B = add_images(A2B_transformed_attention, A.background)
@@ -29,9 +29,9 @@ def attention_gan_original(A, B, G_A2B, G_B2A, training=True):
         A2B2A_transformed = G_B2A(A2B, training=training)
         B2A2B_transformed = G_A2B(B2A, training=training)
         # Combine new transformed image with attention
-        A2B2A_transformed_attention = multiply_images(A2B2A_transformed, A.foreground)
+        A2B2A_transformed_attention = multiply_images(A2B2A_transformed, A.attention)
         A2B2A = add_images(A2B2A_transformed_attention, A.background)
-        B2A2B_transformed_attention = multiply_images(B2A2B_transformed, B.foreground)
+        B2A2B_transformed_attention = multiply_images(B2A2B_transformed, B.attention)
         B2A2B = add_images(B2A2B_transformed_attention, B.background)
         return A2B, B2A, A2B2A, B2A2B
     else:
