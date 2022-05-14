@@ -146,27 +146,26 @@ def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
         # cycle loss
         A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
         B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
+        # adversarial loss
         A2B_d_logits = D_B(A2B, training=True)
         B2A_d_logits = D_A(B2A, training=True)
-        # adversarial loss
         A2B_g_loss = g_loss_fn(A2B_d_logits)
         B2A_g_loss = g_loss_fn(B2A_d_logits)
-        # combined loss
-        G_loss = (A2B_g_loss + B2A_g_loss) * args.discriminator_loss_weight \
-                 + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight
         # Identity loss
-        #if args.identity_loss_weight > 0:
         A2A = G_B2A(A, training=True)
         B2B = G_A2B(B, training=True)
         A2A_id_loss = identity_loss_fn(A, A2A)
         B2B_id_loss = identity_loss_fn(B, B2B)
-        G_loss += (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
+        # combined loss
+        G_loss = (A2B_g_loss + B2A_g_loss) * args.discriminator_loss_weight \
+                 + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
+                 + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
         loss_dict = {'A2B_g_loss': A2B_g_loss,
-                      'B2A_g_loss': B2A_g_loss,
-                      'A2B2A_cycle_loss': A2B2A_cycle_loss,
-                      'B2A2B_cycle_loss': B2A2B_cycle_loss,
-                      'A2A_id_loss': A2A_id_loss,
-                      'B2B_id_loss': B2B_id_loss}
+                     'B2A_g_loss': B2A_g_loss,
+                     'A2B2A_cycle_loss': A2B2A_cycle_loss,
+                     'B2A2B_cycle_loss': B2A2B_cycle_loss,
+                     'A2A_id_loss': A2A_id_loss,
+                     'B2B_id_loss': B2B_id_loss}
         # counterfactual loss
         if args.counterfactual_loss_weight > 0:
             A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth, clf(A2B))
