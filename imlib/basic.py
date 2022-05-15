@@ -1,5 +1,6 @@
 import numpy as np
 import skimage.io as iio
+from matplotlib import pyplot as plt
 
 from imlib import dtype
 
@@ -26,6 +27,11 @@ def imwrite(image, path, quality=95, **plugin_args):
 def imshow(image):
     """Show a [-1.0, 1.0] image."""
     iio.imshow(dtype.im2uint(image))
+
+
+def plot_any_img(img):
+    plt.imshow(np.squeeze(img), vmin=np.min(img), vmax=np.max(img))
+    plt.show()
 
 
 show = iio.show
