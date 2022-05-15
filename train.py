@@ -16,7 +16,6 @@ import module
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-from attention_strategies.attention_stategies import no_attention
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
@@ -162,12 +161,10 @@ def train_D(A, B, A2B, B2A):
 
 
 def train_step(A, B):
-    """A2B = G_A2B(A, training=True)
+    A2B = G_A2B(A, training=True)
     B2A = G_B2A(B, training=True)
     A2B2A = G_B2A(A2B, training=True)
-    B2A2B = G_A2B(B2A, training=True)"""
-
-    A2B, B2A, A2B2A, B2A2B = no_attention(A, B, G_A2B, G_B2A, training=True)
+    B2A2B = G_A2B(B2A, training=True)
 
     A2B, B2A, G_loss_dict = train_G(A, B, A2B, B2A, A2B2A, B2A2B)
 
@@ -182,8 +179,11 @@ def train_step(A, B):
 
 @tf.function
 def sample(A, B):
-    A2B, B2A = no_attention(A, B, G_A2B, G_B2A, training=False)
-    return A2B, B2A
+    A2B = G_A2B(A, training=False)
+    B2A = G_B2A(B, training=False)
+    A2B2A = G_B2A(A2B, training=False)
+    B2A2B = G_A2B(B2A, training=False)
+    return A2B, B2A, A2B2A, B2A2B
 
 
 # ==============================================================================
@@ -245,8 +245,8 @@ with train_summary_writer.as_default():
                         # Create new iterator
                         test_iter = iter(A_B_dataset_test)
 
-                    A2B, B2A = sample(A, B)
-                    img = im.immerge(np.concatenate([A, A2B, B, B2A], axis=0), n_rows=2)
+                    A2B, B2A, A2B2A, B2A2B = sample(A, B)
+                    img = im.immerge(np.concatenate([A, A2B, A2B2A, B, B2A, B2A2B], axis=0), n_rows=2)
                     im.imwrite(img, py.join(sample_dir, '%d_%d.png' % (ep, batch_count)))
 
         # save checkpoint
