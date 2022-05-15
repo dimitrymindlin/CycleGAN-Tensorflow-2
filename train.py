@@ -1,6 +1,6 @@
 import functools
 from datetime import datetime, time
-
+import attention_strategies
 import imlib as im
 import numpy as np
 import pylib as py
@@ -16,6 +16,7 @@ import module
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
+from attention_strategies.attention_stategies import no_attention
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
@@ -107,38 +108,43 @@ D_B.compile(loss='mse',
 # =                                 train step                                 =
 # ==============================================================================
 
-@tf.function
-def train_G(A, B):
+def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
     with tf.GradientTape() as t:
-        A2B = G_A2B(A, training=True)
-        B2A = G_B2A(B, training=True)
-        A2B2A = G_B2A(A2B, training=True)
-        B2A2B = G_A2B(B2A, training=True)
-        A2A = G_B2A(A, training=True)
-        B2B = G_A2B(B, training=True)
-
-        A2B_d_logits = D_B(A2B, training=True)
-        B2A_d_logits = D_A(B2A, training=True)
-
-        A2B_g_loss = g_loss_fn(A2B_d_logits)
-        B2A_g_loss = g_loss_fn(B2A_d_logits)
+        # cycle loss
         A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
         B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
+        # adversarial loss
+        A2B_d_logits = D_B(A2B, training=True)
+        B2A_d_logits = D_A(B2A, training=True)
+        A2B_g_loss = g_loss_fn(A2B_d_logits)
+        B2A_g_loss = g_loss_fn(B2A_d_logits)
+        # Identity loss
+        A2A = G_B2A(A, training=True)
+        B2B = G_A2B(B, training=True)
         A2A_id_loss = identity_loss_fn(A, A2A)
         B2B_id_loss = identity_loss_fn(B, B2B)
+        # combined loss
+        G_loss = (A2B_g_loss + B2A_g_loss) * args.discriminator_loss_weight \
+                 + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
+                 + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
+        loss_dict = {'A2B_g_loss': A2B_g_loss,
+                     'B2A_g_loss': B2A_g_loss,
+                     'A2B2A_cycle_loss': A2B2A_cycle_loss,
+                     'B2A2B_cycle_loss': B2A2B_cycle_loss,
+                     'A2A_id_loss': A2A_id_loss,
+                     'B2B_id_loss': B2B_id_loss}
 
-        G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + (
-                    A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
+        # combined loss
+        """G_loss = (A2B_g_loss + B2A_g_loss) * args.discriminator_loss_weight \
+                 + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
+                 + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
+                 (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight + \
+                 (A2B_feature_map_loss + B2A_feature_map_loss) * args.feature_map_loss_weight"""
 
     G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
     G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
 
-    return A2B, B2A, {'A2B_g_loss': A2B_g_loss,
-                      'B2A_g_loss': B2A_g_loss,
-                      'A2B2A_cycle_loss': A2B2A_cycle_loss,
-                      'B2A2B_cycle_loss': B2A2B_cycle_loss,
-                      'A2A_id_loss': A2A_id_loss,
-                      'B2B_id_loss': B2B_id_loss}
+    return A2B, B2A, loss_dict
 
 
 #@tf.function
@@ -164,9 +170,12 @@ def train_D(A, B, A2B, B2A):
             }
 
 
-def train_step(A, B):
-    A2B, B2A, G_loss_dict = train_G(A, B)
+def train_step(A_holder, B_holder):
+    #A2B, B2A, G_loss_dict = train_G(A, B)
 
+    A2B, B2A, A2B2A, B2A2B = no_attention(A_holder, B_holder, G_A2B, G_B2A, training=True)
+
+    A2B, B2A, G_loss_dict = train_G(A_holder.enhanced_img, B_holder.enhanced_img, A2B, B2A, A2B2A, B2A2B)
     # cannot autograph `A2B_pool`
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
     B2A = B2A_pool(B2A)  # because of the communication between CPU and GPU
