@@ -16,6 +16,7 @@ import module
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
+from attention_strategies.attention_stategies import no_attention
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
@@ -110,10 +111,11 @@ D_B.compile(loss='mse',
 @tf.function
 def train_G(A, B):
     with tf.GradientTape() as t:
-        A2B = G_A2B(A, training=True)
+        A2B, B2A, A2B2A, B2A2B = no_attention(A, B, G_A2B, G_B2A)
+        """A2B = G_A2B(A, training=True)
         B2A = G_B2A(B, training=True)
         A2B2A = G_B2A(A2B, training=True)
-        B2A2B = G_A2B(B2A, training=True)
+        B2A2B = G_A2B(B2A, training=True)"""
         A2A = G_B2A(A, training=True)
         B2B = G_A2B(B, training=True)
 
