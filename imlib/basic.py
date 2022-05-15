@@ -149,4 +149,9 @@ def imshow(image):
     iio.imshow(dtype.im2uint(image))
 
 
+def plot_any_img(img):
+    plt.imshow(np.squeeze(img), vmin=np.min(img), vmax=np.max(img))
+    plt.show()
+
+
 show = iio.show
