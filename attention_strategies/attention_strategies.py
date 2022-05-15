@@ -1,9 +1,8 @@
 ### Attention Gan Original
 # From "Attention-GAN for Object Transfiguration in Wild Images"
-import matplotlib.pyplot as plt
-import numpy as np
-
+from imlib import plot_any_img
 from imlib.image_holder import add_images, multiply_images
+import numpy as np
 
 
 def attention_gan_original(A, B, G_A2B, G_B2A, training=True):
