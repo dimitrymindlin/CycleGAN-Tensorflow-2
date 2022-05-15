@@ -34,7 +34,7 @@ py.arg('--lr', type=float, default=0.0002)
 py.arg('--beta_1', type=float, default=0.5)
 py.arg('--adversarial_loss_mode', default='lsgan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
 py.arg('--discriminator_loss_weight', type=float, default=1)
-py.arg('--cycle_loss_weight', type=float, default=1)
+py.arg('--cycle_loss_weight', type=float, default=10)
 py.arg('--counterfactual_loss_weight', type=float, default=0)
 py.arg('--feature_map_loss_weight', type=float, default=0)
 py.arg('--identity_loss_weight', type=float, default=0)
@@ -44,9 +44,9 @@ previous iterations. Essentially, we remember the last pool_size generated image
 to create a batch_size batch of images to do one iteration of backprop on. This helps to stabilize training, kind of 
 like experience replay."""
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
+py.arg('--attention_intensity', type=float, default=1)
 py.arg('--attention_type', type=str, default="none",
        choices=['attention-gan-foreground', 'spa-gan', 'none', 'attention-gan-original'])
-py.arg('--attention_intensity', type=float, default=1)
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 py.arg('--discriminator', type=str, default="patch-gan", choices=['classic', 'patch-gan'])
 args = py.args()
@@ -140,9 +140,9 @@ else:
 # =                                 train step                                 =
 # ==============================================================================
 
-# @tf.function
-def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
+def train_G(A, B):
     with tf.GradientTape() as t:
+        A2B, B2A, A2B2A, B2A2B = attention_strategy(A_holder, B_holder, G_A2B, G_B2A, training=True)
         # cycle loss
         A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
         B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
@@ -202,7 +202,6 @@ def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
     return A2B, B2A, loss_dict
 
 
-# @tf.function
 def train_D(A, B, A2B, B2A):
     if args.attention_type == "attention-gan-original":
         A2B = A.transformed_part
@@ -242,12 +241,11 @@ def train_step(A_holder, B_holder):
     B ImageHolder of image B
     -------
     """
-    A2B, B2A, A2B2A, B2A2B = attention_strategy(A_holder, B_holder, G_A2B, G_B2A, training=True)
 
     if args.attention_type == "spa-gan":
-        A2B, B2A, G_loss_dict = train_G(A_holder.enhanced_img, B_holder.enhanced_img, A2B, B2A, A2B2A, B2A2B)
+        A2B, B2A, G_loss_dict = train_G(A_holder.enhanced_img, B_holder.enhanced_img)
     else:
-        A2B, B2A, G_loss_dict = train_G(A_holder.img, B_holder.img, A2B, B2A, A2B2A, B2A2B)
+        A2B, B2A, G_loss_dict = train_G(A_holder.img, B_holder.img)
 
     # cannot autograph `A2B_pool`
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
@@ -258,7 +256,6 @@ def train_step(A_holder, B_holder):
     return G_loss_dict, D_loss_dict
 
 
-# @tf.function
 def sample(A_holder, B_holder):
     """
     Parameters
