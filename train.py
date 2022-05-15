@@ -108,8 +108,12 @@ D_B.compile(loss='mse',
 # ==============================================================================
 
 @tf.function
-def train_G(A, B, A2B, B2A, A2B2A, B2A2B):
+def train_G(A, B):
     with tf.GradientTape() as t:
+        A2B = G_A2B(A, training=True)
+        B2A = G_B2A(B, training=True)
+        A2B2A = G_B2A(A2B, training=True)
+        B2A2B = G_A2B(B2A, training=True)
         A2A = G_B2A(A, training=True)
         B2B = G_A2B(B, training=True)
 
@@ -161,12 +165,7 @@ def train_D(A, B, A2B, B2A):
 
 
 def train_step(A, B):
-    A2B = G_A2B(A, training=True)
-    B2A = G_B2A(B, training=True)
-    A2B2A = G_B2A(A2B, training=True)
-    B2A2B = G_A2B(B2A, training=True)
-
-    A2B, B2A, G_loss_dict = train_G(A, B, A2B, B2A, A2B2A, B2A2B)
+    A2B, B2A, G_loss_dict = train_G(A, B)
 
     # cannot autograph `A2B_pool`
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
@@ -236,18 +235,16 @@ with train_summary_writer.as_default():
                        name='learning rate')
 
             # sample
-            if ep == 0 or ep > 15 or ep % 3 == 0:
-                if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1:
-                    try:
-                        A, B = next(test_iter)
-                    except StopIteration:  # When al
-                        # l elements finished
-                        # Create new iterator
-                        test_iter = iter(A_B_dataset_test)
+            if G_optimizer.iterations.numpy() % 500 == 0:
+                try:
+                    A, B = next(test_iter)
+                except StopIteration:  # When all elements finished
+                    # Create new iterator
+                    test_iter = iter(A_B_dataset_test)
 
-                    A2B, B2A, A2B2A, B2A2B = sample(A, B)
-                    img = im.immerge(np.concatenate([A, A2B, A2B2A, B, B2A, B2A2B], axis=0), n_rows=2)
-                    im.imwrite(img, py.join(sample_dir, '%d_%d.png' % (ep, batch_count)))
+                A2B, B2A, A2B2A, B2A2B = sample(A, B)
+                img = im.immerge(np.concatenate([A, A2B, A2B2A, B, B2A, B2A2B], axis=0), n_rows=2)
+                im.imwrite(img, py.join(sample_dir, '%d_%d.png' % (ep, batch_count)))
 
         # save checkpoint
         if ep % 5 == 0:
