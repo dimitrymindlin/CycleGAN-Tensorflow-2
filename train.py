@@ -17,7 +17,6 @@ import module
 # =                                   param                                    =
 # ==============================================================================
 from attention_strategies.attention_stategies import no_attention
-from imlib.image_holder import ImageHolder
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
@@ -172,12 +171,12 @@ def train_D(A, B, A2B, B2A):
             }
 
 
-def train_step(A_holder, B_holder):
+def train_step(A, B):
     #A2B, B2A, G_loss_dict = train_G(A, B)
 
-    A2B, B2A, A2B2A, B2A2B = no_attention(A_holder, B_holder, G_A2B, G_B2A, training=True)
+    A2B, B2A, A2B2A, B2A2B = no_attention(A, B, G_A2B, G_B2A, training=True)
 
-    A2B, B2A, G_loss_dict = train_G(A_holder.img, B_holder.img, A2B, B2A, A2B2A, B2A2B)
+    A2B, B2A, G_loss_dict = train_G(A, B, A2B, B2A, A2B2A, B2A2B)
     # cannot autograph `A2B_pool`
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
     B2A = B2A_pool(B2A)  # because of the communication between CPU and GPU
@@ -188,8 +187,8 @@ def train_step(A_holder, B_holder):
 
 
 @tf.function
-def sample(A_holder, B_holder):
-    return no_attention(A_holder, B_holder, G_A2B, G_B2A, training=False)
+def sample(A, B):
+    return no_attention(A, B, G_A2B, G_B2A, training=False)
 
 
 # ==============================================================================
@@ -233,10 +232,8 @@ with train_summary_writer.as_default():
 
         # train for an epoch
         for batch_count, (A, B) in enumerate(tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset)):
-            A_holder = ImageHolder(A, 0, attention=False)
-            B_holder = ImageHolder(B, 1, attention=False)
 
-            G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
+            G_loss_dict, D_loss_dict = train_step(A, B)
 
             # # summary
             tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
@@ -253,10 +250,7 @@ with train_summary_writer.as_default():
                         # Create new iterator
                         test_iter = iter(A_B_dataset_test)
 
-                    A_holder = ImageHolder(A, 0, attention=False)
-                    B_holder = ImageHolder(B, 1, attention=False)
-
-                    A2B, B2A = sample(A_holder, B_holder)
+                    A2B, B2A = sample(A, B)
                     img = im.immerge(np.concatenate([A, A2B, B, B2A], axis=0), n_rows=2)
                     im.imwrite(img, py.join(sample_dir, '%d_%d.png' % (ep, batch_count)))
 
