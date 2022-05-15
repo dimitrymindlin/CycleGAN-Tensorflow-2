@@ -1,6 +1,6 @@
 import functools
 from datetime import datetime, time
-
+import attention_strategies
 import imlib as im
 import numpy as np
 import pylib as py
@@ -16,6 +16,8 @@ import module
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
+from attention_strategies.attention_stategies import no_attention
+from imlib.image_holder import ImageHolder
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
@@ -30,6 +32,7 @@ py.arg('--adversarial_loss_mode', default='gan', choices=['gan', 'hinge_v1', 'hi
 py.arg('--gradient_penalty_mode', default='none', choices=['none', 'dragan', 'wgan-gp'])
 py.arg('--gradient_penalty_weight', type=float, default=10.0)
 py.arg('--cycle_loss_weight', type=float, default=10.0)
+py.arg('--discriminator_loss_weight', type=float, default=1)
 py.arg('--identity_loss_weight', type=float, default=0.0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 args = py.args()
@@ -107,38 +110,43 @@ D_B.compile(loss='mse',
 # =                                 train step                                 =
 # ==============================================================================
 
-@tf.function
-def train_G(A, B):
+def train_G(A, B, A2B=None, B2A=None, A2B2A=None, B2A2B=None):
     with tf.GradientTape() as t:
-        A2B = G_A2B(A, training=True)
-        B2A = G_B2A(B, training=True)
-        A2B2A = G_B2A(A2B, training=True)
-        B2A2B = G_A2B(B2A, training=True)
-        A2A = G_B2A(A, training=True)
-        B2B = G_A2B(B, training=True)
-
-        A2B_d_logits = D_B(A2B, training=True)
-        B2A_d_logits = D_A(B2A, training=True)
-
-        A2B_g_loss = g_loss_fn(A2B_d_logits)
-        B2A_g_loss = g_loss_fn(B2A_d_logits)
+        # cycle loss
         A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
         B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
+        # adversarial loss
+        A2B_d_logits = D_B(A2B, training=True)
+        B2A_d_logits = D_A(B2A, training=True)
+        A2B_g_loss = g_loss_fn(A2B_d_logits)
+        B2A_g_loss = g_loss_fn(B2A_d_logits)
+        # Identity loss
+        A2A = G_B2A(A, training=True)
+        B2B = G_A2B(B, training=True)
         A2A_id_loss = identity_loss_fn(A, A2A)
         B2B_id_loss = identity_loss_fn(B, B2B)
+        # combined loss
+        G_loss = (A2B_g_loss + B2A_g_loss) * args.discriminator_loss_weight \
+                 + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
+                 + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
+        loss_dict = {'A2B_g_loss': A2B_g_loss,
+                     'B2A_g_loss': B2A_g_loss,
+                     'A2B2A_cycle_loss': A2B2A_cycle_loss,
+                     'B2A2B_cycle_loss': B2A2B_cycle_loss,
+                     'A2A_id_loss': A2A_id_loss,
+                     'B2B_id_loss': B2B_id_loss}
 
-        G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + (
-                    A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
+        # combined loss
+        """G_loss = (A2B_g_loss + B2A_g_loss) * args.discriminator_loss_weight \
+                 + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
+                 + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
+                 (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight + \
+                 (A2B_feature_map_loss + B2A_feature_map_loss) * args.feature_map_loss_weight"""
 
     G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
     G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
 
-    return A2B, B2A, {'A2B_g_loss': A2B_g_loss,
-                      'B2A_g_loss': B2A_g_loss,
-                      'A2B2A_cycle_loss': A2B2A_cycle_loss,
-                      'B2A2B_cycle_loss': B2A2B_cycle_loss,
-                      'A2A_id_loss': A2A_id_loss,
-                      'B2B_id_loss': B2B_id_loss}
+    return A2B, B2A, loss_dict
 
 
 #@tf.function
@@ -164,9 +172,12 @@ def train_D(A, B, A2B, B2A):
             }
 
 
-def train_step(A, B):
-    A2B, B2A, G_loss_dict = train_G(A, B)
+def train_step(A_holder, B_holder):
+    #A2B, B2A, G_loss_dict = train_G(A, B)
 
+    A2B, B2A, A2B2A, B2A2B = no_attention(A_holder, B_holder, G_A2B, G_B2A, training=True)
+
+    A2B, B2A, G_loss_dict = train_G(A_holder.img, B_holder.img, A2B, B2A, A2B2A, B2A2B)
     # cannot autograph `A2B_pool`
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
     B2A = B2A_pool(B2A)  # because of the communication between CPU and GPU
@@ -177,12 +188,8 @@ def train_step(A, B):
 
 
 @tf.function
-def sample(A, B):
-    A2B = G_A2B(A, training=False)
-    B2A = G_B2A(B, training=False)
-    A2B2A = G_B2A(A2B, training=False)
-    B2A2B = G_A2B(B2A, training=False)
-    return A2B, B2A, A2B2A, B2A2B
+def sample(A_holder, B_holder):
+    return no_attention(A_holder, B_holder, G_A2B, G_B2A, training=False)
 
 
 # ==============================================================================
@@ -226,7 +233,10 @@ with train_summary_writer.as_default():
 
         # train for an epoch
         for batch_count, (A, B) in enumerate(tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset)):
-            G_loss_dict, D_loss_dict = train_step(A, B)
+            A_holder = ImageHolder(A, 0, attention=False)
+            B_holder = ImageHolder(B, 1, attention=False)
+
+            G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
 
             # # summary
             tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
@@ -235,16 +245,20 @@ with train_summary_writer.as_default():
                        name='learning rate')
 
             # sample
-            if G_optimizer.iterations.numpy() % 500 == 0:
-                try:
-                    A, B = next(test_iter)
-                except StopIteration:  # When all elements finished
-                    # Create new iterator
-                    test_iter = iter(A_B_dataset_test)
+            if ep == 0 or ep > 15 or ep % 3 == 0:
+                if G_optimizer.iterations.numpy() % 500 == 0 or G_optimizer.iterations.numpy() == 1:
+                    try:
+                        A, B = next(test_iter)
+                    except StopIteration:  # When all elements finished
+                        # Create new iterator
+                        test_iter = iter(A_B_dataset_test)
 
-                A2B, B2A, A2B2A, B2A2B = sample(A, B)
-                img = im.immerge(np.concatenate([A, A2B, A2B2A, B, B2A, B2A2B], axis=0), n_rows=2)
-                im.imwrite(img, py.join(sample_dir, '%d_%d.png' % (ep, batch_count)))
+                    A_holder = ImageHolder(A, 0, attention=False)
+                    B_holder = ImageHolder(B, 1, attention=False)
+
+                    A2B, B2A = sample(A_holder, B_holder)
+                    img = im.immerge(np.concatenate([A, A2B, B, B2A], axis=0), n_rows=2)
+                    im.imwrite(img, py.join(sample_dir, '%d_%d.png' % (ep, batch_count)))
 
         # save checkpoint
         if ep % 5 == 0:
