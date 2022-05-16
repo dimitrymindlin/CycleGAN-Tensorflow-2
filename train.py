@@ -90,6 +90,9 @@ D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epo
 G_optimizer = keras.optimizers.Adam(learning_rate=G_lr_scheduler, beta_1=args.beta_1)
 D_optimizer = keras.optimizers.Adam(learning_rate=D_lr_scheduler, beta_1=args.beta_1)
 
+train_D_A_acc = tf.keras.metrics.BinaryAccuracy()
+train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
+
 
 # ==============================================================================
 # =                                 train step                                 =
@@ -141,15 +144,24 @@ def train_D(A, B, A2B, B2A):
         D_A_gp = gan.gradient_penalty(functools.partial(D_A, training=True), A, B2A, mode=args.gradient_penalty_mode)
         D_B_gp = gan.gradient_penalty(functools.partial(D_B, training=True), B, A2B, mode=args.gradient_penalty_mode)
 
+
         D_loss = (A_d_loss + B2A_d_loss) + (B_d_loss + A2B_d_loss) + (D_A_gp + D_B_gp) * args.gradient_penalty_weight
 
     D_grad = t.gradient(D_loss, D_A.trainable_variables + D_B.trainable_variables)
     D_optimizer.apply_gradients(zip(D_grad, D_A.trainable_variables + D_B.trainable_variables))
 
+    # Update training metric.
+    train_D_A_acc.update_state(A, A_d_logits)
+    train_D_A_acc.update_state(A, B2A_d_logits)
+    train_D_B_acc.update_state(B, B_d_logits)
+    train_D_B_acc.update_state(B, A2B_d_logits)
+
     return {'A_d_loss': A_d_loss + B2A_d_loss,
             'B_d_loss': B_d_loss + A2B_d_loss,
             'D_A_gp': D_A_gp,
-            'D_B_gp': D_B_gp}
+            'D_B_gp': D_B_gp,
+            'D_A_acc': train_D_A_acc.train_acc_metric.result(),
+            'D_B_acc': train_D_B_acc.train_acc_metric.result()}
 
 
 def train_step(A, B):
@@ -160,6 +172,8 @@ def train_step(A, B):
     B2A = B2A_pool(B2A)  # because of the communication between CPU and GPU
 
     D_loss_dict = train_D(A, B, A2B, B2A)
+    train_D_A_acc.reset_states()
+    train_D_B_acc.reset_states()
 
     return G_loss_dict, D_loss_dict
 
