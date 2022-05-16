@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 
 
 def _check(images, dtypes, min_value=-np.inf, max_value=np.inf):
@@ -78,3 +79,11 @@ def im2cv(images):
     """Transform images from [-1.0, 1.0] to opencv images."""
     images = im2uint(images)
     return images[..., ::-1]
+
+
+def scale_to_zero_one(img):
+    return tf.math.add(tf.math.multiply(0.5, img), 0.5)
+
+
+def scale_to_minus_one_one(img):
+    return tf.math.subtract(tf.math.multiply(2.0, img), 1)

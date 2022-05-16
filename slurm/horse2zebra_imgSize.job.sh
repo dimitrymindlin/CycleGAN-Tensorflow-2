@@ -5,6 +5,4 @@ cd /media/compute/homes/dmindlin/CycleGAN-Tensorflow-2
 
 python3 -m train \
   --dataset horse2zebra \
-  --load_size 530 \
-  --crop_size 520
 
