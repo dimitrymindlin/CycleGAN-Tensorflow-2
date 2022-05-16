@@ -39,7 +39,7 @@ py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
 py.arg('--attention_intensity', type=float, default=1)
-py.arg('--attention_type', type=str, default="none",
+py.arg('--attention_type', type=str, default="spa-gan",
        choices=['attention-gan-foreground', 'spa-gan', 'none', 'attention-gan-original'])
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 py.arg('--discriminator', type=str, default="patch-gan", choices=['classic', 'patch-gan'])
@@ -137,7 +137,7 @@ def train_G(A_holder, B_holder):
         B2B_id_loss = identity_loss_fn(B, B2B)
 
         G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + (
-                    A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
+                A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
 
     G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
     G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
@@ -178,14 +178,14 @@ def train_D(A, B, A2B, B2A):
             'D_B_acc': train_D_B_acc.result()}
 
 
-def train_step(A, B):
-    A2B, B2A, G_loss_dict = train_G(A, B)
+def train_step(A_holder, B_holder):
+    A2B, B2A, G_loss_dict = train_G(A_holder, B_holder)
 
     # cannot autograph `A2B_pool`
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
     B2A = B2A_pool(B2A)  # because of the communication between CPU and GPU
 
-    D_loss_dict = train_D(A, B, A2B, B2A)
+    D_loss_dict = train_D(A_holder.img, B_holder.img, A2B, B2A)
     train_D_A_acc.reset_states()
     train_D_B_acc.reset_states()
 
@@ -244,7 +244,14 @@ with train_summary_writer.as_default():
 
         # train for an epoch
         for batch_count, (A, B) in enumerate(tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset)):
-            G_loss_dict, D_loss_dict = train_step(A, B)
+            if args.attention_type == "none":
+                A_holder = ImageHolder(A, 0, attention=False, attention_intensity=args.attention_intensity)
+                B_holder = ImageHolder(B, 1, attention=False, attention_intensity=args.attention_intensity)
+            else:  # Attention-strategies
+                A_holder = ImageHolder(A, 0, gradcam, args.attention_type, attention_intensity=args.attention_intensity)
+                B_holder = ImageHolder(B, 1, gradcam, args.attention_type, attention_intensity=args.attention_intensity)
+
+            G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
 
             # # summary
             tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
