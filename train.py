@@ -25,7 +25,7 @@ from imlib.image_holder import ImageHolder
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
-py.arg('--load_size', type=int, default=512)  # load image to this size
+py.arg('--load_size', type=int, default=530)  # load image to this size
 py.arg('--crop_size', type=int, default=512)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
 py.arg('--epochs', type=int, default=70)
@@ -39,10 +39,6 @@ py.arg('--counterfactual_loss_weight', type=float, default=0)
 py.arg('--feature_map_loss_weight', type=float, default=0)
 py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
-"""pool_size: the discriminator is trained against the current batch of generated images as well as images generated on 
-previous iterations. Essentially, we remember the last pool_size generated images then randomly sample from this pool 
-to create a batch_size batch of images to do one iteration of backprop on. This helps to stabilize training, kind of 
-like experience replay."""
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
 py.arg('--attention_intensity', type=float, default=1)
 py.arg('--attention_type', type=str, default="none",
@@ -91,7 +87,7 @@ if args.feature_map_loss_weight > 0:
 if args.discriminator == "patch-gan":
     D_A = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
     D_B = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
-else:
+else: # classic gan that looks at whole pic
     D_A = module.ClassicDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
     D_B = module.ClassicDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
 
