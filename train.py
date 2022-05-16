@@ -152,17 +152,17 @@ def train_D(A, B, A2B, B2A):
     D_optimizer.apply_gradients(zip(D_grad, D_A.trainable_variables + D_B.trainable_variables))
 
     # Update training metric.
-    train_D_A_acc.update_state(A, A_d_logits)
-    train_D_A_acc.update_state(A, B2A_d_logits)
-    train_D_B_acc.update_state(B, B_d_logits)
-    train_D_B_acc.update_state(B, A2B_d_logits)
+    train_D_A_acc.update_state(tf.ones_like(A_d_logits), A_d_logits)
+    train_D_A_acc.update_state(tf.ones_like(B2A_d_logits), B2A_d_logits)
+    train_D_B_acc.update_state(tf.zeros_like(B_d_logits), B_d_logits)
+    train_D_B_acc.update_state(tf.zeros_like(A2B_d_logits), A2B_d_logits)
 
     return {'A_d_loss': A_d_loss + B2A_d_loss,
             'B_d_loss': B_d_loss + A2B_d_loss,
             'D_A_gp': D_A_gp,
             'D_B_gp': D_B_gp,
-            'D_A_acc': train_D_A_acc.train_acc_metric.result(),
-            'D_B_acc': train_D_B_acc.train_acc_metric.result()}
+            'D_A_acc': train_D_A_acc.result(),
+            'D_B_acc': train_D_B_acc.result()}
 
 
 def train_step(A, B):
