@@ -25,8 +25,8 @@ from imlib.image_holder import ImageHolder
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
-py.arg('--load_size', type=int, default=280)  # load image to this size
-py.arg('--crop_size', type=int, default=256)  # then crop to this size
+py.arg('--load_size', type=int, default=530)  # load image to this size
+py.arg('--crop_size', type=int, default=512)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
 py.arg('--epochs', type=int, default=70)
 py.arg('--epoch_decay', type=int, default=50)  # epoch to start decaying learning rate
@@ -80,9 +80,12 @@ B2A_pool = data.ItemPool(args.pool_size)
 # ==============================================================================
 
 G_A2B, G_B2A = module.get_generators(args)
+
 if args.feature_map_loss_weight > 0:
-    feature_map_G_A2B = tf.keras.models.Model(inputs=G_A2B.inputs, outputs=G_A2B.get_layer(name="upsampling_0").output)
-    feature_map_G_B2A = tf.keras.models.Model(inputs=G_B2A.inputs, outputs=G_B2A.get_layer(name="upsampling_0").output)
+    feature_map_G_A2B = tf.keras.models.Model(inputs=G_A2B.inputs,
+                                              outputs=G_A2B.get_layer(name="upsampling_0").output)
+    feature_map_G_B2A = tf.keras.models.Model(inputs=G_B2A.inputs,
+                                              outputs=G_B2A.get_layer(name="upsampling_0").output)
 
 if args.discriminator == "patch-gan":
     D_A = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
