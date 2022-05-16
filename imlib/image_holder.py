@@ -64,5 +64,5 @@ class ImageHolder():
         img = scale_to_zero_one(self.img)
         attention = scale_to_zero_one(self.attention)
         # Split background and foreground
-        self.foreground = scale_to_minus_one_one(get_foreground(img, attention))
-        self.background = scale_to_minus_one_one(get_background(img, attention))
+        self.foreground = get_foreground(img, attention)
+        self.background = get_background(img, attention)
