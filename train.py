@@ -237,16 +237,17 @@ with train_summary_writer.as_default():
             tl.summary({'learning rate': G_lr_scheduler.current_learning_rate}, step=G_optimizer.iterations, name='learning rate')
 
             # sample
-            if G_optimizer.iterations.numpy() % 500 == 0:
-                try:
-                    A, B = next(test_iter)
-                except StopIteration:  # When all elements finished
-                    # Create new iterator
-                    test_iter = iter(A_B_dataset_test)
+            if ep == 0 or ep > 15 or ep % 3 == 0:
+                if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1:
+                    try:
+                        A, B = next(test_iter)
+                    except StopIteration:  # When all elements finished
+                        # Create new iterator
+                        test_iter = iter(A_B_dataset_test)
 
-                A2B, B2A, A2B2A, B2A2B = sample(A, B)
-                img = im.immerge(np.concatenate([A, A2B, A2B2A, B, B2A, B2A2B], axis=0), n_rows=2)
-                im.imwrite(img, py.join(sample_dir, '%d_%d.png' % (ep, batch_count)))
+                    A2B, B2A, A2B2A, B2A2B = sample(A, B)
+                    img = im.immerge(np.concatenate([A, A2B, A2B2A, B, B2A, B2A2B], axis=0), n_rows=2)
+                    im.imwrite(img, py.join(sample_dir, '%d_%d.png' % (ep, batch_count)))
 
         # save checkpoint
         if ep % 5 == 0:
