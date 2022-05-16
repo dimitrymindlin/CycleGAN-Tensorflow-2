@@ -25,8 +25,8 @@ from imlib.image_holder import ImageHolder
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
-py.arg('--load_size', type=int, default=530)  # load image to this size
-py.arg('--crop_size', type=int, default=512)  # then crop to this size
+py.arg('--load_size', type=int, default=280)  # load image to this size
+py.arg('--crop_size', type=int, default=256)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
 py.arg('--epochs', type=int, default=70)
 py.arg('--epoch_decay', type=int, default=50)  # epoch to start decaying learning rate
