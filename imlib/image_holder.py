@@ -41,7 +41,7 @@ def multiply_images(img1, img2):
 
 
 class ImageHolder():
-    def __init__(self, img, class_label=None, gradcam=None, attention_type=None, attention=True):
+    def __init__(self, img, class_label=None, gradcam=None, attention_type=None, attention=True, attention_intensity=1):
         self.img = img  # original image
         self.attention = None  # heatmap
         self.foreground = None  # original image + heatmap
@@ -49,12 +49,13 @@ class ImageHolder():
         self.enhanced_img = None  # original image * (heatmap + intensity)
         self.transformed_part = None  # depending on strategy, the part that should be transformed
         if attention:
-            self.get_attention(class_label, gradcam, attention_type)
+            self.get_attention(class_label, gradcam, attention_type, attention_intensity)
             self.get_fore_and_backgroud_by_attention()
 
-    def get_attention(self, class_label, gradcam, attention_type):
+    def get_attention(self, class_label, gradcam, attention_type, attention_intensity):
         enhanced_img, attention = attention_maps.apply_gradcam(self.img, gradcam, class_label,
-                                                               attention_type=attention_type)
+                                                               attention_type=attention_type,
+                                                               attention_intensity=attention_intensity)
         self.attention = attention
         self.enhanced_img = enhanced_img
 

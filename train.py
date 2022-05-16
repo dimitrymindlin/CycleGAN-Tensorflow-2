@@ -318,11 +318,11 @@ with train_summary_writer.as_default():
         batch_count = 0
         for A, B in tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset):
             if args.attention_type == "none":
-                A_holder = ImageHolder(A, 0, attention=False)
-                B_holder = ImageHolder(B, 1, attention=False)
+                A_holder = ImageHolder(A, 0, attention=False, attention_intensity=args.attention_intensity)
+                B_holder = ImageHolder(B, 1, attention=False, attention_intensity=args.attention_intensity)
             else:  # Attention-strategies
-                A_holder = ImageHolder(A, 0, gradcam, args.attention_type)
-                B_holder = ImageHolder(B, 1, gradcam, args.attention_type)
+                A_holder = ImageHolder(A, 0, gradcam, args.attention_type, attention_intensity=args.attention_intensity)
+                B_holder = ImageHolder(B, 1, gradcam, args.attention_type, attention_intensity=args.attention_intensity)
 
             G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
 
