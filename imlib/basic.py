@@ -121,8 +121,9 @@ def save_images_with_attention(A_attention_image, A2B, B_attention_image, B2A, c
         imwrite(img,
                 f"{img_folder}/%d_%d_AB:{AB_correct}_BA:{BA_correct}.png" % (
                     ep_cnt, batch_count))
-    except (AssertionError, AttributeError, OSError):
+    except (AssertionError, AttributeError, OSError) as e:
         print(f"Wasn't able to print image {ep_cnt}_{batch_count}")
+        print(e)
 
 
 def imread(path, as_gray=False, **kwargs):
