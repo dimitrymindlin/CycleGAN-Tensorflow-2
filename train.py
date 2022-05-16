@@ -1,22 +1,25 @@
 import functools
 from datetime import datetime, time
 
-import imlib as im
-import numpy as np
+from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
+from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
+
 import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
 import tf2lib as tl
 import tf2gan as gan
 import tqdm
-
+from imlib import generate_image
 import data
 import module
 
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-from attention_strategies.attention_stategies import no_attention
+from attention_strategies.attention_stategies import no_attention, spa_gan, attention_gan_foreground, \
+    attention_gan_original
+from imlib.image_holder import ImageHolder
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
@@ -28,11 +31,18 @@ py.arg('--epoch_decay', type=int, default=100)  # epoch to start decaying learni
 py.arg('--lr', type=float, default=0.0002)
 py.arg('--beta_1', type=float, default=0.5)
 py.arg('--adversarial_loss_mode', default='gan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
-py.arg('--gradient_penalty_mode', default='none', choices=['none', 'dragan', 'wgan-gp'])
-py.arg('--gradient_penalty_weight', type=float, default=10.0)
-py.arg('--cycle_loss_weight', type=float, default=10.0)
-py.arg('--identity_loss_weight', type=float, default=0.0)
+py.arg('--discriminator_loss_weight', type=float, default=1)
+py.arg('--cycle_loss_weight', type=float, default=10)
+py.arg('--counterfactual_loss_weight', type=float, default=0)
+py.arg('--feature_map_loss_weight', type=float, default=0)
+py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
+py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
+py.arg('--attention_intensity', type=float, default=1)
+py.arg('--attention_type', type=str, default="none",
+       choices=['attention-gan-foreground', 'spa-gan', 'none', 'attention-gan-original'])
+py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
+py.arg('--discriminator', type=str, default="patch-gan", choices=['classic', 'patch-gan'])
 args = py.args()
 
 # output_dir
@@ -53,7 +63,6 @@ py.mkdir(output_dir)
 
 # save settings
 py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
-
 
 # ==============================================================================
 # =                                    data                                    =
@@ -86,6 +95,8 @@ d_loss_fn, g_loss_fn = gan.get_adversarial_losses_fn(args.adversarial_loss_mode)
 cycle_loss_fn = tf.losses.MeanAbsoluteError()
 identity_loss_fn = tf.losses.MeanAbsoluteError()
 
+clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}/model", compile=False)
+
 G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
 D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
 G_optimizer = keras.optimizers.Adam(learning_rate=G_lr_scheduler, beta_1=args.beta_1)
@@ -94,18 +105,24 @@ D_optimizer = keras.optimizers.Adam(learning_rate=D_lr_scheduler, beta_1=args.be
 train_D_A_acc = tf.keras.metrics.BinaryAccuracy()
 train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 
+if args.attention_type == "spa-gan":
+    attention_strategy = spa_gan
+elif args.attention_type == "attention-gan-foreground":
+    attention_strategy = attention_gan_foreground
+elif args.attention_type == "attention-gan-original":
+    attention_strategy = attention_gan_original
+else:
+    attention_strategy = no_attention
+
 
 # ==============================================================================
 # =                                 train step                                 =
 # ==============================================================================
 
 @tf.function
-def train_G(A, B):
+def train_G(A_holder, B_holder):
     with tf.GradientTape() as t:
-        A2B = G_A2B(A, training=True)
-        B2A = G_B2A(B, training=True)
-        A2B2A = G_B2A(A2B, training=True)
-        B2A2B = G_A2B(B2A, training=True)
+        A2B, B2A, A2B2A, B2A2B = attention_strategy(A_holder, B_holder, G_A2B, G_B2A, training=True)
         A2A = G_B2A(A, training=True)
         B2B = G_A2B(B, training=True)
 
@@ -119,7 +136,8 @@ def train_G(A, B):
         A2A_id_loss = identity_loss_fn(A, A2A)
         B2B_id_loss = identity_loss_fn(B, B2B)
 
-        G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
+        G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + (
+                    A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
 
     G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
     G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
@@ -142,11 +160,8 @@ def train_D(A, B, A2B, B2A):
 
         A_d_loss, B2A_d_loss = d_loss_fn(A_d_logits, B2A_d_logits)
         B_d_loss, A2B_d_loss = d_loss_fn(B_d_logits, A2B_d_logits)
-        D_A_gp = gan.gradient_penalty(functools.partial(D_A, training=True), A, B2A, mode=args.gradient_penalty_mode)
-        D_B_gp = gan.gradient_penalty(functools.partial(D_B, training=True), B, A2B, mode=args.gradient_penalty_mode)
 
-
-        D_loss = (A_d_loss + B2A_d_loss) + (B_d_loss + A2B_d_loss) + (D_A_gp + D_B_gp) * args.gradient_penalty_weight
+        D_loss = (A_d_loss + B2A_d_loss) + (B_d_loss + A2B_d_loss)
 
     D_grad = t.gradient(D_loss, D_A.trainable_variables + D_B.trainable_variables)
     D_optimizer.apply_gradients(zip(D_grad, D_A.trainable_variables + D_B.trainable_variables))
@@ -159,8 +174,6 @@ def train_D(A, B, A2B, B2A):
 
     return {'A_d_loss': A_d_loss + B2A_d_loss,
             'B_d_loss': B_d_loss + A2B_d_loss,
-            'D_A_gp': D_A_gp,
-            'D_B_gp': D_B_gp,
             'D_A_acc': train_D_A_acc.result(),
             'D_B_acc': train_D_B_acc.result()}
 
@@ -180,12 +193,8 @@ def train_step(A, B):
 
 
 @tf.function
-def sample(A, B):
-    A2B = G_A2B(A, training=False)
-    B2A = G_B2A(B, training=False)
-    A2B2A = G_B2A(A2B, training=False)
-    B2A2B = G_A2B(B2A, training=False)
-    return A2B, B2A, A2B2A, B2A2B
+def sample(A_holder, B_holder):
+    return attention_strategy(A_holder, B_holder, G_A2B, G_B2A, training=False)
 
 
 # ==============================================================================
@@ -218,6 +227,12 @@ test_iter = iter(A_B_dataset_test)
 sample_dir = py.join(output_dir, 'images')
 py.mkdir(sample_dir)
 
+# Create GradCAM object
+if args.attention == "gradcam-plus-plus":
+    gradcam = GradcamPlusPlus(clf, model_modifier=ReplaceToLinear(), clone=True)
+else:
+    gradcam = None
+
 # main loop
 with train_summary_writer.as_default():
     for ep in tqdm.trange(args.epochs, desc='Epoch Loop'):
@@ -234,7 +249,8 @@ with train_summary_writer.as_default():
             # # summary
             tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
             tl.summary(D_loss_dict, step=G_optimizer.iterations, name='D_losses')
-            tl.summary({'learning rate': G_lr_scheduler.current_learning_rate}, step=G_optimizer.iterations, name='learning rate')
+            tl.summary({'learning rate': G_lr_scheduler.current_learning_rate}, step=G_optimizer.iterations,
+                       name='learning rate')
 
             # sample
             if ep == 0 or ep > 15 or ep % 3 == 0:
@@ -244,10 +260,20 @@ with train_summary_writer.as_default():
                     except StopIteration:  # When all elements finished
                         # Create new iterator
                         test_iter = iter(A_B_dataset_test)
+                    # Get images
+                    A_holder = ImageHolder(A, 0, gradcam, args.attention_type,
+                                           attention_intensity=args.attention_intensity)
+                    B_holder = ImageHolder(B, 1, gradcam, args.attention_type,
+                                           attention_intensity=args.attention_intensity)
+                    A2B, B2A = sample(A_holder, B_holder)
 
-                    A2B, B2A, A2B2A, B2A2B = sample(A, B)
-                    img = im.immerge(np.concatenate([A, A2B, A2B2A, B, B2A, B2A2B], axis=0), n_rows=2)
-                    im.imwrite(img, py.join(sample_dir, '%d_%d.png' % (ep, batch_count)))
+                    # Save images
+                    generate_image(args, clf, A, B, A2B, B2A,
+                                   execution_id, ep, batch_count,
+                                   A_attention_image=A_holder,
+                                   B_attention_image=B_holder)
+
+            batch_count += 1
 
         # save checkpoint
         if ep % 5 == 0:
