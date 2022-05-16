@@ -341,8 +341,10 @@ with train_summary_writer.as_default():
                         # Create new iterator
                         test_iter = iter(A_B_dataset_test)
                     # Get images
-                    A_holder = ImageHolder(A, 0, gradcam, args.attention_type)
-                    B_holder = ImageHolder(B, 1, gradcam, args.attention_type)
+                    A_holder = ImageHolder(A, 0, gradcam, args.attention_type,
+                                           attention_intensity=args.attention_intensity)
+                    B_holder = ImageHolder(B, 1, gradcam, args.attention_type,
+                                           attention_intensity=args.attention_intensity)
                     A2B, B2A = sample(A_holder, B_holder)
 
                     # Save images
