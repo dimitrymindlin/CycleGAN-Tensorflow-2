@@ -7,4 +7,3 @@ python3 -m train \
   --dataset horse2zebra \
   --generator resnet \
   --attention_type spa-gan \
-  --feature_map_loss_weight 1
