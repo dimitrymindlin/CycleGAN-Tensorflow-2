@@ -30,6 +30,8 @@ def get_background(img, attention):
     Expects img and attention to be in range [0,1]
     """
     new = tf.math.multiply(tf.math.subtract(1, attention), img)
+    if tf.math.reduce_max(new) == 0: # if no background because a
+        return new
     return scale_to_minus_one_one(tf.math.divide(new, tf.math.reduce_max(new)))
 
 
