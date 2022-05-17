@@ -38,7 +38,6 @@ py.arg('--feature_map_loss_weight', type=float, default=0)
 py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
-py.arg('--attention_intensity', type=float, default=1)
 py.arg('--attention_type', type=str, default="none",
        choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
@@ -248,7 +247,7 @@ with train_summary_writer.as_default():
 
         # train for an epoch
         for batch_count, (A, B) in enumerate(tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset)):
-            A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention, args.attention_intensity,
+            A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
                                                  gradcam=gradcam)
 
             G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
@@ -268,9 +267,7 @@ with train_summary_writer.as_default():
                         # Create new iterator
                         test_iter = iter(A_B_dataset_test)
                     A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
-                                                         args.attention_intensity,
-                                                         gradcam=gradcam, gradcam_D_A=None,
-                                                         gradcam_D_B=None)
+                                                         gradcam=gradcam)
 
                     A2B, B2A = sample(A_holder.img, B_holder.img)
 
