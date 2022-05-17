@@ -66,7 +66,7 @@ class ImageHolder():
         self.background = get_background(img, attention)
 
 
-def get_img_holders(A, B, attention_type, attention, attention_intensity, gradcam=None, gradcam_D_A=None,
+def get_img_holders(A, B, attention_type, attention, attention_intensity=None, gradcam=None, gradcam_D_A=None,
                     gradcam_D_B=None):
     if attention_type == "none":
         A_holder = ImageHolder(A, 0, attention=False, attention_intensity=attention_intensity)
