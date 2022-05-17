@@ -6,3 +6,4 @@
 #SBATCH --mail-user=dmindlin@techfak.uni-bielefeld.de
 #SBATCH --mail-type=END
 
+srun horse2zebra_attention.job.sh
