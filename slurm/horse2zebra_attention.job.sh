@@ -5,6 +5,8 @@ cd /media/compute/homes/dmindlin/CycleGAN-Tensorflow-2
 
 python3 -m train \
   --dataset horse2zebra \
-  --attention_type attention-gan-original \
+  --attention_type spa-gan \
+  --feature_map_loss_weight 1 \
+
 
 
