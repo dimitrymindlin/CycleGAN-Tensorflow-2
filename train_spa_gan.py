@@ -19,7 +19,7 @@ import module
 # ==============================================================================
 from attention_strategies.attention_stategies import no_attention, spa_gan, attention_gan_foreground, \
     attention_gan_original
-from imlib.image_holder import ImageHolder
+from imlib.image_holder import get_img_holders
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
@@ -37,7 +37,7 @@ py.arg('--counterfactual_loss_weight', type=float, default=0)
 py.arg('--feature_map_loss_weight', type=float, default=1)
 py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
-py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
+py.arg('--attention', type=str, default="discriminator", choices=['discriminator', 'clf'])
 py.arg('--attention_intensity', type=float, default=1)
 py.arg('--attention_type', type=str, default="spa-gan")
 py.arg('--generator', type=str, default="resnet-attention", choices=['resnet', 'unet', "resnet-attention"])
@@ -104,6 +104,16 @@ feature_map_loss_fn = gan.get_feature_map_loss_fn()
 
 clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}/model", compile=False)
 
+# Create GradCAM object
+gradcam = None
+gradcam_D_A = None
+gradcam_D_B = None
+if args.attention == "clf":
+    gradcam = GradcamPlusPlus(clf, model_modifier=ReplaceToLinear(), clone=True)
+else:  # discriminator attention
+    gradcam_D_A = GradcamPlusPlus(D_A, model_modifier=ReplaceToLinear(), clone=True)
+    gradcam_D_B = GradcamPlusPlus(D_B, model_modifier=ReplaceToLinear(), clone=True)
+
 G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
 D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
 G_optimizer = keras.optimizers.Adam(learning_rate=G_lr_scheduler, beta_1=args.beta_1)
@@ -118,7 +128,7 @@ train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 # ==============================================================================
 
 @tf.function
-def train_attention_G(A_enhanced, B_enhanced):
+def train_G_attention(A_enhanced, B_enhanced):
     with tf.GradientTape() as t:
         A2B, A_real_feature_map = G_A2B(A_enhanced, training=True)
         B2A, B_real_feature_map = G_B2A(B_enhanced, training=True)
@@ -158,7 +168,7 @@ def train_attention_G(A_enhanced, B_enhanced):
 
 
 @tf.function
-def train_G_spa_gan(A_enhanced, B_enhanced):
+def train_G(A_enhanced, B_enhanced):
     with tf.GradientTape() as t:
         A2B = G_A2B(A_enhanced, training=True)
         B2A = G_B2A(B_enhanced, training=True)
@@ -220,10 +230,10 @@ def train_D(A, B, A2B, B2A):
 
 
 def train_step(A_holder, B_holder):
-    if args.generator == "resnet":
-        A2B, B2A, G_loss_dict = train_G_spa_gan(A_holder.enhanced_img, B_holder.enhanced_img)
+    if args.generator == "resnet-attention":
+        A2B, B2A, G_loss_dict = train_G_attention(A_holder.enhanced_img, B_holder.enhanced_img)
     else:
-        A2B, B2A, G_loss_dict = train_attention_G(A_holder.enhanced_img, B_holder.enhanced_img)
+        A2B, B2A, G_loss_dict = train_G(A_holder.enhanced_img, B_holder.enhanced_img)
     A_holder.transformed_part = A2B
     B_holder.transformed_part = B2A
 
@@ -282,12 +292,6 @@ test_iter = iter(A_B_dataset_test)
 sample_dir = py.join(output_dir, 'images')
 py.mkdir(sample_dir)
 
-# Create GradCAM object
-if args.attention == "gradcam-plus-plus":
-    gradcam = GradcamPlusPlus(clf, model_modifier=ReplaceToLinear(), clone=True)
-else:
-    gradcam = None
-
 # main loop
 with train_summary_writer.as_default():
     for ep in tqdm.trange(args.epochs, desc='Epoch Loop'):
@@ -299,12 +303,8 @@ with train_summary_writer.as_default():
 
         # train for an epoch
         for batch_count, (A, B) in enumerate(tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset)):
-            if args.attention_type == "none":
-                A_holder = ImageHolder(A, 0, attention=False, attention_intensity=args.attention_intensity)
-                B_holder = ImageHolder(B, 1, attention=False, attention_intensity=args.attention_intensity)
-            else:  # Attention-strategies
-                A_holder = ImageHolder(A, 0, gradcam, args.attention_type, attention_intensity=args.attention_intensity)
-                B_holder = ImageHolder(B, 1, gradcam, args.attention_type, attention_intensity=args.attention_intensity)
+            A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention, args.attention_intensity,
+                                                 gradcam=gradcam, gradcam_D_A=gradcam_D_A, gradcam_D_B=gradcam_D_B)
 
             G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
 
@@ -323,10 +323,10 @@ with train_summary_writer.as_default():
                         # Create new iterator
                         test_iter = iter(A_B_dataset_test)
                     # Get images
-                    A_holder = ImageHolder(A, 0, gradcam, args.attention_type,
-                                           attention_intensity=args.attention_intensity)
-                    B_holder = ImageHolder(B, 1, gradcam, args.attention_type,
-                                           attention_intensity=args.attention_intensity)
+                    A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
+                                                         args.attention_intensity,
+                                                         gradcam=gradcam, gradcam_D_A=gradcam_D_A,
+                                                         gradcam_D_B=gradcam_D_B)
                     if args.generator == "resnet-attention":
                         A2B, B2A = sample_spa_gan_attention(A_holder.enhanced_img, B_holder.enhanced_img)
                     else:
