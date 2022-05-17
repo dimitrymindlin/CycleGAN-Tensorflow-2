@@ -19,7 +19,7 @@ import module
 # ==============================================================================
 from attention_strategies.attention_stategies import no_attention, spa_gan, attention_gan_foreground, \
     attention_gan_original
-from imlib.image_holder import ImageHolder
+from imlib.image_holder import ImageHolder, get_img_holders
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
@@ -39,13 +39,12 @@ py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
 py.arg('--attention_intensity', type=float, default=1)
-py.arg('--attention_type', type=str, default="spa-gan",
-       choices=['attention-gan-foreground', 'spa-gan', 'none', 'attention-gan-original'])
+py.arg('--attention_type', type=str, default="none",
+       choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 py.arg('--discriminator', type=str, default="patch-gan", choices=['classic', 'patch-gan'])
 args = py.args()
 
-# output_dir
 execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
 # output_dir
 try:
@@ -154,40 +153,6 @@ def train_G(A, B):
 
 
 @tf.function
-def train_G_spa_gan(A_enhanced, B_enhanced):
-    with tf.GradientTape() as t:
-        A2B = G_A2B(A_enhanced, training=True)
-        B2A = G_B2A(B_enhanced, training=True)
-        A2B2A = G_B2A(A2B, training=True)
-        B2A2B = G_A2B(B2A, training=True)
-        A2A = G_B2A(A, training=True)
-        B2B = G_A2B(B, training=True)
-
-        A2B_d_logits = D_B(A2B, training=True)
-        B2A_d_logits = D_A(B2A, training=True)
-
-        A2B_g_loss = g_loss_fn(A2B_d_logits)
-        B2A_g_loss = g_loss_fn(B2A_d_logits)
-        A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
-        B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
-        A2A_id_loss = identity_loss_fn(A, A2A)
-        B2B_id_loss = identity_loss_fn(B, B2B)
-
-        G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + (
-                A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
-
-    G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
-    G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
-
-    return A2B, B2A, {'A2B_g_loss': A2B_g_loss,
-                      'B2A_g_loss': B2A_g_loss,
-                      'A2B2A_cycle_loss': A2B2A_cycle_loss,
-                      'B2A2B_cycle_loss': B2A2B_cycle_loss,
-                      'A2A_id_loss': A2A_id_loss,
-                      'B2B_id_loss': B2B_id_loss}
-
-
-@tf.function
 def train_D(A, B, A2B, B2A):
     with tf.GradientTape() as t:
         A_d_logits = D_A(A, training=True)
@@ -216,12 +181,7 @@ def train_D(A, B, A2B, B2A):
 
 
 def train_step(A_holder, B_holder):
-    if args.attention_type == "spa-gan":
-        A2B, B2A, G_loss_dict = train_G_spa_gan(A_holder.enhanced_img, B_holder.enhanced_img)
-        A_holder.transformed_part = A2B
-        B_holder.transformed_part = B2A
-    else:
-        A2B, B2A, G_loss_dict = train_G(A_holder.img, B_holder.img)
+    A2B, B2A, G_loss_dict = train_G(A_holder.img, B_holder.img)
 
     # cannot autograph `A2B_pool`
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
@@ -238,13 +198,6 @@ def train_step(A_holder, B_holder):
 def sample(A, B):
     A2B = G_A2B(A, training=False)
     B2A = G_B2A(B, training=False)
-    return A2B, B2A
-
-
-@tf.function
-def sample_spa_gan(A_enhanced, B_enhanced):
-    A2B = G_A2B(A_enhanced, training=False)
-    B2A = G_B2A(B_enhanced, training=False)
     return A2B, B2A
 
 
@@ -295,12 +248,8 @@ with train_summary_writer.as_default():
 
         # train for an epoch
         for batch_count, (A, B) in enumerate(tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset)):
-            if args.attention_type == "none":
-                A_holder = ImageHolder(A, 0, attention=False, attention_intensity=args.attention_intensity)
-                B_holder = ImageHolder(B, 1, attention=False, attention_intensity=args.attention_intensity)
-            else:  # Attention-strategies
-                A_holder = ImageHolder(A, 0, gradcam, args.attention_type, attention_intensity=args.attention_intensity)
-                B_holder = ImageHolder(B, 1, gradcam, args.attention_type, attention_intensity=args.attention_intensity)
+            A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention, args.attention_intensity,
+                                                 gradcam=gradcam)
 
             G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
 
@@ -318,15 +267,12 @@ with train_summary_writer.as_default():
                     except StopIteration:  # When all elements finished
                         # Create new iterator
                         test_iter = iter(A_B_dataset_test)
-                    # Get images
-                    A_holder = ImageHolder(A, 0, gradcam, args.attention_type,
-                                           attention_intensity=args.attention_intensity)
-                    B_holder = ImageHolder(B, 1, gradcam, args.attention_type,
-                                           attention_intensity=args.attention_intensity)
-                    if args.attention_type == "spa-gan":
-                        A2B, B2A = sample_spa_gan(A_holder.enhanced_img, B_holder.enhanced_img)
-                    else:
-                        A2B, B2A = sample(A_holder.img, B_holder.img)
+                    A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
+                                                         args.attention_intensity,
+                                                         gradcam=gradcam, gradcam_D_A=None,
+                                                         gradcam_D_B=None)
+
+                    A2B, B2A = sample(A_holder.img, B_holder.img)
 
                     # Save images
                     generate_image(args, clf, A, B, A2B, B2A,
