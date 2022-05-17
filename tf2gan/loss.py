@@ -83,10 +83,18 @@ def get_adversarial_losses_fn(mode):
         return get_wgan_losses_fn()
 
 
+def get_feature_map_loss_fn():
+    def g_loss_fn(feature_maps_real, feature_maps_fake):
+        feature_map_loss_fn = tf.losses.MeanAbsoluteError()
+        for i in range(feature_maps_real.shape[3]):
+            loss_sum = feature_map_loss_fn(feature_maps_real[:, :, :, i], feature_maps_fake[:, :, :, i])
+        return loss_sum / feature_maps_real.shape[3]
+    return g_loss_fn
+
 def gradient_penalty(f, real, fake, mode):
     def _gradient_penalty(f, real, fake=None):
         def _interpolate(a, b=None):
-            if b is None:   # interpolation in DRAGAN
+            if b is None:  # interpolation in DRAGAN
                 beta = tf.random.uniform(shape=tf.shape(a), minval=0., maxval=1.)
                 b = a + 0.5 * tf.math.reduce_std(a) * beta
             shape = [tf.shape(a)[0]] + [1] * (a.shape.ndims - 1)
@@ -101,7 +109,7 @@ def gradient_penalty(f, real, fake, mode):
             pred = f(x)
         grad = t.gradient(pred, x)
         norm = tf.norm(tf.reshape(grad, [tf.shape(grad)[0], -1]), axis=1)
-        gp = tf.reduce_mean((norm - 1.)**2)
+        gp = tf.reduce_mean((norm - 1.) ** 2)
 
         return gp
 
