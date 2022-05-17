@@ -64,3 +64,20 @@ class ImageHolder():
         # Split background and foreground
         self.foreground = get_foreground(img, attention)
         self.background = get_background(img, attention)
+
+
+def get_img_holders(A, B, attention_type, attention, attention_intensity, gradcam=None, gradcam_D_A=None,
+                   gradcam_D_B=None):
+    if attention_type == "none":
+        A_holder = ImageHolder(A, 0, attention=False, attention_intensity=attention_intensity)
+        B_holder = ImageHolder(B, 1, attention=False, attention_intensity=attention_intensity)
+    else:  # spa-gan
+        if attention == "clf":
+            A_holder = ImageHolder(A, 0, gradcam, attention_type, attention_intensity=attention_intensity)
+            B_holder = ImageHolder(B, 1, gradcam, attention_type, attention_intensity=attention_intensity)
+        else:
+            A_holder = ImageHolder(A, 0, gradcam_D_A, attention_type,
+                                   attention_intensity=attention_intensity)
+            B_holder = ImageHolder(B, 0, gradcam_D_B, attention_type,
+                                   attention_intensity=attention_intensity)
+    return A_holder, B_holder
