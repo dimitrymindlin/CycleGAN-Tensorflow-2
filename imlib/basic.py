@@ -108,21 +108,31 @@ def save_images_with_attention(A_attention_image, A2B, B_attention_image, B2A, c
                             B_attention_image.img, B_attention_image.attention, B_attention_image.transformed_part,
                             B2A],
                            axis=0), n_rows=2)
-    classification = [['A', 'B'][int(np.argmax(clf.predict(x)))] for x in [A_attention_image.img, A2B,
-                                                                           B_attention_image.img, B2A]]
-    AB_correct, BA_correct = False, False
-    if classification[0] == 'A' and classification[1] == "B":
-        AB_correct = True
-    if classification[2] == 'B' and classification[3] == "A":
-        BA_correct = True
+
     img_folder = f'output_{dataset}/{execution_id}/images'
-    try:
-        imwrite(img,
-                f"{img_folder}/%d_%d_AB:{AB_correct}_BA:{BA_correct}.png" % (
-                    ep_cnt, batch_count))
-    except (AssertionError, AttributeError, OSError) as e:
-        print(f"Wasn't able to print image {ep_cnt}_{batch_count}")
-        print(e)
+    if clf:
+        classification = [['A', 'B'][int(np.argmax(clf.predict(x)))] for x in [A_attention_image.img, A2B,
+                                                                               B_attention_image.img, B2A]]
+        AB_correct, BA_correct = False, False
+        if classification[0] == 'A' and classification[1] == "B":
+            AB_correct = True
+        if classification[2] == 'B' and classification[3] == "A":
+            BA_correct = True
+        try:
+            imwrite(img,
+                    f"{img_folder}/%d_%d_AB:{AB_correct}_BA:{BA_correct}.png" % (
+                        ep_cnt, batch_count))
+        except (AssertionError, AttributeError, OSError) as e:
+            print(f"Wasn't able to print image {ep_cnt}_{batch_count}")
+            print(e)
+    else:
+        try:
+            imwrite(img,
+                    f"{img_folder}/%d_%d.png" % (
+                        ep_cnt, batch_count))
+        except (AssertionError, AttributeError, OSError) as e:
+            print(f"Wasn't able to print image {ep_cnt}_{batch_count}")
+            print(e)
 
 
 def imread(path, as_gray=False, **kwargs):
