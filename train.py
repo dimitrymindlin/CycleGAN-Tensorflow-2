@@ -122,7 +122,43 @@ else:
 @tf.function
 def train_G(A_holder, B_holder):
     with tf.GradientTape() as t:
-        A2B, B2A, A2B2A, B2A2B = attention_strategy(A_holder, B_holder, G_A2B, G_B2A, training=True)
+        A2B = G_A2B(A_holder.img, training=True)
+        B2A = G_B2A(B_holder.img, training=True)
+        A2B2A = G_B2A(A2B, training=True)
+        B2A2B = G_A2B(B2A, training=True)
+        A2A = G_B2A(A, training=True)
+        B2B = G_A2B(B, training=True)
+
+        A2B_d_logits = D_B(A2B, training=True)
+        B2A_d_logits = D_A(B2A, training=True)
+
+        A2B_g_loss = g_loss_fn(A2B_d_logits)
+        B2A_g_loss = g_loss_fn(B2A_d_logits)
+        A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
+        B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
+        A2A_id_loss = identity_loss_fn(A, A2A)
+        B2B_id_loss = identity_loss_fn(B, B2B)
+
+        G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + (
+                A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
+
+    G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
+    G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
+
+    return A2B, B2A, {'A2B_g_loss': A2B_g_loss,
+                      'B2A_g_loss': B2A_g_loss,
+                      'A2B2A_cycle_loss': A2B2A_cycle_loss,
+                      'B2A2B_cycle_loss': B2A2B_cycle_loss,
+                      'A2A_id_loss': A2A_id_loss,
+                      'B2B_id_loss': B2B_id_loss}
+
+@tf.function
+def train_G_spa_gan(A_enhanced, B_enhanced):
+    with tf.GradientTape() as t:
+        A2B = G_A2B(A_enhanced, training=True)
+        B2A = G_B2A(B_enhanced, training=True)
+        A2B2A = G_B2A(A2B, training=True)
+        B2A2B = G_A2B(B2A, training=True)
         A2A = G_B2A(A, training=True)
         B2B = G_A2B(B, training=True)
 
@@ -179,7 +215,12 @@ def train_D(A, B, A2B, B2A):
 
 
 def train_step(A_holder, B_holder):
-    A2B, B2A, G_loss_dict = train_G(A_holder, B_holder)
+    if args.attention_type == "spa-gan":
+        A2B, B2A, G_loss_dict = train_G_spa_gan(A_holder, B_holder)
+        A_holder.transformed_part = A2B
+        B_holder.transformed_part = B2A
+    else:
+        A2B, B2A, G_loss_dict = train_G(A, B)
 
     # cannot autograph `A2B_pool`
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
