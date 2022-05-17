@@ -76,6 +76,72 @@ def ResnetGenerator(input_shape=(256, 256, 3),
     return keras.Model(inputs=inputs, outputs=h)
 
 
+def ResnetAttentionGenerator(input_shape=(256, 256, 3),
+                    output_channels=3,
+                    dim=64,
+                    n_downsamplings=2,
+                    n_blocks=9,
+                    norm='instance_norm'):
+    Norm = _get_norm_layer(norm)
+
+    def _residual_block(x):
+        dim = x.shape[-1]
+        h = x
+
+        h = tf.pad(h, [[0, 0], [1, 1], [1, 1], [0, 0]], mode='REFLECT')
+        h = keras.layers.Conv2D(dim, 3, padding='valid', use_bias=False)(h)
+        h = Norm()(h)
+        h = tf.nn.relu(h)
+
+        h = tf.pad(h, [[0, 0], [1, 1], [1, 1], [0, 0]], mode='REFLECT')
+        h = keras.layers.Conv2D(dim, 3, padding='valid', use_bias=False)(h)
+        h = Norm()(h)
+
+        return keras.layers.add([x, h])
+
+    def _attention_map_layer(x):
+        h = keras.layers.Layer(name="attention_map_output")(x)
+        return h
+
+    # 0
+    h = inputs = keras.Input(shape=input_shape)
+
+    # 1
+    h = tf.pad(h, [[0, 0], [3, 3], [3, 3], [0, 0]], mode='REFLECT')
+    h = keras.layers.Conv2D(dim, 7, padding='valid', use_bias=False)(h)
+    h = Norm()(h)
+    h = tf.nn.relu(h)
+
+    # 2
+    for _ in range(n_downsamplings):
+        dim *= 2
+        h = keras.layers.Conv2D(dim, 3, strides=2, padding='same', use_bias=False)(h)
+        h = Norm()(h)
+        h = tf.nn.relu(h)
+
+    # 3
+    for _ in range(n_blocks):
+        h = _residual_block(h)
+
+    # 4
+    for i in range(n_downsamplings):
+        dim //= 2
+        h = keras.layers.Conv2DTranspose(dim, 3, strides=2, padding='same', use_bias=False, name=f'upsampling_{i}')(h)
+        if i == 0:
+            attention_map = _attention_map_layer(h)
+        h = Norm()(h)
+        h = tf.nn.relu(h)
+
+
+
+    # 5
+    h = tf.pad(h, [[0, 0], [3, 3], [3, 3], [0, 0]], mode='REFLECT')
+    h = keras.layers.Conv2D(output_channels, 7, padding='valid')(h)
+    h = tf.tanh(h)
+
+    return keras.Model(inputs=inputs, outputs=[h, attention_map])
+
+
 def ConvDiscriminator(input_shape=(256, 256, 3),
                       dim=64,
                       n_downsamplings=3,
@@ -126,7 +192,8 @@ class LinearDecay(keras.optimizers.schedules.LearningRateSchedule):
     def __call__(self, step):
         self.current_learning_rate.assign(tf.cond(
             step >= self._step_decay,
-            true_fn=lambda: self._initial_learning_rate * (1 - 1 / (self._steps - self._step_decay) * (step - self._step_decay)),
+            true_fn=lambda: self._initial_learning_rate * (
+                        1 - 1 / (self._steps - self._step_decay) * (step - self._step_decay)),
             false_fn=lambda: self._initial_learning_rate
         ))
         return self.current_learning_rate
