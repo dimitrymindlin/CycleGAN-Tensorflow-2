@@ -10,16 +10,15 @@ from imlib.transform import immerge
 
 def generate_image(args, clf, A, B, A2B, B2A,
                    execution_id, ep, batch_count,
-                   A_attention_image=None,
-                   B_attention_image=None):
+                   A_holder=None,
+                   B_holder=None):
     if args.attention_type != "none":  # Save with attention
         if args.dataset == "mura":
-            imgs = [A, A_attention_image.attention, A_attention_image.transformed_part, A2B,
-                    B, B_attention_image.attention, B_attention_image.transformed_part, B2A]
-            save_mura_images_with_attention(imgs, clf, args.dataset, execution_id, ep, batch_count,
-                                            attention_gan_original=args.attention_gan_original)
+            imgs = [A, A_holder.attention, A_holder.transformed_part, A2B,
+                    B, B_holder.attention, B_holder.transformed_part, B2A]
+            save_mura_images_with_attention(imgs, clf, args.dataset, execution_id, ep, batch_count)
         else:
-            save_images_with_attention(A_attention_image, A2B, B_attention_image, B2A,
+            save_images_with_attention(A_holder, A2B, B_holder, B2A,
                                        clf, args.dataset, execution_id, ep, batch_count,
                                        args.attention_type)
     else:  # Save without attention

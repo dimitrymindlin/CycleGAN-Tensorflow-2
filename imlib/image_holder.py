@@ -48,7 +48,7 @@ class ImageHolder():
         self.transformed_part = None  # depending on strategy, the part that should be transformed
         if attention:
             self.get_attention(class_label, gradcam, attention_type, attention_intensity)
-            self.get_fore_and_backgroud_by_attention()
+            self.split_fore_and_background_by_attention()
 
     def get_attention(self, class_label, gradcam, attention_type, attention_intensity):
         enhanced_img, attention = attention_maps.apply_gradcam(self.img, gradcam, class_label,
@@ -57,7 +57,7 @@ class ImageHolder():
         self.attention = attention
         self.enhanced_img = enhanced_img
 
-    def get_fore_and_backgroud_by_attention(self):
+    def split_fore_and_background_by_attention(self):
         # Scale all [0,1]
         img = scale_to_zero_one(self.img)
         attention = scale_to_zero_one(self.attention)
