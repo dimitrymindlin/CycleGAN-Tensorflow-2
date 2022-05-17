@@ -102,13 +102,15 @@ cycle_loss_fn = tf.losses.MeanAbsoluteError()
 identity_loss_fn = tf.losses.MeanAbsoluteError()
 feature_map_loss_fn = gan.get_feature_map_loss_fn()
 
-clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}/model", compile=False)
+
 
 # Create GradCAM object
 gradcam = None
 gradcam_D_A = None
 gradcam_D_B = None
+clf = None
 if args.attention == "clf":
+    clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}/model", compile=False)
     gradcam = GradcamPlusPlus(clf, model_modifier=ReplaceToLinear(), clone=True)
 else:  # discriminator attention
     gradcam_D_A = GradcamPlusPlus(D_A, model_modifier=ReplaceToLinear(), clone=True)
