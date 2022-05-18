@@ -227,7 +227,7 @@ checkpoint = tl.Checkpoint(dict(G_A2B=G_A2B,
 try:  # restore checkpoint including the epoch counter
     checkpoint.restore().assert_existing_objects_matched()
     print("restored checkpoint :)")
-    print(f"continuing with epoch {ep_cnt}")
+    print(f"continuing with epoch {ep_cnt.numpy()}")
 except Exception as e:
     print(e)
 
@@ -249,6 +249,7 @@ else:
 with train_summary_writer.as_default():
     for ep in tqdm.trange(args.epochs, desc='Epoch Loop'):
         if ep < ep_cnt:
+            print(f"skipping epoch {ep}")
             continue
 
         # update epoch counter
