@@ -43,7 +43,6 @@ py.arg('--attention_type', type=str, default="spa-gan")
 py.arg('--generator', type=str, default="resnet-attention", choices=['resnet', 'unet', "resnet-attention"])
 py.arg('--discriminator', type=str, default="patch-gan", choices=['classic', 'patch-gan'])
 py.arg('--load_checkpoint', type=str, default=None)
-py.arg('--experiment_dir', type=str, default=None)
 args = py.args()
 
 # output_dir
