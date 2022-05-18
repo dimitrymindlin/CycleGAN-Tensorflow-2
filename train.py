@@ -96,11 +96,6 @@ G_B2A = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
 D_A = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
 D_B = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
 
-if args.load_checkpoint:
-    # resotre
-    tl.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A, D_A=D_A, D_B=D_B), py.join(output_dir, 'checkpoints')).restore()
-    print(f"Restored {py.join(output_dir, 'checkpoints')}")
-
 d_loss_fn, g_loss_fn = gan.get_adversarial_losses_fn(args.adversarial_loss_mode)
 cycle_loss_fn = tf.losses.MeanAbsoluteError()
 identity_loss_fn = tf.losses.MeanAbsoluteError()
@@ -231,6 +226,7 @@ checkpoint = tl.Checkpoint(dict(G_A2B=G_A2B,
                            max_to_keep=5)
 try:  # restore checkpoint including the epoch counter
     checkpoint.restore().assert_existing_objects_matched()
+    print("restored checkpoint :)")
 except Exception as e:
     print(e)
 
