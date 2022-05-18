@@ -42,19 +42,26 @@ py.arg('--attention_intensity', type=float, default=1)
 py.arg('--attention_type', type=str, default="spa-gan")
 py.arg('--generator', type=str, default="resnet-attention", choices=['resnet', 'unet', "resnet-attention"])
 py.arg('--discriminator', type=str, default="patch-gan", choices=['classic', 'patch-gan'])
+py.arg('--load_checkpoint', type=str, default=None)
+py.arg('--experiment_dir', type=str, default=None)
 args = py.args()
 
 # output_dir
-execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
-# output_dir
-try:
-    output_dir = py.join(f'output_{args.dataset}/{execution_id}')
-    py.mkdir(output_dir)
-except FileExistsError:
-    time.sleep(60)
+if not args.load_checkpoint:
     execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
+    # output_dir
+    try:
+        output_dir = py.join(f'output_{args.dataset}/{execution_id}')
+        py.mkdir(output_dir)
+    except FileExistsError:
+        time.sleep(60)
+        execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
+        output_dir = py.join(f'output_{args.dataset}/{execution_id}')
+        py.mkdir(output_dir)
+else:
+    # For loading checkpoint
+    execution_id = args.load_checkpoint
     output_dir = py.join(f'output_{args.dataset}/{execution_id}')
-    py.mkdir(output_dir)
 
 TF_LOG_DIR = f"logs/{args.dataset}/"
 
@@ -90,6 +97,11 @@ if args.generator == "resnet-attention":
 else:
     G_A2B = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
     G_B2A = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
+
+if args.load_checkpoint:
+    # resotre
+    tl.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A), py.join(output_dir, 'checkpoints')).restore()
+    print(f"Restored {py.join(output_dir, 'checkpoints')}")
 
 """dot_img_file = 'model_1.png'
 tf.keras.utils.plot_model(model, to_file=dot_img_file, show_shapes=True)"""
