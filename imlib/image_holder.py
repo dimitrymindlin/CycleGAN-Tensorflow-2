@@ -77,6 +77,9 @@ def get_img_holders(A, B, attention_type, attention, attention_intensity=None, g
                                    attention_intensity=attention_intensity)
             B_holder = ImageHolder(B, 0, gradcam_D_B, attention_type,
                                    attention_intensity=attention_intensity)
+        else:
+            A_holder = ImageHolder(A, 0, gradcam, attention_type, attention_intensity=attention_intensity)
+            B_holder = ImageHolder(B, 1, gradcam, attention_type, attention_intensity=attention_intensity)
     else:  # attention gan or spa-gan with clf attention
         A_holder = ImageHolder(A, 0, gradcam, attention_type, attention_intensity=attention_intensity)
         B_holder = ImageHolder(B, 1, gradcam, attention_type, attention_intensity=attention_intensity)
