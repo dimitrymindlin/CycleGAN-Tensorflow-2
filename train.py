@@ -227,6 +227,7 @@ checkpoint = tl.Checkpoint(dict(G_A2B=G_A2B,
 try:  # restore checkpoint including the epoch counter
     checkpoint.restore().assert_existing_objects_matched()
     print("restored checkpoint :)")
+    print(f"continuing with epoch {ep_cnt}")
 except Exception as e:
     print(e)
 
