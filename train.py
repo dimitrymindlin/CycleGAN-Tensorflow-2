@@ -42,18 +42,25 @@ py.arg('--attention_type', type=str, default="none",
        choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 py.arg('--discriminator', type=str, default="patch-gan", choices=['classic', 'patch-gan'])
+py.arg('--load_checkpoint', type=str, default=None)
 args = py.args()
 
-execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
 # output_dir
-try:
-    output_dir = py.join(f'output_{args.dataset}/{execution_id}')
-    py.mkdir(output_dir)
-except FileExistsError:
-    time.sleep(60)
+if not args.load_checkpoint:
     execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
+    # output_dir
+    try:
+        output_dir = py.join(f'output_{args.dataset}/{execution_id}')
+        py.mkdir(output_dir)
+    except FileExistsError:
+        time.sleep(60)
+        execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
+        output_dir = py.join(f'output_{args.dataset}/{execution_id}')
+        py.mkdir(output_dir)
+else:
+    # For loading checkpoint
+    execution_id = args.load_checkpoint
     output_dir = py.join(f'output_{args.dataset}/{execution_id}')
-    py.mkdir(output_dir)
 
 TF_LOG_DIR = f"logs/{args.dataset}/"
 
@@ -88,6 +95,11 @@ G_B2A = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
 
 D_A = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
 D_B = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
+
+if args.load_checkpoint:
+    # resotre
+    tl.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A, D_A=D_A, D_B=D_B), py.join(output_dir, 'checkpoints')).restore()
+    print(f"Restored {py.join(output_dir, 'checkpoints')}")
 
 d_loss_fn, g_loss_fn = gan.get_adversarial_losses_fn(args.adversarial_loss_mode)
 cycle_loss_fn = tf.losses.MeanAbsoluteError()
