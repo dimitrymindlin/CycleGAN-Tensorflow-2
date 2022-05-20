@@ -1,7 +1,7 @@
 import numpy as np
 import skimage.io as iio
 import os
-
+import tensorflow as tf
 from matplotlib import pyplot as plt
 
 from imlib import dtype
@@ -160,6 +160,8 @@ def imshow(image):
 
 
 def plot_any_img(img):
+    if np.min(img) < 0:
+        img = tf.math.add(tf.math.multiply(0.5, img), 0.5)
     plt.imshow(np.squeeze(img), vmin=np.min(img), vmax=np.max(img))
     plt.show()
 
