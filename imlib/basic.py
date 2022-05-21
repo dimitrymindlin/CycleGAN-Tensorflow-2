@@ -123,8 +123,7 @@ def save_images_with_attention(A_attention_image, A2B, B_attention_image, B2A, c
                     f"{img_folder}/%d_%d_AB:{AB_correct}_BA:{BA_correct}.png" % (
                         ep_cnt, batch_count))
         except (AssertionError, AttributeError, OSError) as e:
-            if tf.equal(tf.size(A2B), 0):
-                print("Size is zero in Assertion...")
+            print(tf.math.is_nan(A2B))
             print(f"Wasn't able to print image {ep_cnt}_{batch_count}")
             print(np.min(A_attention_image.img), np.max(A_attention_image.img))
             print(np.min(A_attention_image.attention), np.max(A_attention_image.attention))
