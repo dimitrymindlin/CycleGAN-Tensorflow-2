@@ -301,7 +301,7 @@ with train_summary_writer.as_default():
                                                                     A_holder.background, B_holder.background)
 
                 if tf.equal(tf.size(A2B), 0):
-                    print("EYO")
+                    print("Size is zero in Before generate image")
                 A_holder.transformed_part = A2B_transformed
                 B_holder.transformed_part = B2A_transformed
 
