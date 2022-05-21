@@ -209,9 +209,11 @@ def train_step(A_holder, B_holder):
 
 
 @tf.function
-def sample(A_img, B_img, A_attention, B_attention, A_background, B_background, training=False):
-    A2B_transformed = G_A2B(A_img, training=training)
-    B2A_transformed = G_B2A(B_img, training=training)
+def sample(A_img, B_img,
+           A_attention, B_attention,
+           A_background, B_background):
+    A2B_transformed = G_A2B(A_img, training=False)
+    B2A_transformed = G_B2A(B_img, training=False)
     # Combine new transformed image with attention -> Crop important part from transformed img
     A2B_transformed_attention = multiply_images(A2B_transformed, A_attention)
     B2A_transformed_attention = multiply_images(B2A_transformed, B_attention)
@@ -284,26 +286,27 @@ with train_summary_writer.as_default():
 
             # sample
             if ep == 0 or ep > 15 or ep % 3 == 0:
-                if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1:
-                    try:
-                        A, B = next(test_iter)
-                    except StopIteration:  # When all elements finished
-                        # Create new iterator
-                        test_iter = iter(A_B_dataset_test)
-                    A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
-                                                         gradcam=gradcam)
+                #if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1:
+                try:
+                    A, B = next(test_iter)
+                except StopIteration:  # When all elements finished
+                    # Create new iterator
+                    test_iter = iter(A_B_dataset_test)
+                    A, B = next(test_iter)
+                A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
+                                                     gradcam=gradcam)
 
-                    A2B, B2A, A2B_transformed, B2A_transformed = sample(A_holder.img, B_holder.img,
-                                                                        A_holder.attention, B_holder.attention,
-                                                                        A_holder.background, B_holder.background)
-                    A_holder.transformed_part = A2B_transformed
-                    B_holder.transformed_part = B2A_transformed
+                A2B, B2A, A2B_transformed, B2A_transformed = sample(A_holder.img, B_holder.img,
+                                                                    A_holder.attention, B_holder.attention,
+                                                                    A_holder.background, B_holder.background)
+                A_holder.transformed_part = A2B_transformed
+                B_holder.transformed_part = B2A_transformed
 
-                    # Save images
-                    generate_image(args, clf, A, B, A2B, B2A,
-                                   execution_id, ep, batch_count,
-                                   A_holder=A_holder,
-                                   B_holder=B_holder)
+                # Save images
+                generate_image(args, clf, A, B, A2B, B2A,
+                               execution_id, ep, batch_count,
+                               A_holder=A_holder,
+                               B_holder=B_holder)
 
             batch_count += 1
 
