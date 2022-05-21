@@ -9,7 +9,9 @@ dependencies:
   - tensorflow=2.6.0
   - tensorflow-gpu=2.6.0
   - seaborn
+  - scikit-image
   - pip:
       - tensorflow-datasets==4.4.0
       - kaggle
       - tensorflow-addons[tensorflow]
+      - tf-keras-vis
