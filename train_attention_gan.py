@@ -12,7 +12,7 @@ import tqdm
 from imlib import generate_image
 import data
 import module
-
+import numpy as np
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
@@ -299,6 +299,12 @@ with train_summary_writer.as_default():
                 A2B, B2A, A2B_transformed, B2A_transformed = sample(A_holder.img, B_holder.img,
                                                                     A_holder.attention, B_holder.attention,
                                                                     A_holder.background, B_holder.background)
+
+                if np.min(A2B_transformed) == np.min(B2A_transformed):
+                    print("EYO")
+                    print(np.min(A2B_transformed))
+                    print(np.min(B2A_transformed))
+                    print("EYO")
                 A_holder.transformed_part = A2B_transformed
                 B_holder.transformed_part = B2A_transformed
 
