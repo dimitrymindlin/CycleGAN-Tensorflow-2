@@ -124,6 +124,10 @@ def save_images_with_attention(A_attention_image, A2B, B_attention_image, B2A, c
                         ep_cnt, batch_count))
         except (AssertionError, AttributeError, OSError) as e:
             print(f"Wasn't able to print image {ep_cnt}_{batch_count}")
+            print(np.min(A_attention_image.img))
+            print(np.min(A_attention_image.attention))
+            print(np.min(A_attention_image.transformed_part))
+            print(np.min(A2B))
             print(e)
     else:
         try:
