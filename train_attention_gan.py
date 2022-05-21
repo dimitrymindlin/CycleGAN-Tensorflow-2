@@ -112,10 +112,10 @@ train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 # ==============================================================================
 
 @tf.function
-def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, B_background, training=True):
+def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, B_background):
     with tf.GradientTape() as t:
-        A2B_transformed = G_A2B(A_img, training=training)
-        B2A_transformed = G_B2A(B_img, training=training)
+        A2B_transformed = G_A2B(A_img, training=True)
+        B2A_transformed = G_B2A(B_img, training=True)
         # Combine new transformed image with attention -> Crop important part from transformed img
         A2B_transformed_attention = multiply_images(A2B_transformed, A_attention)
         A.transformed_part = A2B_transformed_attention
@@ -125,18 +125,18 @@ def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, 
         A2B = add_images(A2B_transformed_attention, A_background)
         B2A = add_images(B2A_transformed_attention, B_background)
         # Cycle
-        A2B2A_transformed = G_B2A(A2B, training=training)
-        B2A2B_transformed = G_A2B(B2A, training=training)
+        A2B2A_transformed = G_B2A(A2B, training=True)
+        B2A2B_transformed = G_A2B(B2A, training=True)
         # Combine new transformed image with attention
         A2B2A_transformed_attention = multiply_images(A2B2A_transformed, A_attention)
         A2B2A = add_images(A2B2A_transformed_attention, A_background)
         B2A2B_transformed_attention = multiply_images(B2A2B_transformed, B_attention)
         B2A2B = add_images(B2A2B_transformed_attention, B_background)
 
-        A2A_transformed = G_B2A(A_img, training=training)
+        A2A_transformed = G_B2A(A_img, training=True)
         A2A_transformed_attention = multiply_images(A2A_transformed, A_attention)
         A2A = add_images(A2A_transformed_attention, A_background)
-        B2B_transformed = G_A2B(B_img, training=training)
+        B2B_transformed = G_A2B(B_img, training=True)
         B2B_transformed_attention = multiply_images(B2B_transformed, B_attention)
         B2B = add_images(B2B_transformed_attention, B_background)
 
