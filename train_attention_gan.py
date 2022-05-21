@@ -300,10 +300,7 @@ with train_summary_writer.as_default():
                                                                     A_holder.attention, B_holder.attention,
                                                                     A_holder.background, B_holder.background)
 
-                if np.min(A2B_transformed) == np.min(B2A_transformed):
-                    print("EYO")
-                    print(np.min(A2B_transformed))
-                    print(np.min(B2A_transformed))
+                if tf.equal(tf.size(A2B), 0):
                     print("EYO")
                 A_holder.transformed_part = A2B_transformed
                 B_holder.transformed_part = B2A_transformed
