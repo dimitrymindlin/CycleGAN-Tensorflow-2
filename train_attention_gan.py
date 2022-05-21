@@ -210,9 +210,12 @@ def train_step(A_holder, B_holder):
 def sample(A_img, B_img,
            A_attention, B_attention,
            A_background, B_background):
+    print("_____________________________________________________________________________________")
+    print(tf.math.is_nan(A_img))
     A2B_transformed = G_A2B(A_img, training=False)
     B2A_transformed = G_B2A(B_img, training=False)
     print(tf.math.is_nan(A2B_transformed))
+    print("_____________________________________________________________________________________")
     # Combine new transformed image with attention -> Crop important part from transformed img
     A2B_transformed_attention = multiply_images(A2B_transformed, A_attention)
     B2A_transformed_attention = multiply_images(B2A_transformed, B_attention)
