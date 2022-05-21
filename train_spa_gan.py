@@ -97,14 +97,6 @@ else:
     G_A2B = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
     G_B2A = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
 
-if args.load_checkpoint:
-    # resotre
-    tl.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A), py.join(output_dir, 'checkpoints')).restore()
-    print(f"Restored {py.join(output_dir, 'checkpoints')}")
-
-"""dot_img_file = 'model_1.png'
-tf.keras.utils.plot_model(model, to_file=dot_img_file, show_shapes=True)"""
-
 D_A = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
 D_B = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
 
@@ -294,6 +286,8 @@ checkpoint = tl.Checkpoint(dict(G_A2B=G_A2B,
                            max_to_keep=5)
 try:  # restore checkpoint including the epoch counter
     checkpoint.restore().assert_existing_objects_matched()
+    print("restored checkpoint :)")
+    print(f"continuing with epoch {ep_cnt.numpy()}")
 except Exception as e:
     print(e)
 
