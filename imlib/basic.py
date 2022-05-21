@@ -130,6 +130,13 @@ def save_images_with_attention(A_attention_image, A2B, B_attention_image, B2A, c
             print(np.min(A_attention_image.transformed_part), np.max(A_attention_image.transformed_part))
             print(np.min(A2B), np.max(A2B))
             print(e)
+            imwrite(immerge(
+            np.concatenate([A_attention_image.img, A_attention_image.attention,
+                            B_attention_image.img, B_attention_image.attention,],
+                           axis=0), n_rows=2),
+                    f"{img_folder}/%d_%d_AB:{AB_correct}_BA:{BA_correct}.png" % (
+                        ep_cnt, batch_count))
+            exit()
     else:
         try:
             imwrite(img,
