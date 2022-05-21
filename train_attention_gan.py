@@ -206,12 +206,13 @@ def train_step(A_holder, B_holder):
     return G_loss_dict, D_loss_dict
 
 
-@tf.function
+#@tf.function
 def sample(A_img, B_img,
            A_attention, B_attention,
            A_background, B_background):
     A2B_transformed = G_A2B(A_img, training=False)
     B2A_transformed = G_B2A(B_img, training=False)
+    print(tf.math.is_nan(A2B_transformed))
     # Combine new transformed image with attention -> Crop important part from transformed img
     A2B_transformed_attention = multiply_images(A2B_transformed, A_attention)
     B2A_transformed_attention = multiply_images(B2A_transformed, B_attention)
@@ -298,8 +299,7 @@ with train_summary_writer.as_default():
                                                                     A_holder.attention, B_holder.attention,
                                                                     A_holder.background, B_holder.background)
 
-                if tf.equal(tf.size(A2B), 0):
-                    print("Size is zero in Before generate image")
+
                 A_holder.transformed_part = A2B_transformed
                 B_holder.transformed_part = B2A_transformed
 
