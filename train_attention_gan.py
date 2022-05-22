@@ -10,7 +10,6 @@ import tensorflow.keras as keras
 import tf2lib as tl
 import tf2gan as gan
 import tqdm
-from imlib import generate_image, immerge, imwrite
 import data
 import module
 # ==============================================================================
@@ -513,7 +512,7 @@ with train_summary_writer.as_default():
                     A2B, B2A, A2B_transformed, B2A_transformed = sample(A_holder.img, B_holder.img,
                                                                         A_holder.attention, B_holder.attention,
                                                                         A_holder.background, B_holder.background)
-                    continue
+
                     A_holder.transformed_part = A2B_transformed
                     B_holder.transformed_part = B2A_transformed
                     generate_image(args, clf, A, B, A2B, B2A,
