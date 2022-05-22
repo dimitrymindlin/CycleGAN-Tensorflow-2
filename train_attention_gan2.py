@@ -139,7 +139,7 @@ def train_G(A_img, B_img, A_attention, B_attention, A_background, B_background):
         #A2B = multiply_images(A2B, A_attention)
         #B2A = multiply_images(B2A, B_attention)
         # Add background to new img
-        A2B = add_images(B2A, A_background)
+        A2B = add_images(A2B, A_background)
         B2A = add_images(B2A, B_background)
         # Cycle
         A2B2A = G_B2A(A2B, training=True)
