@@ -54,8 +54,9 @@ class ImageHolder():
         enhanced_img, attention = attention_maps.apply_gradcam(self.img, gradcam, class_label,
                                                                attention_type=attention_type,
                                                                attention_intensity=attention_intensity)
-        self.attention = attention
+
         self.enhanced_img = enhanced_img
+        self.attention = attention
 
     def split_fore_and_background_by_attention(self):
         # Scale all [0,1]
