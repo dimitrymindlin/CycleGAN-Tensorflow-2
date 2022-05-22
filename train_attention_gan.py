@@ -211,11 +211,11 @@ def sample(A_img, B_img,
            A_attention, B_attention,
            A_background, B_background):
     print("_____________________________________________________________________________________")
-    if np.any(print(tf.math.is_nan(A_img))):
+    if np.any(tf.math.is_nan(A_img)):
         print("Third")
     A2B_transformed = G_A2B(A_img, training=False)
     B2A_transformed = G_B2A(B_img, training=False)
-    if np.any(print(tf.math.is_nan(A2B_transformed))):
+    if np.any(tf.math.is_nan(A2B_transformed)):
         print("Fourth")
     print("_____________________________________________________________________________________")
     # Combine new transformed image with attention -> Crop important part from transformed img
@@ -298,13 +298,13 @@ with train_summary_writer.as_default():
                     test_iter = iter(A_B_dataset_test)
                     A, B = next(test_iter)
 
-                if np.any(print(tf.math.is_nan(A_holder.img))):
+                if np.any(tf.math.is_nan(A_holder.img)):
                     print("First")
 
                 A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
                                                      gradcam=gradcam)
 
-                if np.any(print(tf.math.is_nan(A_holder.img))):
+                if np.any(tf.math.is_nan(A_holder.img)):
                     print("Second")
 
 
