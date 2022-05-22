@@ -24,6 +24,9 @@ def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity
     if np.max(cam) == 0 and np.min(cam) == 0:
         print(f"Found image without attention... Class index {class_index}")
         cam += 1
+        print(np.max(cam))
+        print(np.min(cam))
+
     # Turn to batched 3-channel array
     cam = tf.expand_dims(cam, axis=-1)
     cam = tf.image.grayscale_to_rgb(tf.convert_to_tensor(cam))
