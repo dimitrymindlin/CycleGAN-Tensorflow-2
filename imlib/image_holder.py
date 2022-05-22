@@ -2,6 +2,7 @@ import tensorflow as tf
 
 import attention_maps
 from imlib import scale_to_zero_one, scale_to_minus_one_one
+import numpy as np
 
 
 def add_images(foreground, background):
@@ -20,6 +21,8 @@ def get_foreground(img, attention):
     Expects img and attention to be in range [0,1]
     """
     new = tf.math.multiply(attention, img)
+    if np.min(new) == 0 and np.max(new) == 0:
+        return new
     return scale_to_minus_one_one(tf.math.divide(new, tf.math.reduce_max(new)))
 
 
@@ -28,6 +31,8 @@ def get_background(img, attention):
     Expects img and attention to be in range [0,1]
     """
     new = tf.math.multiply(tf.math.subtract(1, attention), img)
+    if np.min(new) == 0 and np.max(new) == 0:
+        return new
     return scale_to_minus_one_one(tf.math.divide(new, tf.math.reduce_max(new)))
 
 
