@@ -95,24 +95,23 @@ def save_images(A, A2B, B, B2A, dataset, execution_id, ep_cnt, batch_count):
     imwrite(img, f"{img_folder}/%d_%d.png" % (ep_cnt, batch_count))
 
 
-def save_images_with_attention(A_attention_image, A2B, B_attention_image, B2A, clf, dataset,
+def save_images_with_attention(A_holder, A2B, B_holder, B2A, clf, dataset,
                                execution_id, ep_cnt, batch_count, attention_type):
     if attention_type == "spa-gan":
         img = immerge(
-            np.concatenate([A_attention_image.img, A_attention_image.attention, A_attention_image.enhanced_img, A2B,
-                            B_attention_image.img, B_attention_image.attention, B_attention_image.enhanced_img, B2A],
+            np.concatenate([A_holder.img, A_holder.attention, A_holder.enhanced_img, A2B,
+                            B_holder.img, B_holder.attention, B_holder.enhanced_img, B2A],
                            axis=0), n_rows=2)
     else:  # attention-gan
         img = immerge(
-            np.concatenate([A_attention_image.img, A_attention_image.attention, A_attention_image.transformed_part, A2B,
-                            B_attention_image.img, B_attention_image.attention, B_attention_image.transformed_part,
-                            B2A],
+            np.concatenate([A_holder.img, A_holder.attention, A_holder.transformed_part, A2B,
+                            B_holder.img, B_holder.attention, B_holder.transformed_part, B2A],
                            axis=0), n_rows=2)
 
     img_folder = f'output_{dataset}/{execution_id}/images'
     if clf:
-        classification = [['A', 'B'][int(np.argmax(clf.predict(x)))] for x in [A_attention_image.img, A2B,
-                                                                               B_attention_image.img, B2A]]
+        classification = [['A', 'B'][int(np.argmax(clf.predict(x)))] for x in [A_holder.img, A2B,
+                                                                               B_holder.img, B2A]]
         AB_correct, BA_correct = False, False
         if classification[0] == 'A' and classification[1] == "B":
             AB_correct = True
@@ -125,14 +124,15 @@ def save_images_with_attention(A_attention_image, A2B, B_attention_image, B2A, c
         except (AssertionError, AttributeError, OSError) as e:
             #print(tf.math.is_nan(A2B))
             print(f"Wasn't able to print image {ep_cnt}_{batch_count}")
-            print(np.min(A_attention_image.img), np.max(A_attention_image.img))
-            print(np.min(A_attention_image.attention), np.max(A_attention_image.attention))
-            print(np.min(A_attention_image.transformed_part), np.max(A_attention_image.transformed_part))
+            print(np.min(A_holder.img), np.max(A_holder.img))
+            print(np.min(A_holder.attention), np.max(A_holder.attention))
+            print(np.min(A_holder.transformed_part), np.max(A_holder.transformed_part))
             print(np.min(A2B), np.max(A2B))
+            print(classification)
             print(e)
             imwrite(immerge(
-            np.concatenate([A_attention_image.img, A_attention_image.attention,
-                            B_attention_image.img, B_attention_image.attention,],
+            np.concatenate([A_holder.img, A_holder.attention,
+                            B_holder.img, B_holder.attention, ],
                            axis=0), n_rows=2),
                     f"{img_folder}/%d_%d_AB:{AB_correct}_BA:{BA_correct}.png" % (
                         ep_cnt, batch_count))
