@@ -328,11 +328,11 @@ def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, 
         A2B_transformed = G_A2B(A_img, training=True)
         B2A_transformed = G_B2A(B_img, training=True)
         # Combine new transformed image with attention -> Crop important part from transformed img
-        A2B_transformed_attention = multiply_images(A2B_transformed, A_attention)
-        B2A_transformed_attention = multiply_images(B2A_transformed, B_attention)
+        #A2B_transformed_attention = multiply_images(A2B_transformed, A_attention)
+        #B2A_transformed_attention = multiply_images(B2A_transformed, B_attention)
         # Add background to new img
-        A2B = add_images(A2B_transformed_attention, A_background)
-        B2A = add_images(B2A_transformed_attention, B_background)
+        A2B = add_images(A2B_transformed, A_background)
+        B2A = add_images(A2B_transformed, B_background)
         # Cycle
         A2B2A_transformed = G_B2A(A2B, training=True)
         B2A2B_transformed = G_A2B(B2A, training=True)
