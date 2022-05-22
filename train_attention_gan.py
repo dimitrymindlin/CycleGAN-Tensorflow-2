@@ -1,5 +1,6 @@
 from datetime import datetime, time
 
+import numpy as np
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
 
@@ -9,10 +10,9 @@ import tensorflow.keras as keras
 import tf2lib as tl
 import tf2gan as gan
 import tqdm
-from imlib import generate_image
+from imlib import generate_image, immerge, imwrite
 import data
 import module
-import numpy as np
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
@@ -295,9 +295,9 @@ with train_summary_writer.as_default():
                     # Create new iterator
                     test_iter = iter(A_B_dataset_test)
                     A, B = next(test_iter)
+
                 A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
                                                      gradcam=gradcam)
-
                 A2B, B2A, A2B_transformed, B2A_transformed = sample(A_holder.img, B_holder.img,
                                                                     A_holder.attention, B_holder.attention,
                                                                     A_holder.background, B_holder.background)
@@ -307,10 +307,34 @@ with train_summary_writer.as_default():
                 B_holder.transformed_part = B2A_transformed
 
                 # Save images
-                generate_image(args, clf, A, B, A2B, B2A,
+                img = immerge(
+                    np.concatenate([A_holder.img, A_holder.attention, A_holder.transformed_part, A2B,
+                                    B_holder.img, B_holder.attention, B_holder.transformed_part, B2A],
+                                   axis=0), n_rows=2)
+                try:
+                    imwrite(img,
+                            f"{f'output_{args.dataset}/{execution_id}/images'}/%d_%d.png" % (
+                                ep_cnt, batch_count))
+                except (AssertionError, AttributeError, OSError) as e:
+                    # print(tf.math.is_nan(A2B))
+                    print(f"Wasn't able to print image {ep_cnt}_{batch_count}")
+                    print(np.min(A_holder.img), np.max(A_holder.img))
+                    print(np.min(A_holder.attention), np.max(A_holder.attention))
+                    print(np.min(A_holder.transformed_part), np.max(A_holder.transformed_part))
+                    print(np.min(A2B), np.max(A2B))
+                    print(e)
+                    imwrite(immerge(
+                        np.concatenate([A_holder.img, A_holder.attention,
+                                        B_holder.img, B_holder.attention, ],
+                                       axis=0), n_rows=2),
+                        f"{f'output_{args.dataset}/{execution_id}/images'}/%d_%d.png" % (
+                            ep_cnt, batch_count))
+                    exit()
+
+                """generate_image(args, clf, A, B, A2B, B2A,
                                execution_id, ep, batch_count,
                                A_holder=A_holder,
-                               B_holder=B_holder)
+                               B_holder=B_holder)"""
 
             batch_count += 1
 
