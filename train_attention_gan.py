@@ -112,7 +112,9 @@ train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 # ==============================================================================
 
 @tf.function
-def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, B_background):
+def train_G_attention_gan(A_img, B_img,
+                          A_attention, B_attention,
+                          A_background, B_background):
     with tf.GradientTape() as t:
         A2B_transformed = G_A2B(A_img, training=True)
         B2A_transformed = G_B2A(B_img, training=True)
@@ -207,24 +209,17 @@ def train_step(A_holder, B_holder):
 
 
 #@tf.function
-def sample(A_img, B_img,
-           A_attention, B_attention,
-           A_background, B_background):
+def sample(A, B,):
     print("_____________________________________________________________________________________")
-    if np.any(tf.math.is_nan(A_img)):
+    if np.any(tf.math.is_nan(A)):
         print("Third")
-    A2B_transformed = G_A2B(A_img, training=False)
-    B2A_transformed = G_B2A(B_img, training=False)
+    A2B_transformed = G_A2B(A, training=False)
+    B2A_transformed = G_B2A(B, training=False)
     if np.any(tf.math.is_nan(A2B_transformed)):
         print("Fourth")
     print("_____________________________________________________________________________________")
     # Combine new transformed image with attention -> Crop important part from transformed img
-    A2B_transformed_attention = multiply_images(A2B_transformed, A_attention)
-    B2A_transformed_attention = multiply_images(B2A_transformed, B_attention)
-    # Add background to new img
-    A2B = add_images(A2B_transformed_attention, A_background)
-    B2A = add_images(B2A_transformed_attention, B_background)
-    return A2B, B2A, A2B_transformed, B2A_transformed
+    return A2B_transformed, B2A_transformed
 
 
 # ==============================================================================
@@ -298,19 +293,13 @@ with train_summary_writer.as_default():
                     test_iter = iter(A_B_dataset_test)
                     A, B = next(test_iter)
 
-                if np.any(tf.math.is_nan(A_holder.img)):
-                    print("First")
-
-                A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
-                                                     gradcam=gradcam)
-
-                if np.any(tf.math.is_nan(A_holder.img)):
-                    print("Second")
+                """A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
+                                                     gradcam=gradcam)"""
 
 
-                A2B, B2A, A2B_transformed, B2A_transformed = sample(A_holder.img, B_holder.img,
-                                                                    A_holder.attention, B_holder.attention,
-                                                                    A_holder.background, B_holder.background)
+                A2B_transformed, B2A_transformed = sample(A, B)
+
+                continue
 
 
 
