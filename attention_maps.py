@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from tf_keras_vis.utils.scores import CategoricalScore
 
-from imlib import scale_to_zero_one, scale_to_minus_one_one
+from imlib import scale_to_zero_one, scale_to_minus_one_one, plot_any_img
 
 
 def shift_values_above_intensity(cam, attention_intensity: float):
@@ -23,9 +23,7 @@ def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity
     cam = gradcam(CategoricalScore(class_index), img)  # returns ndarray in [0,1]
     if np.max(cam) == 0 and np.min(cam) == 0:
         print(f"Found image without attention... Class index {class_index}")
-        cam += 1
-        print(np.max(cam))
-        print(np.min(cam))
+        cam = tf.ones(shape=cam.shape)
 
     # Turn to batched 3-channel array
     cam = tf.expand_dims(cam, axis=-1)
