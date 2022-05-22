@@ -230,7 +230,7 @@ def train_step(A_holder, B_holder):
 def sample(A_img, B_img,
            A_attention, B_attention,
            A_background, B_background):
-    if np.any(tf.math.is_nan(A)):
+    if np.any(tf.math.is_nan(A_img)):
         print("Third")
     A2B_transformed = G_A2B(A_img, training=False)
     B2A_transformed = G_B2A(B_img, training=False)
