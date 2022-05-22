@@ -1,6 +1,7 @@
 import functools
 from datetime import datetime, time
 
+import numpy as np
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
 
@@ -253,17 +254,23 @@ def train_step(A_holder, B_holder):
     return G_loss_dict, D_loss_dict
 
 
-@tf.function
+#@tf.function
 def sample_spa_gan(A_enhanced, B_enhanced):
     A2B = G_A2B(A_enhanced, training=False)
     B2A = G_B2A(B_enhanced, training=False)
+    if np.any(tf.math.is_nan(A2B)):
+        print("Fourth")
+        exit()
     return A2B, B2A
 
 
-@tf.function
+#@tf.function
 def sample_spa_gan_attention(A_enhanced, B_enhanced):
     A2B, _ = G_A2B(A_enhanced, training=False)
     B2A, _ = G_B2A(B_enhanced, training=False)
+    if np.any(tf.math.is_nan(A2B)):
+        print("Fourth")
+        exit()
     return A2B, B2A
 
 
@@ -329,6 +336,7 @@ with train_summary_writer.as_default():
                     except StopIteration:  # When all elements finished
                         # Create new iterator
                         test_iter = iter(A_B_dataset_test)
+                        A, B = next(test_iter)
                     # Get images
                     A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
                                                          args.attention_intensity,
