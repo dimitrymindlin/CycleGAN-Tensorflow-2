@@ -106,8 +106,6 @@ cycle_loss_fn = tf.losses.MeanAbsoluteError()
 identity_loss_fn = tf.losses.MeanAbsoluteError()
 feature_map_loss_fn = gan.get_feature_map_loss_fn()
 
-
-
 # Create GradCAM object
 gradcam = None
 gradcam_D_A = None
@@ -212,7 +210,9 @@ def train_D(A, B, A2B, B2A):
 
 
 def train_step(A_holder, B_holder):
-    A2B, B2A, G_loss_dict = train_G(A_holder.enhanced_img, B_holder.enhanced_img)
+    A2B, B2A, G_loss_dict = train_G(A_holder.img, B_holder.img,
+                                    A_holder.attention, B_holder.attention,
+                                    A_holder.background, B_holder.background)
     A_holder.transformed_part = A2B
     B_holder.transformed_part = B2A
 
@@ -225,6 +225,7 @@ def train_step(A_holder, B_holder):
     train_D_B_acc.reset_states()
 
     return G_loss_dict, D_loss_dict
+
 
 def sample(A_img, B_img,
            A_attention, B_attention,
@@ -301,7 +302,7 @@ with train_summary_writer.as_default():
 
             # sample
             if ep == 0 or ep > 15 or ep % 3 == 0:
-                #if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1:
+                # if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1:
                 try:
                     A, B = next(test_iter)
                 except StopIteration:  # When all elements finished
