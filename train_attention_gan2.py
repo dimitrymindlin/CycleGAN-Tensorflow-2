@@ -132,66 +132,42 @@ train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 # ==============================================================================
 # =                                 train step                                 =
 # ==============================================================================
-
 @tf.function
-def train_G_attention(A_enhanced, B_enhanced):
+def train_G(A_img, B_img, A_attention, B_attention, A_background, B_background):
     with tf.GradientTape() as t:
-        A2B, A_real_feature_map = G_A2B(A_enhanced, training=True)
-        B2A, B_real_feature_map = G_B2A(B_enhanced, training=True)
-        A2B2A, B_fake_feature_map = G_B2A(A2B, training=True)
-        B2A2B, A_fake_feature_map = G_A2B(B2A, training=True)
-        A2A, _ = G_B2A(A_enhanced, training=True)
-        B2B, _ = G_A2B(B_enhanced, training=True)
+        A2B_transformed = G_A2B(A_img, training=True)
+        B2A_transformed = G_B2A(B_img, training=True)
+        # Combine new transformed image with attention -> Crop important part from transformed img
+        A2B_transformed_attention = multiply_images(A2B_transformed, A_attention)
+        B2A_transformed_attention = multiply_images(B2A_transformed, B_attention)
+        # Add background to new img
+        A2B = add_images(A2B_transformed_attention, A_background)
+        B2A = add_images(B2A_transformed_attention, B_background)
+        # Cycle
+        A2B2A_transformed = G_B2A(A2B, training=True)
+        B2A2B_transformed = G_A2B(B2A, training=True)
+        # Combine new transformed image with attention
+        A2B2A_transformed_attention = multiply_images(A2B2A_transformed, A_attention)
+        A2B2A = add_images(A2B2A_transformed_attention, A_background)
+        B2A2B_transformed_attention = multiply_images(B2A2B_transformed, B_attention)
+        B2A2B = add_images(B2A2B_transformed_attention, B_background)
 
-        A2B_d_logits = D_B(A2B, training=True)
-        B2A_d_logits = D_A(B2A, training=True)
-
-        GA_A2B_fm_loss = feature_map_loss_fn(A_real_feature_map, A_fake_feature_map)
-        GA_B2A_fm_loss = feature_map_loss_fn(B_real_feature_map, B_fake_feature_map)
-
-        A2B_g_loss = g_loss_fn(A2B_d_logits)
-        B2A_g_loss = g_loss_fn(B2A_d_logits)
-        A2B2A_cycle_loss = cycle_loss_fn(A_enhanced, A2B2A)
-        B2A2B_cycle_loss = cycle_loss_fn(B_enhanced, B2A2B)
-        A2A_id_loss = identity_loss_fn(A_enhanced, A2A)
-        B2B_id_loss = identity_loss_fn(B_enhanced, B2B)
-
-        G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + \
-                 (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
-                 (GA_A2B_fm_loss + GA_B2A_fm_loss) * args.feature_map_loss_weight
-
-    G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
-    G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
-
-    return A2B, B2A, {'A2B_g_loss': A2B_g_loss,
-                      'B2A_g_loss': B2A_g_loss,
-                      'A2B2A_cycle_loss': A2B2A_cycle_loss,
-                      'B2A2B_cycle_loss': B2A2B_cycle_loss,
-                      'A2A_id_loss': A2A_id_loss,
-                      'B2B_id_loss': B2B_id_loss,
-                      'GA_A2B_fm_loss': GA_A2B_fm_loss,
-                      'GA_B2A_fm_loss': GA_B2A_fm_loss}
-
-
-@tf.function
-def train_G(A_enhanced, B_enhanced):
-    with tf.GradientTape() as t:
-        A2B = G_A2B(A_enhanced, training=True)
-        B2A = G_B2A(B_enhanced, training=True)
-        A2B2A = G_B2A(A2B, training=True)
-        B2A2B = G_A2B(B2A, training=True)
-        A2A = G_B2A(A_enhanced, training=True)
-        B2B = G_A2B(B_enhanced, training=True)
+        A2A_transformed = G_B2A(A_img, training=True)
+        A2A_transformed_attention = multiply_images(A2A_transformed, A_attention)
+        A2A = add_images(A2A_transformed_attention, A_background)
+        B2B_transformed = G_A2B(B_img, training=True)
+        B2B_transformed_attention = multiply_images(B2B_transformed, B_attention)
+        B2B = add_images(B2B_transformed_attention, B_background)
 
         A2B_d_logits = D_B(A2B, training=True)
         B2A_d_logits = D_A(B2A, training=True)
 
         A2B_g_loss = g_loss_fn(A2B_d_logits)
         B2A_g_loss = g_loss_fn(B2A_d_logits)
-        A2B2A_cycle_loss = cycle_loss_fn(A_enhanced, A2B2A)
-        B2A2B_cycle_loss = cycle_loss_fn(B_enhanced, B2A2B)
-        A2A_id_loss = identity_loss_fn(A_enhanced, A2A)
-        B2B_id_loss = identity_loss_fn(B_enhanced, B2B)
+        A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
+        B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
+        A2A_id_loss = identity_loss_fn(A, A2A)
+        B2B_id_loss = identity_loss_fn(B, B2B)
 
         G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + (
                 A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
@@ -249,26 +225,6 @@ def train_step(A_holder, B_holder):
     train_D_B_acc.reset_states()
 
     return G_loss_dict, D_loss_dict
-
-
-#@tf.function
-def sample_spa_gan(A_enhanced, B_enhanced):
-    A2B = G_A2B(A_enhanced, training=False)
-    B2A = G_B2A(B_enhanced, training=False)
-    if np.any(tf.math.is_nan(A2B)):
-        print("Fourth")
-        exit()
-    return A2B, B2A
-
-
-#@tf.function
-def sample_spa_gan_attention(A_enhanced, B_enhanced):
-    A2B, _ = G_A2B(A_enhanced, training=False)
-    B2A, _ = G_B2A(B_enhanced, training=False)
-    if np.any(tf.math.is_nan(A2B)):
-        print("Fourth")
-        exit()
-    return A2B, B2A
 
 def sample(A_img, B_img,
            A_attention, B_attention,
