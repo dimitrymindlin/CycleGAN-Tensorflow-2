@@ -130,7 +130,7 @@ train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 # ==============================================================================
 # =                                 train step                                 =
 # ==============================================================================
-@tf.function
+#@tf.function
 def train_G(A_img, B_img, A_attention, B_attention, A_background, B_background):
     with tf.GradientTape() as t:
         A2B_transformed = G_A2B(A_img, training=True)
@@ -181,7 +181,7 @@ def train_G(A_img, B_img, A_attention, B_attention, A_background, B_background):
                       'B2B_id_loss': B2B_id_loss}
 
 
-@tf.function
+#@tf.function
 def train_D(A, B, A2B, B2A):
     with tf.GradientTape() as t:
         A_d_logits = D_A(A, training=True)
