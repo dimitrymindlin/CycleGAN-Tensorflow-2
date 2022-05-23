@@ -20,7 +20,7 @@ import module
 # ==============================================================================
 from attention_strategies.attention_stategies import no_attention, spa_gan, attention_gan_foreground, \
     attention_gan_original
-from imlib.image_holder import get_img_holders, multiply_images, add_images
+from imlib.image_holder import get_img_holders
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
@@ -254,42 +254,18 @@ def train_step(A_holder, B_holder):
     return G_loss_dict, D_loss_dict
 
 
-#@tf.function
+@tf.function
 def sample_spa_gan(A_enhanced, B_enhanced):
     A2B = G_A2B(A_enhanced, training=False)
     B2A = G_B2A(B_enhanced, training=False)
-    if np.any(tf.math.is_nan(A2B)):
-        print("Fourth")
-        exit()
     return A2B, B2A
 
 
-#@tf.function
+@tf.function
 def sample_spa_gan_attention(A_enhanced, B_enhanced):
     A2B, _ = G_A2B(A_enhanced, training=False)
     B2A, _ = G_B2A(B_enhanced, training=False)
-    if np.any(tf.math.is_nan(A2B)):
-        print("Fourth")
-        exit()
     return A2B, B2A
-
-def sample(A_img, B_img,
-           A_attention, B_attention,
-           A_background, B_background):
-    if np.any(tf.math.is_nan(A)):
-        print("Third")
-    A2B_transformed = G_A2B(A_img, training=False)
-    B2A_transformed = G_B2A(B_img, training=False)
-    if np.any(tf.math.is_nan(A2B_transformed)):
-        print("Fourth")
-        exit()
-    # Combine new transformed image with attention -> Crop important part from transformed img
-    A2B_transformed_attention = multiply_images(A2B_transformed, A_attention)
-    B2A_transformed_attention = multiply_images(B2A_transformed, B_attention)
-    # Add background to new img
-    A2B = add_images(A2B_transformed_attention, A_background)
-    B2A = add_images(B2A_transformed_attention, B_background)
-    return A2B, B2A, A2B_transformed, B2A_transformed
 
 
 # ==============================================================================
@@ -348,34 +324,28 @@ with train_summary_writer.as_default():
 
             # sample
             if ep == 0 or ep > 15 or ep % 3 == 0:
-                #if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1:
-                try:
-                    A, B = next(test_iter)
-                except StopIteration:  # When all elements finished
-                    # Create new iterator
-                    test_iter = iter(A_B_dataset_test)
-                    A, B = next(test_iter)
-                # Get images
-                A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
-                                                     args.attention_intensity,
-                                                     gradcam=gradcam, gradcam_D_A=gradcam_D_A,
-                                                     gradcam_D_B=gradcam_D_B)
+                if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1:
+                    try:
+                        A, B = next(test_iter)
+                    except StopIteration:  # When all elements finished
+                        # Create new iterator
+                        test_iter = iter(A_B_dataset_test)
+                        A, B = next(test_iter)
+                    # Get images
+                    A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
+                                                         args.attention_intensity,
+                                                         gradcam=gradcam, gradcam_D_A=gradcam_D_A,
+                                                         gradcam_D_B=gradcam_D_B)
+                    if args.generator == "resnet-attention":
+                        A2B, B2A = sample_spa_gan_attention(A_holder.enhanced_img, B_holder.enhanced_img)
+                    else:
+                        A2B, B2A = sample_spa_gan(A_holder.enhanced_img, B_holder.enhanced_img)
 
-                A2B, B2A, A2B_transformed, B2A_transformed = sample(A_holder.img, B_holder.img,
-                                                                    A_holder.attention, B_holder.attention,
-                                                                    A_holder.background, B_holder.background)
-
-                continue
-                if args.generator == "resnet-attention":
-                    A2B, B2A = sample_spa_gan_attention(A_holder.enhanced_img, B_holder.enhanced_img)
-                else:
-                    A2B, B2A = sample_spa_gan(A_holder.enhanced_img, B_holder.enhanced_img)
-
-                # Save images
-                generate_image(args, clf, A, B, A2B, B2A,
-                               execution_id, ep, batch_count,
-                               A_holder=A_holder,
-                               B_holder=B_holder)
+                    # Save images
+                    generate_image(args, clf, A, B, A2B, B2A,
+                                   execution_id, ep, batch_count,
+                                   A_holder=A_holder,
+                                   B_holder=B_holder)
 
             batch_count += 1
 
