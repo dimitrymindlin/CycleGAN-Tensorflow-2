@@ -7,12 +7,12 @@ import data
 from classifiers.domain_to_domain_model import Domain2DomainModel
 
 dataset = "horse2zebra"
-TF_LOG_DIR = f"logs/{dataset}_clf_256"
-checkpoint_path_name = f"checkpoints/inception_{dataset}_256/"
+TF_LOG_DIR = f"logs/{dataset}_clf"
+checkpoint_path_name = f"checkpoints/inception_{dataset}/"
 
 py.arg('--dataset', default=dataset)
 py.arg('--datasets_dir', default='datasets')
-py.arg('--load_size', type=int, default=256)  # load image to this size
+py.arg('--load_size', type=int, default=286)  # load image to this size
 py.arg('--crop_size', type=int, default=256)  # then crop to this size
 py.arg('--batch_size', type=int, default=32)
 py.arg('--epochs', type=int, default=20)
