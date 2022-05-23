@@ -11,22 +11,27 @@ from imlib.transform import immerge
 def generate_image(args, clf, A, B, A2B, B2A,
                    execution_id, ep, batch_count,
                    A_holder=None,
-                   B_holder=None):
-    if args.attention_type != "none":  # Save with attention
-        if args.dataset == "mura":
-            imgs = [A, A_holder.attention, A_holder.transformed_part, A2B,
-                    B, B_holder.attention, B_holder.transformed_part, B2A]
-            save_mura_images_with_attention(imgs, clf, args.dataset, execution_id, ep, batch_count)
-        else:
-            save_images_with_attention(A_holder, A2B, B_holder, B2A,
-                                       clf, args.dataset, execution_id, ep, batch_count,
-                                       args.attention_type)
-    else:  # Save without attention
+                   B_holder=None,
+                   A2B2A=None,
+                   B2A2B=None):
+    try:
+        if args.attention_type != "none":  # Save with attention
+            if args.dataset == "mura":
+                imgs = [A, A_holder.attention, A_holder.transformed_part, A2B,
+                        B, B_holder.attention, B_holder.transformed_part, B2A]
+                save_mura_images_with_attention(imgs, clf, args.dataset, execution_id, ep, batch_count)
+            else:
+                save_images_with_attention(A_holder, A2B, B_holder, B2A,
+                                           clf, args.dataset, execution_id, ep, batch_count,
+                                           args.attention_type)
+    except AttributeError:  # Normal run because args.attention_type not in train.py
         if args.dataset == "mura":
             imgs = [A, A2B, B, B2A]
             save_mura_images(imgs, clf, args.dataset, execution_id, ep, batch_count)
         else:
-            save_images(A, A2B, B, B2A, args.dataset, execution_id, ep, batch_count)
+            img = immerge(np.concatenate([A, A2B, A2B2A, B, B2A, B2A2B], axis=0), n_rows=2)
+            img_folder = f'output_{args.dataset}/{execution_id}/images'
+            imwrite(img, f"{img_folder}/%d_%d.png" % (ep, batch_count))
 
 
 def save_mura_images(imgs, clf, dataset, execution_id, ep_cnt, batch_count):
@@ -122,7 +127,7 @@ def save_images_with_attention(A_holder, A2B, B_holder, B2A, clf, dataset,
                     f"{img_folder}/%d_%d_AB:{AB_correct}_BA:{BA_correct}.png" % (
                         ep_cnt, batch_count))
         except (AssertionError, AttributeError, OSError) as e:
-            #print(tf.math.is_nan(A2B))
+            # print(tf.math.is_nan(A2B))
             print(f"Wasn't able to print image {ep_cnt}_{batch_count}")
             print(np.min(A_holder.img), np.max(A_holder.img))
             print(np.min(A_holder.attention), np.max(A_holder.attention))
@@ -131,11 +136,11 @@ def save_images_with_attention(A_holder, A2B, B_holder, B2A, clf, dataset,
             print(classification)
             print(e)
             imwrite(immerge(
-            np.concatenate([A_holder.img, A_holder.attention,
-                            B_holder.img, B_holder.attention, ],
-                           axis=0), n_rows=2),
-                    f"{img_folder}/%d_%d_AB:{AB_correct}_BA:{BA_correct}.png" % (
-                        ep_cnt, batch_count))
+                np.concatenate([A_holder.img, A_holder.attention,
+                                B_holder.img, B_holder.attention, ],
+                               axis=0), n_rows=2),
+                f"{img_folder}/%d_%d_AB:{AB_correct}_BA:{BA_correct}.png" % (
+                    ep_cnt, batch_count))
             exit()
     else:
         try:
