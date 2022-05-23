@@ -23,8 +23,8 @@ from imlib.image_holder import ImageHolder, get_img_holders
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
-py.arg('--load_size', type=int, default=530)  # load image to this size
-py.arg('--crop_size', type=int, default=512)  # then crop to this size
+py.arg('--load_size', type=int, default=286)  # load image to this size
+py.arg('--crop_size', type=int, default=256)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
 py.arg('--epochs', type=int, default=200)
 py.arg('--epoch_decay', type=int, default=100)  # epoch to start decaying learning rate
@@ -34,12 +34,8 @@ py.arg('--adversarial_loss_mode', default='gan', choices=['gan', 'hinge_v1', 'hi
 py.arg('--discriminator_loss_weight', type=float, default=1)
 py.arg('--cycle_loss_weight', type=float, default=10)
 py.arg('--counterfactual_loss_weight', type=float, default=0)
-py.arg('--feature_map_loss_weight', type=float, default=0)
 py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
-py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
-py.arg('--attention_type', type=str, default="none",
-       choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 py.arg('--discriminator', type=str, default="patch-gan", choices=['classic', 'patch-gan'])
 py.arg('--load_checkpoint', type=str, default=None)
@@ -100,8 +96,6 @@ d_loss_fn, g_loss_fn = gan.get_adversarial_losses_fn(args.adversarial_loss_mode)
 cycle_loss_fn = tf.losses.MeanAbsoluteError()
 identity_loss_fn = tf.losses.MeanAbsoluteError()
 
-clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}/model", compile=False)
-
 G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
 D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
 G_optimizer = keras.optimizers.Adam(learning_rate=G_lr_scheduler, beta_1=args.beta_1)
@@ -109,16 +103,6 @@ D_optimizer = keras.optimizers.Adam(learning_rate=D_lr_scheduler, beta_1=args.be
 
 train_D_A_acc = tf.keras.metrics.BinaryAccuracy()
 train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
-
-if args.attention_type == "spa-gan":
-    attention_strategy = spa_gan
-elif args.attention_type == "attention-gan-foreground":
-    attention_strategy = attention_gan_foreground
-elif args.attention_type == "attention-gan-original":
-    attention_strategy = attention_gan_original
-else:
-    attention_strategy = no_attention
-
 
 # ==============================================================================
 # =                                 train step                                 =
@@ -186,14 +170,14 @@ def train_D(A, B, A2B, B2A):
             'D_B_acc': train_D_B_acc.result()}
 
 
-def train_step(A_holder, B_holder):
-    A2B, B2A, G_loss_dict = train_G(A_holder.img, B_holder.img)
+def train_step(A, B):
+    A2B, B2A, G_loss_dict = train_G(A,B)
 
     # cannot autograph `A2B_pool`
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
     B2A = B2A_pool(B2A)  # because of the communication between CPU and GPU
 
-    D_loss_dict = train_D(A_holder.img, B_holder.img, A2B, B2A)
+    D_loss_dict = train_D(A, B, A2B, B2A)
     train_D_A_acc.reset_states()
     train_D_B_acc.reset_states()
 
@@ -204,7 +188,9 @@ def train_step(A_holder, B_holder):
 def sample(A, B):
     A2B = G_A2B(A, training=False)
     B2A = G_B2A(B, training=False)
-    return A2B, B2A
+    A2B2A = G_B2A(A2B, training=False)
+    B2A2B = G_A2B(B2A, training=False)
+    return A2B, B2A, A2B2A, B2A2B
 
 
 # ==============================================================================
@@ -239,17 +225,10 @@ test_iter = iter(A_B_dataset_test)
 sample_dir = py.join(output_dir, 'images')
 py.mkdir(sample_dir)
 
-# Create GradCAM object
-if args.attention == "gradcam-plus-plus":
-    gradcam = GradcamPlusPlus(clf, model_modifier=ReplaceToLinear(), clone=True)
-else:
-    gradcam = None
-
 # main loop
 with train_summary_writer.as_default():
     for ep in tqdm.trange(args.epochs, desc='Epoch Loop'):
         if ep < ep_cnt:
-            print(f"skipping epoch {ep}")
             continue
 
         # update epoch counter
@@ -257,10 +236,7 @@ with train_summary_writer.as_default():
 
         # train for an epoch
         for batch_count, (A, B) in enumerate(tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset)):
-            A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
-                                                 gradcam=gradcam)
-
-            G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
+            G_loss_dict, D_loss_dict = train_step(A, B)
 
             # # summary
             tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
@@ -276,16 +252,15 @@ with train_summary_writer.as_default():
                     except StopIteration:  # When all elements finished
                         # Create new iterator
                         test_iter = iter(A_B_dataset_test)
-                    A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
-                                                         gradcam=gradcam)
+                        A, B = next(test_iter)
 
-                    A2B, B2A = sample(A_holder.img, B_holder.img)
+                    A2B, B2A, A2B2A, B2A2B = sample(A, B)
 
                     # Save images
-                    generate_image(args, clf, A, B, A2B, B2A,
+                    generate_image(args, None, A, B, A2B, B2A,
                                    execution_id, ep, batch_count,
-                                   A_holder=A_holder,
-                                   B_holder=B_holder)
+                                   A2B2A=A2B2A,
+                                   B2A2B=B2A2B)
 
             batch_count += 1
 
