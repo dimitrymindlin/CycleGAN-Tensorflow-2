@@ -12,6 +12,7 @@ import tf2gan as gan
 import tqdm
 import data
 import module
+import tensorflow_datasets as tfds
 
 # ==============================================================================
 # =                                   param                                    =
@@ -70,7 +71,7 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 # =                                    data                                    =
 # ==============================================================================
 
-A_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainA'), '*.jpg')
+"""A_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainA'), '*.jpg')
 B_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainB'), '*.jpg')
 A_B_dataset, len_dataset = data.make_zip_dataset(A_img_paths, B_img_paths, args.batch_size, args.load_size,
                                                  args.crop_size, training=True, repeat=False)
@@ -82,6 +83,81 @@ A_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testA'), '*
 B_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testB'), '*.jpg')
 A_B_dataset_test, _ = data.make_zip_dataset(A_img_paths_test, B_img_paths_test, args.batch_size, args.load_size,
                                             args.crop_size, training=False, repeat=True)
+"""
+
+A2B_pool = data.ItemPool(args.pool_size)
+B2A_pool = data.ItemPool(args.pool_size)
+AUTOTUNE = tf.data.AUTOTUNE
+dataset, metadata = tfds.load('cycle_gan/horse2zebra',
+                              with_info=True, as_supervised=True)
+
+train_horses, train_zebras = dataset['trainA'], dataset['trainB']
+test_horses, test_zebras = dataset['testA'], dataset['testB']
+len_dataset = 1334
+BUFFER_SIZE = 1000
+BATCH_SIZE = 1
+IMG_WIDTH = 512
+IMG_HEIGHT = 512
+
+
+def random_crop(image):
+    cropped_image = tf.image.random_crop(
+        image, size=[IMG_HEIGHT, IMG_WIDTH, 3])
+
+    return cropped_image
+
+
+# normalizing the images to [-1, 1]
+def normalize(image):
+    image = tf.cast(image, tf.float32)
+    image = tf.image.resize(image, [IMG_HEIGHT, IMG_WIDTH],
+                            method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+    image = (image / 127.5) - 1
+    return image
+
+
+def random_jitter(image):
+    # resizing to 286 x 286 x 3
+    image = tf.image.resize(image, [IMG_HEIGHT+30, IMG_WIDTH+30],
+                            method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+
+    # randomly cropping to 256 x 256 x 3
+    image = random_crop(image)
+
+    # random mirroring
+    image = tf.image.random_flip_left_right(image)
+
+    return image
+
+
+def preprocess_image_train(image, label):
+    image = random_jitter(image)
+    image = normalize(image)
+    return image
+
+
+def preprocess_image_test(image, label):
+    image = normalize(image)
+    return image
+
+
+train_horses = train_horses.cache().map(
+    preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
+    BUFFER_SIZE).batch(BATCH_SIZE)
+
+train_zebras = train_zebras.cache().map(
+    preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
+    BUFFER_SIZE).batch(BATCH_SIZE)
+
+test_horses = test_horses.map(
+    preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
+    BUFFER_SIZE).batch(BATCH_SIZE)
+
+test_zebras = test_zebras.map(
+    preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
+    BUFFER_SIZE).batch(BATCH_SIZE)
+
+OUTPUT_CHANNELS = 3
 
 # ==============================================================================
 # =                                   models                                   =
@@ -248,7 +324,7 @@ except Exception as e:
 train_summary_writer = tf.summary.create_file_writer(py.join(TF_LOG_DIR + execution_id))
 
 # sample
-test_iter = iter(A_B_dataset_test)
+test_iter = iter(tf.data.Dataset.zip(((test_horses, test_zebras))))
 sample_dir = py.join(output_dir, 'images')
 py.mkdir(sample_dir)
 
@@ -268,7 +344,9 @@ with train_summary_writer.as_default():
         ep_cnt.assign_add(1)
 
         # train for an epoch
-        for batch_count, (A, B) in enumerate(tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset)):
+        for batch_count, (A, B) in enumerate(
+                tqdm.tqdm(tf.data.Dataset.zip((train_horses, train_zebras)), desc='Inner Epoch Loop',
+                          total=len_dataset)):
             A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
                                                  gradcam=gradcam)
 
@@ -287,7 +365,7 @@ with train_summary_writer.as_default():
                         A, B = next(test_iter)
                     except StopIteration:  # When all elements finished
                         # Create new iterator
-                        test_iter = iter(A_B_dataset_test)
+                        test_iter = iter(tf.data.Dataset.zip(((test_horses, test_zebras))))
                         A, B = next(test_iter)
 
                     A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
