@@ -183,7 +183,7 @@ EPOCHS = 200
 * Apply the gradients to the optimizer.
 """
 
-test_iter = iter(zip(test_horses, test_zebras))
+test_iter = iter(tf.data.Dataset.zip(((test_horses, test_zebras))))
 sample_dir = py.join(output_dir, 'images')
 py.mkdir(sample_dir)
 
