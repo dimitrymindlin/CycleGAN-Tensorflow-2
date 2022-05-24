@@ -1,4 +1,3 @@
-import functools
 from datetime import datetime, time
 
 import numpy as np
@@ -36,7 +35,7 @@ py.arg('--counterfactual_loss_weight', type=float, default=1)
 py.arg('--feature_map_loss_weight', type=float, default=1)
 py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
-py.arg('--attention', type=str, default="clf", choices=['discriminator', 'clf'])
+py.arg('--attention_map', type=str, default="clf", choices=['discriminator', 'clf'])
 py.arg('--attention_intensity', type=float, default=1)
 py.arg('--attention_type', type=str, default="spa-gan")
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet', "resnet-attention"])
@@ -64,6 +63,10 @@ else:
 TF_LOG_DIR = f"logs/{args.dataset}/"
 
 py.mkdir(output_dir)
+
+# Correct settings
+if args.feature_map_loss_weight > 0:
+    args.generator = "resnet-attention"
 
 # save settings
 py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
