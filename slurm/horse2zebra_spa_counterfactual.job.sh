@@ -7,7 +7,7 @@ python3 -m train_spa_gan \
   --dataset horse2zebra \
   --generator resnet-attention \
   --counterfactual_loss_weight 1 \
-  --attention_map clf \
+  --attention clf \
 
 
 
