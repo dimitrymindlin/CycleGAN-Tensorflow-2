@@ -35,10 +35,10 @@ py.arg('--counterfactual_loss_weight', type=float, default=1)
 py.arg('--feature_map_loss_weight', type=float, default=1)
 py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
-py.arg('--attention', type=str, default="clf", choices=['discriminator', 'clf'])
+py.arg('--attention', type=str, default="discriminator", choices=['discriminator', 'clf'])
 py.arg('--attention_intensity', type=float, default=1)
 py.arg('--attention_type', type=str, default="spa-gan")
-py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet', "resnet-attention"])
+py.arg('--generator', type=str, default="resnet-attention", choices=['resnet', 'unet', "resnet-attention"])
 py.arg('--discriminator', type=str, default="patch-gan", choices=['classic', 'patch-gan'])
 py.arg('--load_checkpoint', type=str, default=None)
 args = py.args()
@@ -180,6 +180,7 @@ if args.attention == "clf":
     clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}_256/model", compile=False)
     gradcam = GradcamPlusPlus(clf, model_modifier=ReplaceToLinear(), clone=True)
 else:  # discriminator attention
+    args.counterfactual_loss_weight = 0
     gradcam_D_A = GradcamPlusPlus(D_A, model_modifier=ReplaceToLinear(), clone=True)
     gradcam_D_B = GradcamPlusPlus(D_B, model_modifier=ReplaceToLinear(), clone=True)
 
@@ -196,7 +197,7 @@ train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 # =                                 train step                                 =
 # ==============================================================================
 
-@tf.function
+#@tf.function
 def train_G_attention(A_enhanced, B_enhanced):
     with tf.GradientTape() as t:
         A2B, A_real_feature_map = G_A2B(A_enhanced, training=True)
