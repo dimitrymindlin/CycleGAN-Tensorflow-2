@@ -1,9 +1,7 @@
-import functools
 from datetime import datetime, time
 
-from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
-from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
-
+import numpy as np
+import tensorflow_datasets as tfds
 import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
@@ -17,10 +15,6 @@ import module
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-from attention_strategies.attention_stategies import no_attention, spa_gan, attention_gan_foreground, \
-    attention_gan_original
-from imlib.image_holder import ImageHolder, get_img_holders
-
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=286)  # load image to this size
@@ -69,18 +63,80 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 # =                                    data                                    =
 # ==============================================================================
 
-A_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainA'), '*.jpg')
-B_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainB'), '*.jpg')
-A_B_dataset, len_dataset = data.make_zip_dataset(A_img_paths, B_img_paths, args.batch_size, args.load_size,
-                                                 args.crop_size, training=True, repeat=False)
 
 A2B_pool = data.ItemPool(args.pool_size)
 B2A_pool = data.ItemPool(args.pool_size)
+AUTOTUNE = tf.data.AUTOTUNE
+dataset, metadata = tfds.load('cycle_gan/horse2zebra',
+                              with_info=True, as_supervised=True)
 
-A_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testA'), '*.jpg')
-B_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testB'), '*.jpg')
-A_B_dataset_test, _ = data.make_zip_dataset(A_img_paths_test, B_img_paths_test, args.batch_size, args.load_size,
-                                            args.crop_size, training=False, repeat=True)
+train_horses, train_zebras = dataset['trainA'], dataset['trainB']
+test_horses, test_zebras = dataset['testA'], dataset['testB']
+len_dataset = 1334
+BUFFER_SIZE = 1000
+BATCH_SIZE = 1
+IMG_WIDTH = 256
+IMG_HEIGHT = 256
+
+
+def random_crop(image):
+    cropped_image = tf.image.random_crop(
+        image, size=[IMG_HEIGHT, IMG_WIDTH, 3])
+
+    return cropped_image
+
+
+# normalizing the images to [-1, 1]
+def normalize(image):
+    image = tf.cast(image, tf.float32)
+    image = tf.image.resize(image, [IMG_HEIGHT, IMG_WIDTH],
+                            method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+    image = (image / 127.5) - 1
+    return image
+
+
+def random_jitter(image):
+    # resizing to 286 x 286 x 3
+    image = tf.image.resize(image, [IMG_HEIGHT+30, IMG_WIDTH+30],
+                            method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+
+    # randomly cropping to 256 x 256 x 3
+    image = random_crop(image)
+
+    # random mirroring
+    image = tf.image.random_flip_left_right(image)
+
+    return image
+
+
+def preprocess_image_train(image, label):
+    image = random_jitter(image)
+    image = normalize(image)
+    return image
+
+
+def preprocess_image_test(image, label):
+    image = normalize(image)
+    return image
+
+
+train_horses = train_horses.cache().map(
+    preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
+    BUFFER_SIZE).batch(BATCH_SIZE)
+
+train_zebras = train_zebras.cache().map(
+    preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
+    BUFFER_SIZE).batch(BATCH_SIZE)
+
+test_horses = test_horses.map(
+    preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
+    BUFFER_SIZE).batch(BATCH_SIZE)
+
+test_zebras = test_zebras.map(
+    preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
+    BUFFER_SIZE).batch(BATCH_SIZE)
+
+OUTPUT_CHANNELS = 3
 
 # ==============================================================================
 # =                                   models                                   =
@@ -103,6 +159,13 @@ D_optimizer = keras.optimizers.Adam(learning_rate=D_lr_scheduler, beta_1=args.be
 
 train_D_A_acc = tf.keras.metrics.BinaryAccuracy()
 train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
+counterfactual_loss_fn = tf.losses.MeanSquaredError()
+
+class_A_ground_truth = np.stack([np.ones(args.batch_size), np.zeros(args.batch_size)]).T
+class_B_ground_truth = np.stack([np.zeros(args.batch_size), np.ones(args.batch_size)]).T
+
+if args.counterfactual_loss_weight > 0:
+    clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}_256/model", compile=False)
 
 # ==============================================================================
 # =                                 train step                                 =
@@ -120,6 +183,13 @@ def train_G(A, B):
 
         A2B_d_logits = D_B(A2B, training=True)
         B2A_d_logits = D_A(B2A, training=True)
+
+        if args.counterfactual_loss_weight > 0:
+            A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth, clf(A2B))
+            B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth, clf(B2A))
+        else:
+            A2B_counterfactual_loss = 0
+            B2A_counterfactual_loss = 0
 
         A2B_g_loss = g_loss_fn(A2B_d_logits)
         B2A_g_loss = g_loss_fn(B2A_d_logits)
@@ -139,7 +209,9 @@ def train_G(A, B):
                       'A2B2A_cycle_loss': A2B2A_cycle_loss,
                       'B2A2B_cycle_loss': B2A2B_cycle_loss,
                       'A2A_id_loss': A2A_id_loss,
-                      'B2B_id_loss': B2B_id_loss}
+                      'B2B_id_loss': B2B_id_loss,
+                      'A2B_counterfactual_loss': A2B_counterfactual_loss,
+                      'B2A_counterfactual_loss': B2A_counterfactual_loss}
 
 
 @tf.function
@@ -221,7 +293,7 @@ except Exception as e:
 train_summary_writer = tf.summary.create_file_writer(py.join(TF_LOG_DIR + execution_id))
 
 # sample
-test_iter = iter(A_B_dataset_test)
+test_iter = iter(tf.data.Dataset.zip(((test_horses, test_zebras))))
 sample_dir = py.join(output_dir, 'images')
 py.mkdir(sample_dir)
 
@@ -235,7 +307,9 @@ with train_summary_writer.as_default():
         ep_cnt.assign_add(1)
 
         # train for an epoch
-        for batch_count, (A, B) in enumerate(tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset)):
+        for batch_count, (A, B) in enumerate(
+                tqdm.tqdm(tf.data.Dataset.zip((train_horses, train_zebras)), desc='Inner Epoch Loop',
+                          total=len_dataset)):
             G_loss_dict, D_loss_dict = train_step(A, B)
 
             # # summary
@@ -251,7 +325,7 @@ with train_summary_writer.as_default():
                         A, B = next(test_iter)
                     except StopIteration:  # When all elements finished
                         # Create new iterator
-                        test_iter = iter(A_B_dataset_test)
+                        test_iter = test_iter = iter(tf.data.Dataset.zip(((test_horses, test_zebras))))
                         A, B = next(test_iter)
 
                     A2B, B2A, A2B2A, B2A2B = sample(A, B)

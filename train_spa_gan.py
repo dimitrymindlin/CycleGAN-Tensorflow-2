@@ -4,7 +4,7 @@ from datetime import datetime, time
 import numpy as np
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
-
+import tensorflow_datasets as tfds
 import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
@@ -18,8 +18,6 @@ import module
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-from attention_strategies.attention_stategies import no_attention, spa_gan, attention_gan_foreground, \
-    attention_gan_original
 from imlib.image_holder import get_img_holders
 
 py.arg('--dataset', default='horse2zebra')
@@ -34,7 +32,7 @@ py.arg('--beta_1', type=float, default=0.5)
 py.arg('--adversarial_loss_mode', default='gan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
 py.arg('--discriminator_loss_weight', type=float, default=1)
 py.arg('--cycle_loss_weight', type=float, default=10)
-py.arg('--counterfactual_loss_weight', type=float, default=0)
+py.arg('--counterfactual_loss_weight', type=float, default=1)
 py.arg('--feature_map_loss_weight', type=float, default=1)
 py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
@@ -74,19 +72,79 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 # =                                    data                                    =
 # ==============================================================================
 
-A_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainA'), '*.jpg')
-B_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainB'), '*.jpg')
-A_B_dataset, len_dataset = data.make_zip_dataset(A_img_paths, B_img_paths, args.batch_size, args.load_size,
-                                                 args.crop_size, training=True, repeat=False)
-
 A2B_pool = data.ItemPool(args.pool_size)
 B2A_pool = data.ItemPool(args.pool_size)
+AUTOTUNE = tf.data.AUTOTUNE
+dataset, metadata = tfds.load('cycle_gan/horse2zebra',
+                              with_info=True, as_supervised=True)
 
-A_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testA'), '*.jpg')
-B_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testB'), '*.jpg')
-A_B_dataset_test, _ = data.make_zip_dataset(A_img_paths_test, B_img_paths_test, args.batch_size, args.load_size,
-                                            args.crop_size, training=False, repeat=True)
+train_horses, train_zebras = dataset['trainA'], dataset['trainB']
+test_horses, test_zebras = dataset['testA'], dataset['testB']
+len_dataset = 1334
+BUFFER_SIZE = 1000
+BATCH_SIZE = 1
+IMG_WIDTH = 256
+IMG_HEIGHT = 256
 
+
+def random_crop(image):
+    cropped_image = tf.image.random_crop(
+        image, size=[IMG_HEIGHT, IMG_WIDTH, 3])
+
+    return cropped_image
+
+
+# normalizing the images to [-1, 1]
+def normalize(image):
+    image = tf.cast(image, tf.float32)
+    image = tf.image.resize(image, [IMG_HEIGHT, IMG_WIDTH],
+                            method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+    image = (image / 127.5) - 1
+    return image
+
+
+def random_jitter(image):
+    # resizing to 286 x 286 x 3
+    image = tf.image.resize(image, [IMG_HEIGHT + 30, IMG_WIDTH + 30],
+                            method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+
+    # randomly cropping to 256 x 256 x 3
+    image = random_crop(image)
+
+    # random mirroring
+    image = tf.image.random_flip_left_right(image)
+
+    return image
+
+
+def preprocess_image_train(image, label):
+    image = random_jitter(image)
+    image = normalize(image)
+    return image
+
+
+def preprocess_image_test(image, label):
+    image = normalize(image)
+    return image
+
+
+train_horses = train_horses.cache().map(
+    preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
+    BUFFER_SIZE).batch(BATCH_SIZE)
+
+train_zebras = train_zebras.cache().map(
+    preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
+    BUFFER_SIZE).batch(BATCH_SIZE)
+
+test_horses = test_horses.map(
+    preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
+    BUFFER_SIZE).batch(BATCH_SIZE)
+
+test_zebras = test_zebras.map(
+    preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
+    BUFFER_SIZE).batch(BATCH_SIZE)
+
+OUTPUT_CHANNELS = 3
 # ==============================================================================
 # =                                   models                                   =
 # ==============================================================================
@@ -105,8 +163,10 @@ d_loss_fn, g_loss_fn = gan.get_adversarial_losses_fn(args.adversarial_loss_mode)
 cycle_loss_fn = tf.losses.MeanAbsoluteError()
 identity_loss_fn = tf.losses.MeanAbsoluteError()
 feature_map_loss_fn = gan.get_feature_map_loss_fn()
+counterfactual_loss_fn = tf.losses.MeanSquaredError()
 
-
+class_A_ground_truth = np.stack([np.ones(args.batch_size), np.zeros(args.batch_size)]).T
+class_B_ground_truth = np.stack([np.zeros(args.batch_size), np.ones(args.batch_size)]).T
 
 # Create GradCAM object
 gradcam = None
@@ -146,6 +206,13 @@ def train_G_attention(A_enhanced, B_enhanced):
         A2B_d_logits = D_B(A2B, training=True)
         B2A_d_logits = D_A(B2A, training=True)
 
+        if args.counterfactual_loss_weight > 0:
+            A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth, clf(A2B))
+            B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth, clf(B2A))
+        else:
+            A2B_counterfactual_loss = 0
+            B2A_counterfactual_loss = 0
+
         GA_A2B_fm_loss = feature_map_loss_fn(A_real_feature_map, A_fake_feature_map)
         GA_B2A_fm_loss = feature_map_loss_fn(B_real_feature_map, B_fake_feature_map)
 
@@ -158,7 +225,8 @@ def train_G_attention(A_enhanced, B_enhanced):
 
         G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + \
                  (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
-                 (GA_A2B_fm_loss + GA_B2A_fm_loss) * args.feature_map_loss_weight
+                 (GA_A2B_fm_loss + GA_B2A_fm_loss) * args.feature_map_loss_weight + \
+                 (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight
 
     G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
     G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
@@ -170,7 +238,9 @@ def train_G_attention(A_enhanced, B_enhanced):
                       'A2A_id_loss': A2A_id_loss,
                       'B2B_id_loss': B2B_id_loss,
                       'GA_A2B_fm_loss': GA_A2B_fm_loss,
-                      'GA_B2A_fm_loss': GA_B2A_fm_loss}
+                      'GA_B2A_fm_loss': GA_B2A_fm_loss,
+                      'A2B_counterfactual_loss': A2B_counterfactual_loss,
+                      'B2A_counterfactual_loss': B2A_counterfactual_loss}
 
 
 @tf.function
@@ -185,6 +255,13 @@ def train_G(A_enhanced, B_enhanced):
 
         A2B_d_logits = D_B(A2B, training=True)
         B2A_d_logits = D_A(B2A, training=True)
+
+        if args.counterfactual_loss_weight > 0:
+            A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth, clf(A2B))
+            B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth, clf(B2A))
+        else:
+            A2B_counterfactual_loss = 0
+            B2A_counterfactual_loss = 0
 
         A2B_g_loss = g_loss_fn(A2B_d_logits)
         B2A_g_loss = g_loss_fn(B2A_d_logits)
@@ -204,7 +281,9 @@ def train_G(A_enhanced, B_enhanced):
                       'A2B2A_cycle_loss': A2B2A_cycle_loss,
                       'B2A2B_cycle_loss': B2A2B_cycle_loss,
                       'A2A_id_loss': A2A_id_loss,
-                      'B2B_id_loss': B2B_id_loss}
+                      'B2B_id_loss': B2B_id_loss,
+                      'A2B_counterfactual_loss': A2B_counterfactual_loss,
+                      'B2A_counterfactual_loss': B2A_counterfactual_loss}
 
 
 @tf.function
@@ -296,7 +375,7 @@ except Exception as e:
 train_summary_writer = tf.summary.create_file_writer(py.join(TF_LOG_DIR + execution_id))
 
 # sample
-test_iter = iter(A_B_dataset_test)
+test_iter = iter(tf.data.Dataset.zip(((test_horses, test_zebras))))
 sample_dir = py.join(output_dir, 'images')
 py.mkdir(sample_dir)
 
@@ -310,7 +389,9 @@ with train_summary_writer.as_default():
         ep_cnt.assign_add(1)
 
         # train for an epoch
-        for batch_count, (A, B) in enumerate(tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset)):
+        for batch_count, (A, B) in enumerate(
+                tqdm.tqdm(tf.data.Dataset.zip((train_horses, train_zebras)), desc='Inner Epoch Loop',
+                          total=len_dataset)):
             A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention, args.attention_intensity,
                                                  gradcam=gradcam, gradcam_D_A=gradcam_D_A, gradcam_D_B=gradcam_D_B)
 
@@ -329,7 +410,7 @@ with train_summary_writer.as_default():
                         A, B = next(test_iter)
                     except StopIteration:  # When all elements finished
                         # Create new iterator
-                        test_iter = iter(A_B_dataset_test)
+                        test_iter = iter(tf.data.Dataset.zip(((test_horses, test_zebras))))
                         A, B = next(test_iter)
                     # Get images
                     A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
