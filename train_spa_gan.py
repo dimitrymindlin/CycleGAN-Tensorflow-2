@@ -24,8 +24,8 @@ from imlib.image_holder import get_img_holders
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
-py.arg('--load_size', type=int, default=530)  # load image to this size
-py.arg('--crop_size', type=int, default=512)  # then crop to this size
+py.arg('--load_size', type=int, default=286)  # load image to this size
+py.arg('--crop_size', type=int, default=256)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
 py.arg('--epochs', type=int, default=200)
 py.arg('--epoch_decay', type=int, default=100)  # epoch to start decaying learning rate
@@ -114,7 +114,7 @@ gradcam_D_A = None
 gradcam_D_B = None
 clf = None
 if args.attention == "clf":
-    clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}/model", compile=False)
+    clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}_256/model", compile=False)
     gradcam = GradcamPlusPlus(clf, model_modifier=ReplaceToLinear(), clone=True)
 else:  # discriminator attention
     gradcam_D_A = GradcamPlusPlus(D_A, model_modifier=ReplaceToLinear(), clone=True)
@@ -323,7 +323,7 @@ with train_summary_writer.as_default():
                        name='learning rate')
 
             # sample
-            if ep == 0 or ep > 15 or ep % 3 == 0:
+            if ep == 0 or ep > 80 or ep % 3 == 0:
                 if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1:
                     try:
                         A, B = next(test_iter)
