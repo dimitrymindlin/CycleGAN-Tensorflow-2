@@ -198,8 +198,10 @@ def train_G(A, B):
         A2A_id_loss = identity_loss_fn(A, A2A)
         B2B_id_loss = identity_loss_fn(B, B2B)
 
-        G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + (
-                A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
+        G_loss = (A2B_g_loss + B2A_g_loss) + \
+                 (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + \
+                 (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
+                 (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight
 
     G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
     G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))

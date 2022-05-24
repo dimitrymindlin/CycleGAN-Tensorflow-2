@@ -1,5 +1,6 @@
 from datetime import datetime, time
 
+import numpy as np
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
 
@@ -157,6 +158,11 @@ D_B = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
 d_loss_fn, g_loss_fn = gan.get_adversarial_losses_fn(args.adversarial_loss_mode)
 cycle_loss_fn = tf.losses.MeanAbsoluteError()
 identity_loss_fn = tf.losses.MeanAbsoluteError()
+counterfactual_loss_fn = tf.losses.MeanSquaredError()
+
+class_A_ground_truth = np.stack([np.ones(args.batch_size), np.zeros(args.batch_size)]).T
+class_B_ground_truth = np.stack([np.zeros(args.batch_size), np.ones(args.batch_size)]).T
+
 
 clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}_256/model", compile=False)
 
@@ -203,6 +209,13 @@ def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, 
         A2B_d_logits = D_B(A2B, training=True)
         B2A_d_logits = D_A(B2A, training=True)
 
+        if args.counterfactual_loss_weight > 0:
+            A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth, clf(A2B))
+            B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth, clf(B2A))
+        else:
+            A2B_counterfactual_loss = 0
+            B2A_counterfactual_loss = 0
+
         A2B_g_loss = g_loss_fn(A2B_d_logits)
         B2A_g_loss = g_loss_fn(B2A_d_logits)
         A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
@@ -210,8 +223,10 @@ def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, 
         A2A_id_loss = identity_loss_fn(A, A2A)
         B2B_id_loss = identity_loss_fn(B, B2B)
 
-        G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + (
-                A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
+        G_loss = (A2B_g_loss + B2A_g_loss) + \
+                 (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
+                 + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
+                 (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight
 
     G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
     G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
@@ -221,8 +236,9 @@ def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, 
                       'A2B2A_cycle_loss': A2B2A_cycle_loss,
                       'B2A2B_cycle_loss': B2A2B_cycle_loss,
                       'A2A_id_loss': A2A_id_loss,
-                      'B2B_id_loss': B2B_id_loss}
-
+                      'B2B_id_loss': B2B_id_loss,
+                      'A2B_counterfactual_loss': A2B_counterfactual_loss,
+                      'B2A_counterfactual_loss': B2A_counterfactual_loss}
 
 @tf.function
 def train_D(A, B, A2B, B2A):
