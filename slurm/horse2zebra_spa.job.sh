@@ -9,6 +9,7 @@ python3 -m train_spa_gan \
   --feature_map_loss_weight 0 \
   --counterfactual_loss_weight 1 \
   --attention clf \
-  --generator resnet
+  --generator resnet \
+  --load_checkpoint 2022-05-19--22.39
 
 
