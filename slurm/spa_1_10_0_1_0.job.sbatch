@@ -2,8 +2,8 @@
 #SBATCH --gres=gpu:gtx:1
 #SBATCH --partition=gpu
 #SBATCH --time=100:00:00
-#SBATCH --output=/media/compute/homes/dmindlin/CycleGAN-Tensorflow-2/slurm_logs/horse2zebra_attention_gan.out
+#SBATCH --output=/media/compute/homes/dmindlin/CycleGAN-Tensorflow-2/slurm_logs/spa_1_10_0_1_0.out
 #SBATCH --mail-user=dmindlin@techfak.uni-bielefeld.de
 #SBATCH --mail-type=END
 
-srun horse2zebra_attention_gan.job.sh
+srun spa_1_10_0_1_0.job.sh

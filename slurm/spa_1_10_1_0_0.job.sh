@@ -7,7 +7,7 @@ python3 -m train_spa_gan \
   --dataset horse2zebra \
   --discriminator_loss_weight 1 \
   --cycle_loss_weight 10 \
-  --counterfactual_weight_loss 1 \
+  --counterfactual_loss_weight 1 \
   --feature_map_loss_weight 0 \
   --identity_loss_weight 0 \
   --attention clf \
