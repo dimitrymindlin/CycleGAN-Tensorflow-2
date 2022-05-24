@@ -197,7 +197,7 @@ train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 # =                                 train step                                 =
 # ==============================================================================
 
-#@tf.function
+@tf.function
 def train_G_attention(A_enhanced, B_enhanced):
     with tf.GradientTape() as t:
         A2B, A_real_feature_map = G_A2B(A_enhanced, training=True)
