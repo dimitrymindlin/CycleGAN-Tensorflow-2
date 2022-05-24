@@ -22,8 +22,8 @@ from imlib.image_holder import get_img_holders, multiply_images, add_images
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
-py.arg('--load_size', type=int, default=530)  # load image to this size
-py.arg('--crop_size', type=int, default=512)  # then crop to this size
+py.arg('--load_size', type=int, default=286)  # load image to this size
+py.arg('--crop_size', type=int, default=256)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
 py.arg('--epochs', type=int, default=200)
 py.arg('--epoch_decay', type=int, default=100)  # epoch to start decaying learning rate
@@ -96,8 +96,8 @@ test_horses, test_zebras = dataset['testA'], dataset['testB']
 len_dataset = 1334
 BUFFER_SIZE = 1000
 BATCH_SIZE = 1
-IMG_WIDTH = 512
-IMG_HEIGHT = 512
+IMG_WIDTH = 256
+IMG_HEIGHT = 256
 
 
 def random_crop(image):
@@ -173,7 +173,7 @@ d_loss_fn, g_loss_fn = gan.get_adversarial_losses_fn(args.adversarial_loss_mode)
 cycle_loss_fn = tf.losses.MeanAbsoluteError()
 identity_loss_fn = tf.losses.MeanAbsoluteError()
 
-clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}/model", compile=False)
+clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}_256/model", compile=False)
 
 G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
 D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
