@@ -5,5 +5,6 @@ cd /media/compute/homes/dmindlin/CycleGAN-Tensorflow-2
 
 python3 -m train \
   --dataset horse2zebra \
+  --counterfactual_weight_loss 1
 
 
