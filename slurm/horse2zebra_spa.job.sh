@@ -5,11 +5,7 @@ cd /media/compute/homes/dmindlin/CycleGAN-Tensorflow-2
 
 python3 -m train_spa_gan \
   --dataset horse2zebra \
-  --generator resnet \
-  --feature_map_loss_weight 0 \
-  --counterfactual_loss_weight 1 \
-  --attention clf \
-  --generator resnet \
-  --load_checkpoint 2022-05-19--22.39
-
+  --generator resnet-attention \
+  --attention discriminator \
+  --counterfactual_loss_weight 1
 
