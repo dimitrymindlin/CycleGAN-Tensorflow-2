@@ -75,8 +75,8 @@ test_horses, test_zebras = dataset['testA'], dataset['testB']
 len_dataset = 1334
 BUFFER_SIZE = 1000
 BATCH_SIZE = 1
-IMG_WIDTH = 256
-IMG_HEIGHT = 256
+IMG_WIDTH = args.crop_size
+IMG_HEIGHT = args.crop_size
 
 
 def random_crop(image):
