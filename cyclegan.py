@@ -63,6 +63,8 @@ def preprocess_image_train(image, label):
 
 
 def preprocess_image_test(image, label):
+    image = tf.image.resize(image, [IMG_HEIGHT, IMG_WIDTH],
+                            method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
     image = normalize(image)
     return image
 
