@@ -24,8 +24,8 @@ test_horses, test_zebras = dataset['testA'], dataset['testB']
 
 BUFFER_SIZE = 1000
 BATCH_SIZE = 1
-IMG_WIDTH = 256
-IMG_HEIGHT = 256
+IMG_WIDTH = 512
+IMG_HEIGHT = 512
 
 
 def random_crop(image):
@@ -44,7 +44,7 @@ def normalize(image):
 
 def random_jitter(image):
     # resizing to 286 x 286 x 3
-    image = tf.image.resize(image, [286, 286],
+    image = tf.image.resize(image, [532, 532],
                             method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
     # randomly cropping to 256 x 256 x 3
