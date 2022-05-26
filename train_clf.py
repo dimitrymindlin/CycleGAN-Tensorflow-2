@@ -45,32 +45,7 @@ A_B_dataset_test, _ = data.make_concat_dataset(A_img_paths_test, B_img_paths_tes
 
 # ==============================================================================
 
-#model = Domain2DomainModel(img_shape=(args.crop_size, args.crop_size, 3)).model()
-from keras.models import Sequential
-from keras.layers import Conv2D
-from keras.layers import MaxPooling2D
-from keras.layers import Dense
-from keras.layers import Flatten
-
-
-def define_model():
-    model = Sequential()
-    model.add(Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same',
-                     input_shape=(args.crop_size, args.crop_size, 3)))
-    model.add(MaxPooling2D((2, 2)))
-    model.add(Conv2D(64, kernel_size=3, activation='relu'))
-    model.add(MaxPooling2D((2, 2)))
-    model.add(Conv2D(32, kernel_size=3, activation='relu'))
-    model.add(MaxPooling2D((2, 2)))
-    model.add(Conv2D(16, kernel_size=3, activation='relu'))
-    model.add(MaxPooling2D((2, 2)))
-    model.add(Flatten())
-    model.add(Dense(128, activation='relu', kernel_initializer='he_uniform'))
-    model.add(Dense(2, activation="softmax", name="predictions"))
-    return model
-
-
-model = define_model()
+model = Domain2DomainModel(img_shape=(args.crop_size, args.crop_size, 3)).model()
 
 my_callbacks = [
     keras.callbacks.ModelCheckpoint(filepath=checkpoint_path_name,
@@ -107,7 +82,7 @@ my_callbacks = [
 
 metric_auc = tf.keras.metrics.AUC(curve='ROC', multi_label=True, num_labels=2, from_logits=False)
 
-model.compile(optimizer=keras.optimizers.Adam(),
+model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.0001),
               loss='categorical_crossentropy',
               metrics=["accuracy", metric_auc])
 
