@@ -72,6 +72,10 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 # ==============================================================================
 # =                                    data                                    =
 # ==============================================================================
+
+A2B_pool = data.ItemPool(args.pool_size)
+B2A_pool = data.ItemPool(args.pool_size)
+
 train_horses, train_zebras, test_horses, test_zebras, len_dataset = data.load_tfds_dataset(args.dataset,
                                                                                            args.crop_size)
 
