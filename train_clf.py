@@ -7,8 +7,6 @@ import data
 from classifiers.domain_to_domain_model import Domain2DomainModel
 
 dataset = "horse2zebra"
-TF_LOG_DIR = f"logs/{dataset}_clf"
-checkpoint_path_name = f"checkpoints/inception_{dataset}/"
 
 py.arg('--dataset', default=dataset)
 py.arg('--datasets_dir', default='datasets')
@@ -16,17 +14,12 @@ py.arg('--load_size', type=int, default=286)  # load image to this size
 py.arg('--crop_size', type=int, default=256)  # then crop to this size
 py.arg('--batch_size', type=int, default=32)
 py.arg('--epochs', type=int, default=20)
-py.arg('--epoch_decay', type=int, default=100)  # epoch to start decaying learning rate
 py.arg('--lr', type=float, default=0.0002)
 py.arg('--beta_1', type=float, default=0.5)
-py.arg('--adversarial_loss_mode', default='lsgan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
-py.arg('--gradient_penalty_mode', default='none', choices=['none', 'dragan', 'wgan-gp'])
-py.arg('--gradient_penalty_weight', type=float, default=10.0)
-py.arg('--cycle_loss_weight', type=float, default=10.0)
-py.arg('--counterfactual_loss_weight', type=float, default=5.0)
-py.arg('--identity_loss_weight', type=float, default=0.0)
-py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 args = py.args()
+
+TF_LOG_DIR = f"logs/{dataset}_clf"
+checkpoint_path_name = f"checkpoints/inception_{dataset}_{args.crop_size}/"
 
 # ==============================================================================
 # =                                    data                                    =
