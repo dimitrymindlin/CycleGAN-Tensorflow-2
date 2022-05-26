@@ -11,7 +11,7 @@ import tf2lib as tl
 import tf2gan as gan
 import tqdm
 
-from imlib import generate_image,
+from imlib import generate_image
 import data
 import module
 
