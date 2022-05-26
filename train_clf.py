@@ -1,4 +1,3 @@
-
 import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
@@ -31,15 +30,14 @@ B_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainB'), '*.jpg
 A_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testA'), '*.jpg')
 B_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testB'), '*.jpg')
 
-A_B_dataset, len_dataset = data.make_concat_dataset(A_img_paths[200:], B_img_paths[200:], args.batch_size, args.load_size,
+A_B_dataset, len_dataset = data.make_concat_dataset(A_img_paths[200:], B_img_paths[200:], args.batch_size,
+                                                    args.load_size,
                                                     args.crop_size, training=True, repeat=False,
                                                     special_normalisation=special_normalisation)
 
 A_B_dataset_valid, _ = data.make_concat_dataset(A_img_paths[:200], B_img_paths[:200], args.batch_size, args.load_size,
-                                                    args.crop_size, training=True, repeat=False,
-                                                    special_normalisation=special_normalisation)
-
-
+                                                args.crop_size, training=True, repeat=False,
+                                                special_normalisation=special_normalisation)
 
 A_B_dataset_test, _ = data.make_concat_dataset(A_img_paths_test, B_img_paths_test, args.batch_size, args.load_size,
                                                args.crop_size, training=True, repeat=False,
@@ -47,7 +45,26 @@ A_B_dataset_test, _ = data.make_concat_dataset(A_img_paths_test, B_img_paths_tes
 
 # ==============================================================================
 
-model = Domain2DomainModel(img_shape=(args.crop_size, args.crop_size, 3)).model()
+#model = Domain2DomainModel(img_shape=(args.crop_size, args.crop_size, 3)).model()
+from keras.models import Sequential
+from keras.layers import Conv2D
+from keras.layers import MaxPooling2D
+from keras.layers import Dense
+from keras.layers import Flatten
+
+
+def define_model():
+    model = Sequential()
+    model.add(Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same',
+                     input_shape=(args.crop_size, args.crop_size, 3)))
+    model.add(MaxPooling2D((2, 2)))
+    model.add(Flatten())
+    model.add(Dense(128, activation='relu', kernel_initializer='he_uniform'))
+    model.add(Dense(2, activation="softmax", name="predictions"))
+    return model
+
+
+model = define_model()
 
 my_callbacks = [
     keras.callbacks.ModelCheckpoint(filepath=checkpoint_path_name,
@@ -85,8 +102,8 @@ my_callbacks = [
 metric_auc = tf.keras.metrics.AUC(curve='ROC', multi_label=True, num_labels=2, from_logits=False)
 
 model.compile(optimizer=keras.optimizers.Adam(),
-                  loss='categorical_crossentropy',
-                  metrics=["accuracy", metric_auc])
+              loss='categorical_crossentropy',
+              metrics=["accuracy", metric_auc])
 
 # Model Training
 history = model.fit(A_B_dataset,
