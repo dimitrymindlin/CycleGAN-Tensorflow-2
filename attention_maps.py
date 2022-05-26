@@ -21,9 +21,23 @@ def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity
     """
     # Generate cam map
     cam = gradcam(CategoricalScore(class_index), img)  # returns ndarray in [0,1]
+    cam1 = gradcam(CategoricalScore(class_index), img, penultimate_layer=-10)
+    cam2 = gradcam(CategoricalScore(class_index), img, penultimate_layer=-30)
+    cam3 = gradcam(CategoricalScore(class_index), img, penultimate_layer=-35)
+    cam4 = gradcam(CategoricalScore(class_index), img, penultimate_layer=-40)
+    cam5 = gradcam(CategoricalScore(class_index), img, penultimate_layer=-45)
+    cam6 = gradcam(CategoricalScore(class_index), img, penultimate_layer=-50)
     if np.max(cam) == 0 and np.min(cam) == 0:
         print(f"Found image without attention... Class index {class_index}")
         cam = tf.ones(shape=cam.shape)
+    plot_any_img(img)
+    plot_any_img(cam)
+    plot_any_img(cam1)
+    plot_any_img(cam2)
+    plot_any_img(cam3)
+    plot_any_img(cam4)
+    plot_any_img(cam5)
+    plot_any_img(cam6)
 
     # Turn to batched 3-channel array
     cam = tf.expand_dims(cam, axis=-1)

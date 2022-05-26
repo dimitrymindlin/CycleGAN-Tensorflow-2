@@ -24,8 +24,8 @@ from imlib.image_holder import get_img_holders
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
-py.arg('--load_size', type=int, default=532)  # load image to this size
-py.arg('--crop_size', type=int, default=512)  # then crop to this size
+py.arg('--load_size', type=int, default=286)  # load image to this size
+py.arg('--crop_size', type=int, default=256)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
 py.arg('--epochs', type=int, default=200)
 py.arg('--epoch_decay', type=int, default=100)  # epoch to start decaying learning rate
@@ -117,18 +117,9 @@ if args.attention == "clf":
     gradcam = GradcamPlusPlus(clf, clone=True)
     for A, B in tf.data.Dataset.zip((train_horses, train_zebras)):
         new_img, gradcam_plus = apply_gradcam(A, gradcam, 0, args.attention_type)
-        heatmap = make_heatmap(A, clf)
-        plot_any_img(A)
-        plot_any_img(heatmap)
-        plot_any_img(gradcam_plus)
-        print()
-
         new_img, gradcam_plus = apply_gradcam(B, gradcam, 1, args.attention_type)
-        heatmap = make_heatmap(B, clf)
-        plot_any_img(B)
-        plot_any_img(heatmap)
-        plot_any_img(gradcam_plus)
-        print()
+
+
 else:  # discriminator attention
     args.counterfactual_loss_weight = 0
     gradcam_D_A = GradcamPlusPlus(D_A, model_modifier=ReplaceToLinear(), clone=True)
