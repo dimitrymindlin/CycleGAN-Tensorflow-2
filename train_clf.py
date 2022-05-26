@@ -55,18 +55,16 @@ from keras.layers import Flatten
 
 def define_model():
     model = Sequential()
-    model.add(Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same',
+    model.add(Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same',
                      input_shape=(args.crop_size, args.crop_size, 3)))
     model.add(MaxPooling2D((2, 2)))
-    model.add(Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same',
-                     input_shape=(args.crop_size, args.crop_size, 3)))
+    model.add(Conv2D(64, kernel_size=3, activation='relu'))
     model.add(MaxPooling2D((2, 2)))
-    model.add(Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same',
-                     input_shape=(args.crop_size, args.crop_size, 3)))
+    model.add(Conv2D(32, kernel_size=3, activation='relu'))
     model.add(MaxPooling2D((2, 2)))
-    model.add(Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same',
-                     input_shape=(args.crop_size, args.crop_size, 3)))
+    model.add(Conv2D(16, kernel_size=3, activation='relu'))
     model.add(MaxPooling2D((2, 2)))
+    model.add(Flatten())
     model.add(Dense(128, activation='relu', kernel_initializer='he_uniform'))
     model.add(Dense(2, activation="softmax", name="predictions"))
     return model
