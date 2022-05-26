@@ -10,7 +10,10 @@ import tensorflow.keras as keras
 import tf2lib as tl
 import tf2gan as gan
 import tqdm
-from imlib import generate_image
+
+from attention_maps import apply_gradcam
+from evaluation.keras_heatmap import make_heatmap, save_heatmap
+from imlib import generate_image, plot_any_img
 import data
 import module
 
@@ -21,8 +24,8 @@ from imlib.image_holder import get_img_holders
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
-py.arg('--load_size', type=int, default=286)  # load image to this size
-py.arg('--crop_size', type=int, default=256)  # then crop to this size
+py.arg('--load_size', type=int, default=532)  # load image to this size
+py.arg('--crop_size', type=int, default=512)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
 py.arg('--epochs', type=int, default=200)
 py.arg('--epoch_decay', type=int, default=100)  # epoch to start decaying learning rate
@@ -77,77 +80,10 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 
 A2B_pool = data.ItemPool(args.pool_size)
 B2A_pool = data.ItemPool(args.pool_size)
-AUTOTUNE = tf.data.AUTOTUNE
-dataset, metadata = tfds.load(f'cycle_gan/{args.dataset}',
-                              with_info=True, as_supervised=True)
 
-train_horses, train_zebras = dataset['trainA'], dataset['trainB']
-test_horses, test_zebras = dataset['testA'], dataset['testB']
-len_dataset = 1334
-BUFFER_SIZE = 1000
-BATCH_SIZE = 1
-IMG_WIDTH = args.crop_size
-IMG_HEIGHT = args.crop_size
+train_horses, train_zebras, test_horses, test_zebras, len_dataset = data.load_tfds_dataset(args.dataset,
+                                                                                           args.crop_size)
 
-
-def random_crop(image):
-    cropped_image = tf.image.random_crop(
-        image, size=[IMG_HEIGHT, IMG_WIDTH, 3])
-
-    return cropped_image
-
-
-# normalizing the images to [-1, 1]
-def normalize(image):
-    image = tf.cast(image, tf.float32)
-    image = tf.image.resize(image, [IMG_HEIGHT, IMG_WIDTH],
-                            method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-    image = (image / 127.5) - 1
-    return image
-
-
-def random_jitter(image):
-    # resizing to 286 x 286 x 3
-    image = tf.image.resize(image, [IMG_HEIGHT + 30, IMG_WIDTH + 30],
-                            method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-
-    # randomly cropping to 256 x 256 x 3
-    image = random_crop(image)
-
-    # random mirroring
-    image = tf.image.random_flip_left_right(image)
-
-    return image
-
-
-def preprocess_image_train(image, label):
-    image = random_jitter(image)
-    image = normalize(image)
-    return image
-
-
-def preprocess_image_test(image, label):
-    image = normalize(image)
-    return image
-
-
-train_horses = train_horses.cache().map(
-    preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
-    BUFFER_SIZE).batch(BATCH_SIZE)
-
-train_zebras = train_zebras.cache().map(
-    preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
-    BUFFER_SIZE).batch(BATCH_SIZE)
-
-test_horses = test_horses.map(
-    preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
-    BUFFER_SIZE).batch(BATCH_SIZE)
-
-test_zebras = test_zebras.map(
-    preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
-    BUFFER_SIZE).batch(BATCH_SIZE)
-
-OUTPUT_CHANNELS = 3
 # ==============================================================================
 # =                                   models                                   =
 # ==============================================================================
@@ -178,7 +114,21 @@ gradcam_D_B = None
 clf = None
 if args.attention == "clf":
     clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}_{args.crop_size}/model", compile=False)
-    gradcam = GradcamPlusPlus(clf, model_modifier=ReplaceToLinear(), clone=True)
+    gradcam = GradcamPlusPlus(clf, clone=True)
+    for A, B in tf.data.Dataset.zip((train_horses, train_zebras)):
+        new_img, gradcam_plus = apply_gradcam(A, gradcam, 0, args.attention_type)
+        heatmap = make_heatmap(A, clf)
+        plot_any_img(A)
+        plot_any_img(heatmap)
+        plot_any_img(gradcam_plus)
+        print()
+
+        new_img, gradcam_plus = apply_gradcam(B, gradcam, 1, args.attention_type)
+        heatmap = make_heatmap(B, clf)
+        plot_any_img(B)
+        plot_any_img(heatmap)
+        plot_any_img(gradcam_plus)
+        print()
 else:  # discriminator attention
     args.counterfactual_loss_weight = 0
     gradcam_D_A = GradcamPlusPlus(D_A, model_modifier=ReplaceToLinear(), clone=True)

@@ -5,6 +5,8 @@ from sklearn.utils import shuffle
 import tf2lib as tl
 import tensorflow_addons as tfa
 import pylib as py
+import tensorflow_datasets as tfds
+
 
 def make_dataset(img_paths, batch_size, load_size, crop_size, training, drop_remainder=True, shuffle=True, repeat=1,
                  labels=None, special_normalisation=None):
@@ -116,13 +118,13 @@ def get_mura_data_paths():
 
     def filenames(part, train=True):
         root = '../tensorflow_datasets/downloads/cjinny_mura-v11/'
-        #root = '/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/'
+        # root = '/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/'
         if train:
             csv_path = "../tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/train_image_paths.csv"
-            #csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/train_image_paths.csv"
+            # csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/train_image_paths.csv"
         else:
             csv_path = "../tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/valid_image_paths.csv"
-            #csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/valid_image_paths.csv"
+            # csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/valid_image_paths.csv"
 
         with open(csv_path, 'rb') as F:
             d = F.readlines()
@@ -148,6 +150,7 @@ def get_mura_data_paths():
 
     return train_x, train_y, valid_x, valid_y, test_x, test_y
 
+
 def get_dataset_paths(args):
     if args.dataset == "mura":
         # A = 0 = negative, B = 1 = positive
@@ -162,3 +165,71 @@ def get_dataset_paths(args):
         A_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testA'), '*.jpg')
         B_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testB'), '*.jpg')
     return A_img_paths, B_img_paths, A_img_paths_test, B_img_paths_test
+
+
+def load_tfds_dataset(dataset_name, img_size):
+    AUTOTUNE = tf.data.AUTOTUNE
+    dataset, metadata = tfds.load(f'cycle_gan/{dataset_name}',
+                                  with_info=True, as_supervised=True)
+
+    train_horses, train_zebras = dataset['trainA'], dataset['trainB']
+    test_horses, test_zebras = dataset['testA'], dataset['testB']
+    BUFFER_SIZE = 1000
+    len_dataset = len(train_zebras)
+    BATCH_SIZE = 1
+    IMG_WIDTH = img_size
+    IMG_HEIGHT = img_size
+
+    def random_crop(image):
+        cropped_image = tf.image.random_crop(
+            image, size=[IMG_HEIGHT, IMG_WIDTH, 3])
+
+        return cropped_image
+
+    # normalizing the images to [-1, 1]
+    def normalize(image):
+        image = tf.cast(image, tf.float32)
+        image = tf.image.resize(image, [IMG_HEIGHT, IMG_WIDTH],
+                                method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        image = (image / 127.5) - 1
+        return image
+
+    def random_jitter(image):
+        # resizing to 286 x 286 x 3
+        image = tf.image.resize(image, [IMG_HEIGHT + 30, IMG_WIDTH + 30],
+                                method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+
+        # randomly cropping to 256 x 256 x 3
+        image = random_crop(image)
+
+        # random mirroring
+        image = tf.image.random_flip_left_right(image)
+
+        return image
+
+    def preprocess_image_train(image, label):
+        image = random_jitter(image)
+        image = normalize(image)
+        return image
+
+    def preprocess_image_test(image, label):
+        image = normalize(image)
+        return image
+
+    train_horses = train_horses.cache().map(
+        preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
+        BUFFER_SIZE).batch(BATCH_SIZE)
+
+    train_zebras = train_zebras.cache().map(
+        preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
+        BUFFER_SIZE).batch(BATCH_SIZE)
+
+    test_horses = test_horses.map(
+        preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
+        BUFFER_SIZE).batch(BATCH_SIZE)
+
+    test_zebras = test_zebras.map(
+        preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
+        BUFFER_SIZE).batch(BATCH_SIZE)
+
+    return train_horses, train_zebras, test_horses, test_zebras, len_dataset

@@ -25,10 +25,6 @@ def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity
         print(f"Found image without attention... Class index {class_index}")
         cam = tf.ones(shape=cam.shape)
 
-    plot_any_img(cam)
-    plot_any_img(img)
-
-
     # Turn to batched 3-channel array
     cam = tf.expand_dims(cam, axis=-1)
     cam = tf.image.grayscale_to_rgb(tf.convert_to_tensor(cam))
@@ -43,5 +39,4 @@ def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity
     # Interpolate by multiplication and normalise
     img = cam * img
     img /= np.max(img)
-    plot_any_img(img)
     return scale_to_minus_one_one(img), scale_to_minus_one_one(cam)  # [-1,1]
