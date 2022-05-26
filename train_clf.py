@@ -58,7 +58,15 @@ def define_model():
     model.add(Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same',
                      input_shape=(args.crop_size, args.crop_size, 3)))
     model.add(MaxPooling2D((2, 2)))
-    model.add(Flatten())
+    model.add(Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same',
+                     input_shape=(args.crop_size, args.crop_size, 3)))
+    model.add(MaxPooling2D((2, 2)))
+    model.add(Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same',
+                     input_shape=(args.crop_size, args.crop_size, 3)))
+    model.add(MaxPooling2D((2, 2)))
+    model.add(Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same',
+                     input_shape=(args.crop_size, args.crop_size, 3)))
+    model.add(MaxPooling2D((2, 2)))
     model.add(Dense(128, activation='relu', kernel_initializer='he_uniform'))
     model.add(Dense(2, activation="softmax", name="predictions"))
     return model
