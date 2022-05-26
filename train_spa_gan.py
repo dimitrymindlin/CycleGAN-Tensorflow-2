@@ -4,7 +4,6 @@ import numpy as np
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 from tf_keras_vis.gradcam import Gradcam
 from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
-import tensorflow_datasets as tfds
 import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
@@ -12,9 +11,7 @@ import tf2lib as tl
 import tf2gan as gan
 import tqdm
 
-from attention_maps import apply_gradcam
-from evaluation.keras_heatmap import make_heatmap, save_heatmap
-from imlib import generate_image, plot_any_img
+from imlib import generate_image,
 import data
 import module
 
@@ -115,9 +112,9 @@ gradcam_D_A = None
 gradcam_D_B = None
 clf = None
 
-
 if args.attention == "clf":
-    clf = tf.keras.models.load_model(f"checkpoints/{args.clf_name}_{args.dataset}_{args.crop_size}/model", compile=False)
+    clf = tf.keras.models.load_model(f"checkpoints/{args.clf_name}_{args.dataset}_{args.crop_size}/model",
+                                     compile=False)
     gradcam = Gradcam(clf, clone=True)
 
 
