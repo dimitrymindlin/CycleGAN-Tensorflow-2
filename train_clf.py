@@ -31,11 +31,11 @@ B_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainB'), '*.jpg
 A_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testA'), '*.jpg')
 B_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testB'), '*.jpg')
 
-A_B_dataset, len_dataset = data.make_concat_dataset(A_img_paths[200:400], B_img_paths[200:400], args.batch_size, args.load_size,
+A_B_dataset, len_dataset = data.make_concat_dataset(A_img_paths[200:210], B_img_paths[200:210], args.batch_size, args.load_size,
                                                     args.crop_size, training=True, repeat=False,
                                                     special_normalisation=special_normalisation)
 
-A_B_dataset_valid, _ = data.make_concat_dataset(A_img_paths[:200], B_img_paths[:200], args.batch_size, args.load_size,
+A_B_dataset_valid, _ = data.make_concat_dataset(A_img_paths[180:200], B_img_paths[180:200], args.batch_size, args.load_size,
                                                     args.crop_size, training=True, repeat=False,
                                                     special_normalisation=special_normalisation)
 
