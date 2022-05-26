@@ -8,7 +8,7 @@ class Domain2DomainModel(tf.keras.Model):
         super(Domain2DomainModel, self).__init__(name='Domain2DomainModel')
         self._input_shape = img_shape
         self.img_input = tf.keras.Input(shape=self._input_shape)
-        self.base_model = tf.keras.applications.MobileNet(include_top=False,
+        self.base_model = tf.keras.applications.ResNet50(include_top=False,
                                                             input_shape=self._input_shape,
                                                             input_tensor=self.img_input,
                                                             weights=weights,
