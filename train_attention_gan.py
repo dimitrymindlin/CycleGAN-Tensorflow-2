@@ -37,6 +37,7 @@ py.arg('--counterfactual_loss_weight', type=float, default=0)
 py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 py.arg('--attention', type=str, default="gradcam", choices=['gradcam', 'gradcam-plus-plus'])
+py.arg('--clf_name', type=str, default="resnet50")
 py.arg('--attention_type', type=str, default="attention-gan-original",
        choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
@@ -71,80 +72,8 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 # ==============================================================================
 # =                                    data                                    =
 # ==============================================================================
-
-A2B_pool = data.ItemPool(args.pool_size)
-B2A_pool = data.ItemPool(args.pool_size)
-AUTOTUNE = tf.data.AUTOTUNE
-dataset, metadata = tfds.load('cycle_gan/horse2zebra',
-                              with_info=True, as_supervised=True)
-
-train_horses, train_zebras = dataset['trainA'], dataset['trainB']
-test_horses, test_zebras = dataset['testA'], dataset['testB']
-len_dataset = 1334
-BUFFER_SIZE = 1000
-BATCH_SIZE = 1
-IMG_WIDTH = 256
-IMG_HEIGHT = 256
-
-
-def random_crop(image):
-    cropped_image = tf.image.random_crop(
-        image, size=[IMG_HEIGHT, IMG_WIDTH, 3])
-
-    return cropped_image
-
-
-# normalizing the images to [-1, 1]
-def normalize(image):
-    image = tf.cast(image, tf.float32)
-    image = tf.image.resize(image, [IMG_HEIGHT, IMG_WIDTH],
-                            method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-    image = (image / 127.5) - 1
-    return image
-
-
-def random_jitter(image):
-    # resizing to 286 x 286 x 3
-    image = tf.image.resize(image, [IMG_HEIGHT+30, IMG_WIDTH+30],
-                            method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-
-    # randomly cropping to 256 x 256 x 3
-    image = random_crop(image)
-
-    # random mirroring
-    image = tf.image.random_flip_left_right(image)
-
-    return image
-
-
-def preprocess_image_train(image, label):
-    image = random_jitter(image)
-    image = normalize(image)
-    return image
-
-
-def preprocess_image_test(image, label):
-    image = normalize(image)
-    return image
-
-
-train_horses = train_horses.cache().map(
-    preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
-    BUFFER_SIZE).batch(BATCH_SIZE)
-
-train_zebras = train_zebras.cache().map(
-    preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
-    BUFFER_SIZE).batch(BATCH_SIZE)
-
-test_horses = test_horses.map(
-    preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
-    BUFFER_SIZE).batch(BATCH_SIZE)
-
-test_zebras = test_zebras.map(
-    preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
-    BUFFER_SIZE).batch(BATCH_SIZE)
-
-OUTPUT_CHANNELS = 3
+train_horses, train_zebras, test_horses, test_zebras, len_dataset = data.load_tfds_dataset(args.dataset,
+                                                                                           args.crop_size)
 
 # ==============================================================================
 # =                                   models                                   =
@@ -164,8 +93,7 @@ counterfactual_loss_fn = tf.losses.MeanSquaredError()
 class_A_ground_truth = np.stack([np.ones(args.batch_size), np.zeros(args.batch_size)]).T
 class_B_ground_truth = np.stack([np.zeros(args.batch_size), np.ones(args.batch_size)]).T
 
-
-clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}_256/model", compile=False)
+clf = tf.keras.models.load_model(f"checkpoints/{args.clf_name}_{args.dataset}_{args.crop_size}/model", compile=False)
 
 G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
 D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
@@ -240,6 +168,7 @@ def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, 
                       'B2B_id_loss': B2B_id_loss,
                       'A2B_counterfactual_loss': A2B_counterfactual_loss,
                       'B2A_counterfactual_loss': B2A_counterfactual_loss}
+
 
 @tf.function
 def train_D(A, B, A2B, B2A):
@@ -332,10 +261,7 @@ py.mkdir(sample_dir)
 
 # Create GradCAM object
 if args.attention == "gradcam-plus-plus":
-    gradcam = GradcamPlusPlus(clf, model_modifier=ReplaceToLinear(), clone=True)
-
-elif args.attention == "gradcam":
-    gradcam = Gradcam
+    gradcam = Gradcam(clf, model_modifier=ReplaceToLinear(), clone=True)
 else:
     gradcam = None
 

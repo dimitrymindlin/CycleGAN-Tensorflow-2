@@ -2,6 +2,7 @@ from datetime import datetime, time
 
 import numpy as np
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
+from tf_keras_vis.gradcam import Gradcam
 from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
 import tensorflow_datasets as tfds
 import pylib as py
@@ -39,6 +40,7 @@ py.arg('--feature_map_loss_weight', type=float, default=0)
 py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 py.arg('--attention', type=str, default="clf", choices=['discriminator', 'clf'])
+py.arg('--clf_name', type=str, default="resnet50")
 py.arg('--attention_intensity', type=float, default=1)
 py.arg('--attention_type', type=str, default="spa-gan")
 py.arg('--generator', type=str, default="resnet-attention", choices=['resnet', 'unet', "resnet-attention"])
@@ -112,9 +114,11 @@ gradcam = None
 gradcam_D_A = None
 gradcam_D_B = None
 clf = None
+
+
 if args.attention == "clf":
-    clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}_{args.crop_size}/model", compile=False)
-    gradcam = GradcamPlusPlus(clf, clone=True)
+    clf = tf.keras.models.load_model(f"checkpoints/{args.clf_name}_{args.dataset}_{args.crop_size}/model", compile=False)
+    gradcam = Gradcam(clf, clone=True)
     for A, B in tf.data.Dataset.zip((train_horses, train_zebras)):
         new_img, gradcam_plus = apply_gradcam(A, gradcam, 0, args.attention_type)
         new_img, gradcam_plus = apply_gradcam(B, gradcam, 1, args.attention_type)
