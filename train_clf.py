@@ -12,7 +12,7 @@ py.arg('--dataset', default=dataset)
 py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=286)  # load image to this size
 py.arg('--crop_size', type=int, default=256)  # then crop to this size
-py.arg('--batch_size', type=int, default=32)
+py.arg('--batch_size', type=int, default=16)
 py.arg('--epochs', type=int, default=20)
 py.arg('--lr', type=float, default=0.0002)
 py.arg('--beta_1', type=float, default=0.5)
