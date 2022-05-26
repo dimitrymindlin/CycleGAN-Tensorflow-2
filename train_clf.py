@@ -2,7 +2,7 @@
 import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
-
+from tensorflow.keras import datasets, layers, models
 import data
 from classifiers.domain_to_domain_model import Domain2DomainModel
 
@@ -31,11 +31,11 @@ B_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainB'), '*.jpg
 A_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testA'), '*.jpg')
 B_img_paths_test = py.glob(py.join(args.datasets_dir, args.dataset, 'testB'), '*.jpg')
 
-A_B_dataset, len_dataset = data.make_concat_dataset(A_img_paths[200:210], B_img_paths[200:210], args.batch_size, args.load_size,
+A_B_dataset, len_dataset = data.make_concat_dataset(A_img_paths[200:], B_img_paths[200:], args.batch_size, args.load_size,
                                                     args.crop_size, training=True, repeat=False,
                                                     special_normalisation=special_normalisation)
 
-A_B_dataset_valid, _ = data.make_concat_dataset(A_img_paths[180:200], B_img_paths[180:200], args.batch_size, args.load_size,
+A_B_dataset_valid, _ = data.make_concat_dataset(A_img_paths[:200], B_img_paths[:200], args.batch_size, args.load_size,
                                                     args.crop_size, training=True, repeat=False,
                                                     special_normalisation=special_normalisation)
 
@@ -75,7 +75,7 @@ my_callbacks = [
                                 embeddings_metadata=None
                                 ),
     keras.callbacks.EarlyStopping(monitor="val_accuracy",
-                                  patience=8,
+                                  patience=4,
                                   mode="max",
                                   baseline=None,
                                   restore_best_weights=True,
@@ -84,7 +84,7 @@ my_callbacks = [
 
 metric_auc = tf.keras.metrics.AUC(curve='ROC', multi_label=True, num_labels=2, from_logits=False)
 
-model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.0001),
+model.compile(optimizer=keras.optimizers.Adam(),
                   loss='categorical_crossentropy',
                   metrics=["accuracy", metric_auc])
 
