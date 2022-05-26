@@ -1,6 +1,7 @@
 from datetime import datetime, time
 
 import numpy as np
+from tf_keras_vis.gradcam import Gradcam
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
 
@@ -35,7 +36,7 @@ py.arg('--cycle_loss_weight', type=float, default=10)
 py.arg('--counterfactual_loss_weight', type=float, default=0)
 py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
-py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
+py.arg('--attention', type=str, default="gradcam", choices=['gradcam', 'gradcam-plus-plus'])
 py.arg('--attention_type', type=str, default="attention-gan-original",
        choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
@@ -332,6 +333,9 @@ py.mkdir(sample_dir)
 # Create GradCAM object
 if args.attention == "gradcam-plus-plus":
     gradcam = GradcamPlusPlus(clf, model_modifier=ReplaceToLinear(), clone=True)
+
+elif args.attention == "gradcam":
+    gradcam = Gradcam
 else:
     gradcam = None
 
