@@ -119,15 +119,12 @@ clf = None
 if args.attention == "clf":
     clf = tf.keras.models.load_model(f"checkpoints/{args.clf_name}_{args.dataset}_{args.crop_size}/model", compile=False)
     gradcam = Gradcam(clf, clone=True)
-    for A, B in tf.data.Dataset.zip((train_horses, train_zebras)):
-        new_img, gradcam_plus = apply_gradcam(A, gradcam, 0, args.attention_type)
-        new_img, gradcam_plus = apply_gradcam(B, gradcam, 1, args.attention_type)
 
 
 else:  # discriminator attention
     args.counterfactual_loss_weight = 0
-    gradcam_D_A = GradcamPlusPlus(D_A, model_modifier=ReplaceToLinear(), clone=True)
-    gradcam_D_B = GradcamPlusPlus(D_B, model_modifier=ReplaceToLinear(), clone=True)
+    gradcam_D_A = Gradcam(D_A, model_modifier=ReplaceToLinear(), clone=True)
+    gradcam_D_B = Gradcam(D_B, model_modifier=ReplaceToLinear(), clone=True)
 
 G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
 D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
