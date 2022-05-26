@@ -32,10 +32,10 @@ py.arg('--adversarial_loss_mode', default='gan', choices=['gan', 'hinge_v1', 'hi
 py.arg('--discriminator_loss_weight', type=float, default=1)
 py.arg('--cycle_loss_weight', type=float, default=10)
 py.arg('--counterfactual_loss_weight', type=float, default=1)
-py.arg('--feature_map_loss_weight', type=float, default=1)
+py.arg('--feature_map_loss_weight', type=float, default=0)
 py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
-py.arg('--attention', type=str, default="discriminator", choices=['discriminator', 'clf'])
+py.arg('--attention', type=str, default="clf", choices=['discriminator', 'clf'])
 py.arg('--attention_intensity', type=float, default=1)
 py.arg('--attention_type', type=str, default="spa-gan")
 py.arg('--generator', type=str, default="resnet-attention", choices=['resnet', 'unet', "resnet-attention"])
@@ -78,7 +78,7 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 A2B_pool = data.ItemPool(args.pool_size)
 B2A_pool = data.ItemPool(args.pool_size)
 AUTOTUNE = tf.data.AUTOTUNE
-dataset, metadata = tfds.load('cycle_gan/horse2zebra',
+dataset, metadata = tfds.load(f'cycle_gan/{args.dataset}',
                               with_info=True, as_supervised=True)
 
 train_horses, train_zebras = dataset['trainA'], dataset['trainB']
@@ -86,8 +86,8 @@ test_horses, test_zebras = dataset['testA'], dataset['testB']
 len_dataset = 1334
 BUFFER_SIZE = 1000
 BATCH_SIZE = 1
-IMG_WIDTH = 256
-IMG_HEIGHT = 256
+IMG_WIDTH = args.crop_size
+IMG_HEIGHT = args.crop_size
 
 
 def random_crop(image):
@@ -177,7 +177,7 @@ gradcam_D_A = None
 gradcam_D_B = None
 clf = None
 if args.attention == "clf":
-    clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}_256/model", compile=False)
+    clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}_{args.crop_size}/model", compile=False)
     gradcam = GradcamPlusPlus(clf, model_modifier=ReplaceToLinear(), clone=True)
 else:  # discriminator attention
     args.counterfactual_loss_weight = 0
