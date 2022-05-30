@@ -27,8 +27,8 @@ def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity
         cam = tf.ones(shape=cam.shape)
 
     cam = cam / np.max(cam)
-    plot_any_img(img)
-    plot_any_img(cam)
+    """plot_any_img(img)
+    plot_any_img(cam)"""
 
     # Turn to batched 3-channel array
     cam = tf.expand_dims(cam, axis=-1)
