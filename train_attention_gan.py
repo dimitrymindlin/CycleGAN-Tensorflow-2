@@ -253,6 +253,7 @@ try:  # restore checkpoint including the epoch counter
     print("restored checkpoint :)")
     print(f"continuing with epoch {ep_cnt.numpy()}")
 except Exception as e:
+    print("Didn't find checkpoint :(")
     print(e)
 
 # summary
