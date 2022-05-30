@@ -9,8 +9,8 @@ dataset = "horse2zebra"
 
 py.arg('--dataset', default=dataset)
 py.arg('--datasets_dir', default='datasets')
-py.arg('--load_size', type=int, default=330)  # load image to this size
-py.arg('--crop_size', type=int, default=299)  # then crop to this size
+py.arg('--load_size', type=int, default=286)  # load image to this size
+py.arg('--crop_size', type=int, default=256)  # then crop to this size
 py.arg('--batch_size', type=int, default=16)
 py.arg('--epochs', type=int, default=20)
 py.arg('--lr', type=float, default=0.0002)
@@ -18,7 +18,7 @@ py.arg('--beta_1', type=float, default=0.5)
 args = py.args()
 
 TF_LOG_DIR = f"logs/{dataset}_clf"
-checkpoint_path_name = f"checkpoints/inception_{dataset}_{args.crop_size}/"
+checkpoint_path_name = f"checkpoints/inception_{dataset}_{args.crop_size}_resizing_512/"
 
 # ==============================================================================
 # =                                    data                                    =
