@@ -8,6 +8,7 @@ class Domain2DomainModel(tf.keras.Model):
         super(Domain2DomainModel, self).__init__(name='Domain2DomainModel')
         #self._input_shape = img_shape
         #self.img_input = tf.keras.Input(shape=self._input_shape)
+        self.img_input = tf.keras.Input(shape=(None, None, 3))
         self.base_model = tf.keras.applications.inception_v3.InceptionV3(include_top=False,
                                                                          weights=weights,
                                                                          pooling='avg',
@@ -16,12 +17,15 @@ class Domain2DomainModel(tf.keras.Model):
         self.classifier = tf.keras.layers.Dense(2, activation="softmax", name="predictions")
 
     def call(self, x):
+        x = self.img_input(x)
         x = tf.keras.layers.Resizing(512, 512)(x)
         x = self.base_model(x)
         x = self.classifier(x)
         return x
 
     def model(self):
-        x = self.base_model.output
+        x = self.img_input
+        x = tf.keras.layers.Resizing(512, 512)(x)
+        x = self.base_model(x)
         predictions = self.classifier(x)
         return tf.keras.Model(inputs=self.img_input, outputs=predictions)
