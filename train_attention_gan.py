@@ -59,6 +59,7 @@ if not args.load_checkpoint:
         py.mkdir(output_dir)
 else:
     # For loading checkpoint
+    print(f"Setting {args.load_checkpoint} as checkpoint.")
     execution_id = args.load_checkpoint
     output_dir = py.join(f'output_{args.dataset}/{execution_id}')
 
