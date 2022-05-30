@@ -11,6 +11,7 @@ python3 -m train_spa_gan \
   --feature_map_loss_weight 1 \
   --identity_loss_weight 0 \
   --attention clf \
-  --generator resnet-attention
+  --generator resnet-attention \
+  --load_checkpoint 2022-05-26--15.53
 
 
