@@ -9,8 +9,8 @@ dataset = "horse2zebra"
 
 py.arg('--dataset', default=dataset)
 py.arg('--datasets_dir', default='datasets')
-py.arg('--load_size', type=int, default=286)  # load image to this size
-py.arg('--crop_size', type=int, default=256)  # then crop to this size
+py.arg('--load_size', type=int, default=530)  # load image to this size
+py.arg('--crop_size', type=int, default=512)  # then crop to this size
 py.arg('--batch_size', type=int, default=16)
 py.arg('--epochs', type=int, default=20)
 py.arg('--lr', type=float, default=0.0002)
