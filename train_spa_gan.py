@@ -113,7 +113,7 @@ gradcam_D_B = None
 clf = None
 
 if args.attention == "clf":
-    clf = tf.keras.models.load_model(f"checkpoints/{args.clf_name}_{args.dataset}_{args.crop_size}_resizing_512/model",
+    clf = tf.keras.models.load_model(f"checkpoints/{args.clf_name}_{args.dataset}_512_new/model",
                                      compile=False)
     #gradcam = Gradcam(clf, clone=True)
     gradcam = GradcamPlusPlus(clf, clone=True)
@@ -151,8 +151,8 @@ def train_G_attention(A_enhanced, B_enhanced):
         B2A_d_logits = D_A(B2A, training=True)
 
         if args.counterfactual_loss_weight > 0:
-            A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth, clf(A2B))
-            B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth, clf(B2A))
+            A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth, clf(tf.image.resize(A2B, [512,512])))
+            B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth, clf(tf.image.resize(A2B, [512, 512])))
         else:
             A2B_counterfactual_loss = 0
             B2A_counterfactual_loss = 0

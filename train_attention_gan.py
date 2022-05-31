@@ -144,8 +144,10 @@ def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, 
         B2A_d_logits = D_A(B2A, training=True)
 
         if args.counterfactual_loss_weight > 0:
-            A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth, clf(A2B))
-            B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth, clf(B2A))
+            A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
+                                                             clf(tf.image.resize(A2B, [512, 512])))
+            B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth,
+                                                             clf(tf.image.resize(A2B, [512, 512])))
         else:
             A2B_counterfactual_loss = 0
             B2A_counterfactual_loss = 0
