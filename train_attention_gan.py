@@ -37,7 +37,7 @@ py.arg('--counterfactual_loss_weight', type=float, default=0)
 py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 py.arg('--attention', type=str, default="gradcam", choices=['gradcam', 'gradcam-plus-plus'])
-py.arg('--clf_name', type=str, default="resnet50")
+py.arg('--clf_name', type=str, default="inception")
 py.arg('--attention_type', type=str, default="attention-gan-original",
        choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
@@ -268,7 +268,7 @@ py.mkdir(sample_dir)
 
 # Create GradCAM object
 if args.attention == "gradcam":
-    gradcam = Gradcam(clf, model_modifier=ReplaceToLinear(), clone=True)
+    gradcam = GradcamPlusPlus(clf, clone=True)
 else:
     gradcam = None
 

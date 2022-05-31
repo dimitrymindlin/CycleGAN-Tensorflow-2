@@ -30,8 +30,6 @@ def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity
     cam = tf.expand_dims(cam, axis=-1)
     cam = tf.image.grayscale_to_rgb(tf.convert_to_tensor(cam))
     cam = tf.image.resize(cam, [256, 256])
-    plot_any_img(img)
-    plot_any_img(cam)
     # Convert img to same pixel values [0, 1]
     img = scale_to_zero_one(img)
 
@@ -43,5 +41,4 @@ def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity
     # Interpolate by multiplication and normalise
     img = cam * img
     img /= np.max(img)
-    plot_any_img(img)
     return scale_to_minus_one_one(img), scale_to_minus_one_one(cam)  # [-1,1]
