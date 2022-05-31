@@ -95,7 +95,7 @@ class_A_ground_truth = np.stack([np.ones(args.batch_size), np.zeros(args.batch_s
 class_B_ground_truth = np.stack([np.zeros(args.batch_size), np.ones(args.batch_size)]).T
 
 if args.counterfactual_loss_weight > 0:
-    clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}_256/model", compile=False)
+    clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}_512/model", compile=False)
 
 # ==============================================================================
 # =                                 train step                                 =

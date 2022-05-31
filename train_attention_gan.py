@@ -98,7 +98,7 @@ counterfactual_loss_fn = tf.losses.MeanSquaredError()
 class_A_ground_truth = np.stack([np.ones(args.batch_size), np.zeros(args.batch_size)]).T
 class_B_ground_truth = np.stack([np.zeros(args.batch_size), np.ones(args.batch_size)]).T
 
-clf = tf.keras.models.load_model(f"checkpoints/{args.clf_name}_{args.dataset}_{args.crop_size}/model", compile=False)
+clf = tf.keras.models.load_model(f"checkpoints/{args.clf_name}_{args.dataset}_512/model", compile=False)
 
 G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
 D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
