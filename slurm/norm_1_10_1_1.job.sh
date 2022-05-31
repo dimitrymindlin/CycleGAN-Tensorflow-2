@@ -8,6 +8,5 @@ python3 -m train \
   --discriminator_loss_weight 1 \
   --cycle_loss_weight 10 \
   --counterfactual_loss_weight 1 \
-  --identity_loss_weight 0 \
-  --load_checkpoint 2022-05-28--15.46
+  --identity_loss_weight 1
 
