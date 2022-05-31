@@ -247,8 +247,7 @@ checkpoint = tl.Checkpoint(dict(G_A2B=G_A2B,
                                 G_optimizer=G_optimizer,
                                 D_optimizer=D_optimizer,
                                 ep_cnt=ep_cnt),
-                           py.join(output_dir, 'checkpoints'),
-                           max_to_keep=5)
+                           py.join(output_dir, 'checkpoints'))
 try:  # restore checkpoint including the epoch counter
     checkpoint.restore().assert_existing_objects_matched()
     print("restored checkpoint :)")
@@ -322,5 +321,5 @@ with train_summary_writer.as_default():
             batch_count += 1
 
         # save checkpoint
-        if ep % 5 == 0:
+        if ep > 90 and ep % 10 == 0:
             checkpoint.save(ep)
