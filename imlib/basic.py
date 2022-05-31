@@ -115,8 +115,10 @@ def save_images_with_attention(A_holder, A2B, B_holder, B2A, clf, dataset,
 
     img_folder = f'output_{dataset}/{execution_id}/images'
     if clf:
-        classification = [['A', 'B'][int(np.argmax(clf.predict(x)))] for x in [A_holder.img, A2B,
-                                                                               B_holder.img, B2A]]
+        to_classify_batch = tf.squeeze(tf.stack((A_holder.img, A2B, B_holder.img, B2A)))
+        to_classify_batch = tf.image.resize(to_classify_batch, [512, 512])
+        classification_results = clf.predict(to_classify_batch)
+        classification = [['A', 'B'][int(np.argmax(x))] for x in classification_results]
         AB_correct, BA_correct = False, False
         if classification[0] == 'A' and classification[1] == "B":
             AB_correct = True
