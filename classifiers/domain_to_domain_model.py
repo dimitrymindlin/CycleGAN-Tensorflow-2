@@ -8,7 +8,7 @@ class Domain2DomainModel(tf.keras.Model):
         super(Domain2DomainModel, self).__init__(name='Domain2DomainModel')
         #self._input_shape = img_shape
         #self.img_input = tf.keras.Input(shape=self._input_shape)
-        self.img_input = tf.keras.Input(shape=(None, None, 3))
+        self.img_input = tf.keras.Input(shape=(256, 256, 3))
         self.base_model = tf.keras.applications.inception_v3.InceptionV3(include_top=False,
                                                                          weights=weights,
                                                                          pooling='avg',
