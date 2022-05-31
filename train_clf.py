@@ -3,7 +3,7 @@ import tensorflow as tf
 import tensorflow.keras as keras
 from tensorflow.keras import datasets, layers, models
 import data
-from classifiers.domain_to_domain_model import Domain2DomainModel
+from classifiers.domain_to_domain_model import Domain2DomainModel, get_model
 
 dataset = "horse2zebra"
 
@@ -45,7 +45,8 @@ A_B_dataset_test, _ = data.make_concat_dataset(A_img_paths_test, B_img_paths_tes
 
 # ==============================================================================
 
-model = Domain2DomainModel(img_shape=(args.crop_size, args.crop_size, 3)).model()
+#model = Domain2DomainModel(img_shape=(args.crop_size, args.crop_size, 3)).model()
+model = get_model((args.crop_size, args.crop_size, 3))
 
 my_callbacks = [
     keras.callbacks.ModelCheckpoint(filepath=checkpoint_path_name,

@@ -29,3 +29,15 @@ class Domain2DomainModel(tf.keras.Model):
         x = self.base_model(x)
         predictions = self.classifier(x)
         return tf.keras.Model(inputs=self.img_input, outputs=predictions)
+
+
+def get_model(input_shape):
+    model = tf.keras.Sequential()
+    model.add(tf.keras.Input(shape=input_shape))
+    model.add(tf.keras.layers.Resizing(512, 512))
+    model.add(tf.keras.applications.inception_v3.InceptionV3(include_top=False,
+                                                                         weights="imagenet",
+                                                                         pooling='avg',
+                                                                         classes=2))
+    model.add(tf.keras.layers.Dense(2, activation="softmax", name="predictions"))
+    return model
