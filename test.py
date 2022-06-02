@@ -20,8 +20,8 @@ py.arg('--batch_size', type=int, default=32)
 py.arg('--print_images', type=bool, default=False)
 py.arg('--crop_size', type=int, default=256)
 args = py.args()
-#args = py.args_from_yaml(py.join(test_args.experiment_dir, 'settings.yml'))
-#args.__dict__.update(test_args.__dict__)
+# args = py.args_from_yaml(py.join(test_args.experiment_dir, 'settings.yml'))
+# args.__dict__.update(test_args.__dict__)
 
 # ==============================================================================
 # =                                    test                                    =
@@ -40,6 +40,7 @@ BATCH_SIZE = 1
 IMG_WIDTH = 256
 IMG_HEIGHT = 256
 
+
 # normalizing the images to [-1, 1]
 def normalize(image):
     image = tf.cast(image, tf.float32)
@@ -50,6 +51,7 @@ def normalize(image):
 def preprocess_image_test(image, label):
     image = normalize(image)
     return image
+
 
 train_horses = train_horses.map(
     preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
@@ -73,11 +75,13 @@ G_A2B = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
 G_B2A = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
 
 # resotre
-#tl.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A), py.join(args.experiment_dir, 'checkpoints')).restore()
+# tl.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A), py.join(args.experiment_dir, 'checkpoints')).restore()
 tl.Checkpoint(dict(generator_g=G_A2B, generator_f=G_B2A), py.join(args.experiment_dir, 'checkpoints')).restore()
 
 print("Loaded Model :)")
 print()
+
+
 @tf.function
 def sample_A2B(A):
     A2B = G_A2B(A, training=False)
@@ -95,50 +99,66 @@ def sample_B2A(B):
 # run
 save_dir = py.join(args.experiment_dir, 'samples_testing')
 py.mkdir(save_dir)
-i = 0
-kid = KID(image_size=args.crop_size)
-ssim_count = 0
-psnr_count = 0
-real_images = []
-generated_images = []
-for batch_count, (A, B) in enumerate(tqdm.tqdm(tf.data.Dataset.zip((test_horses, test_zebras)))):
-    A2B, A2B2A = sample_A2B(A)
-    B2A, _ = sample_B2A(B)
-    for A_i, A2B_i, A2B2A_i, B2A_i in zip(A, A2B, A2B2A, B2A):
-        real_images.append(tf.squeeze(A_i))
-        generated_images.append(tf.squeeze(B2A_i))
-        A_i = A_i.numpy()
-        A2B_i = A2B_i.numpy()
-        A2B2A_i = A2B2A_i.numpy()
-        """if args.print_images:
-            img = np.concatenate([A_i, A2B_i, A2B2A_i], axis=1)
-            im.imwrite(img, py.join(save_dir, py.name_ext(A_img_paths_test[i])))"""
-        ssim_count += structural_similarity(A_i, A2B_i, channel_axis=2)
-        psnr_count += peak_signal_noise_ratio(A_i, A2B_i)
-        i += 1
-kid.update_state(tf.convert_to_tensor(real_images), tf.convert_to_tensor(generated_images))
-print("A2B SSIM: ", ssim_count / i)
-print("A2B PSNR: ", psnr_count / i)
-print("KID for A: ", kid.result())
+clf = tf.keras.models.load_model(f"checkpoints/inception_horse2zebra_512/model", compile=False)
+oracle = tf.keras.models.load_model(f"checkpoints/resnet50_horse2zebra_256/model", compile=False)
 
 
-"""i = 0
-kid.reset_state()
-ssim_count = 0
-psnr_count = 0
-real_images = []
-generated_images = []
-for B in tqdm.tqdm(B_dataset_test, desc='Test Loop', total=int(len_B_test / args.batch_size)):
-    B2A, B2A2B = sample_B2A(B)
-    real_images.append(B)
-    generated_images.append(B2A)
-    for B_i, B2A_i, B2A2B_i in tqdm.tqdm(zip(B, B2A, B2A2B), total=args.batch_size):
-        if args.print_images:
-            img = np.concatenate([B_i.numpy(), B2A_i.numpy(), B2A2B_i.numpy()], axis=1)
-            im.imwrite(img, py.join(save_dir, py.name_ext(B_img_paths_test[j])))
-        ssim_count += structural_similarity(B_i, B2A_i, channel_axis=2)
-        psnr_count += peak_signal_noise_ratio(B_i, B2A_i)
-        i += 1
-print("A2B SSIM: ", ssim_count / len_B_test)
-print("A2B PSNR: ", psnr_count / len_B_test)
-print("KID for A: ", kid.result())"""
+def testing_loop(dataset_A, dataset_B, translation_name, only_target_domain=False):
+    print(f"Starting testing {translation_name}")
+    len_dataset = 0
+    kid = KID(image_size=args.crop_size)
+    #ssim_count = 0
+    #psnr_count = 0
+    tcv = 0
+    real_images = []
+    translated_images = []
+    y_pred_translated = []
+    y_pred_oracle = []
+    for img_batch_A, img_batch_B in tqdm.tqdm(tf.data.Dataset.zip((dataset_A, dataset_B))):
+        if translation_name == "A2B":
+            translated_img_batch, cycled_img_batch = sample_A2B(img_batch_A)
+            for img_i, translated_i, cycled_i in zip(img_batch_A, translated_img_batch, cycled_img_batch):
+                real_images.append(tf.squeeze(img_i))
+                translated_images.append(tf.squeeze(translated_i))
+                y_pred_translated.append(
+                    int(np.argmax(clf(tf.expand_dims(tf.image.resize(translated_i, [512, 512]), axis=0)))))
+                y_pred_oracle.append(
+                    int(np.argmax(oracle(tf.expand_dims(translated_i, axis=0)))))
+                len_dataset += 1
+        else:
+            translated_img_batch, cycled_img_batch = sample_B2A(img_batch_B)
+        for img_i, translated_i, cycled_i in zip(img_batch, translated_img_batch, cycled_img_batch):
+            real_images.append(tf.squeeze(img_i))
+            translated_images.append(tf.squeeze(translated_i))
+            #img_i = img_i.numpy()
+            #translated_i = translated_i.numpy()
+            y_pred_translated.append(
+                int(np.argmax(clf(tf.expand_dims(tf.image.resize(translated_i, [512, 512]), axis=0)))))
+            y_pred_oracle.append(
+                int(np.argmax(oracle(tf.expand_dims(translated_i, axis=0)))))
+            """if args.print_images:
+                img = np.concatenate([A_i, A2B_i, A2B2A_i], axis=1)
+                im.imwrite(img, py.join(save_dir, py.name_ext(A_img_paths_test[i])))"""
+            #ssim_count += structural_similarity(img_i, translated_i, channel_axis=2, data_range=2)
+            #psnr_count += peak_signal_noise_ratio(img_i, translated_i, data_range=2)
+            len_dataset += 1
+    if translation_name == "A2B":
+        tcv = sum(y_pred_translated) / len_dataset
+        similar_predictions_count = sum(x == y == 1 for x, y in zip(y_pred_translated, y_pred_oracle))
+        os = (1 / len_dataset) * similar_predictions_count
+    else:
+        tcv = (len_dataset - sum(y_pred_translated)) / len_dataset
+        similar_predictions_count = sum(x == y == 0 for x, y in zip(y_pred_translated, y_pred_oracle))
+        os = (1 / len(y_pred_translated)) * similar_predictions_count
+    kid.update_state(tf.convert_to_tensor(real_images), tf.convert_to_tensor(translated_images))
+    print(f"Results for {translation_name}")
+    #print(f"SSIM: ", ssim_count / len_dataset)
+    #print(f"PSNR: ", psnr_count / len_dataset)
+    print(f"KID: ", kid.result())
+    print(f"TCV:", tcv)
+    print(f"OS :", os)
+    return kid.result(), tcv, os
+
+
+kid, tcv, os = testing_loop(test_horses, test_horses, "A2B")
+kid, tcv, os = testing_loop(test_zebras, test_horses, "B2A")
