@@ -6,4 +6,4 @@
 #SBATCH --mail-user=dmindlin@techfak.uni-bielefeld.de
 #SBATCH --mail-type=END
 
-srun spa_5_5_1_0_0.job.sh
+srun spa_5_5_1_0_1.job.sh
