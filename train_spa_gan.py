@@ -113,7 +113,7 @@ gradcam_D_B = None
 clf = None
 
 if args.attention == "clf":
-    clf = tf.keras.models.load_model(f"checkpoints/{args.clf_name}_{args.dataset}_512_new/model",
+    clf = tf.keras.models.load_model(f"checkpoints/{args.clf_name}_{args.dataset}_512/model",
                                      compile=False)
     #gradcam = Gradcam(clf, clone=True)
     gradcam = GradcamPlusPlus(clf, clone=True)
