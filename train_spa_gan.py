@@ -230,7 +230,7 @@ def train_G(A_enhanced, B_enhanced):
                       'B2A_counterfactual_loss': B2A_counterfactual_loss}
 
 
-@tf.functionit
+@tf.function
 def train_D(A, B, A2B, B2A):
     with tf.GradientTape() as t:
         A_d_logits = D_A(A, training=True)
