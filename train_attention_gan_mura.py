@@ -23,11 +23,11 @@ from imlib.image_holder import get_img_holders, multiply_images, add_images
 
 py.arg('--dataset', default='mura')
 py.arg('--datasets_dir', default='datasets')
-py.arg('--load_size', type=int, default=286)  # load image to this size
-py.arg('--crop_size', type=int, default=256)  # then crop to this size
+py.arg('--load_size', type=int, default=512)  # load image to this size
+py.arg('--crop_size', type=int, default=512)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
-py.arg('--epochs', type=int, default=200)
-py.arg('--epoch_decay', type=int, default=100)  # epoch to start decaying learning rate
+py.arg('--epochs', type=int, default=40)
+py.arg('--epoch_decay', type=int, default=30)  # epoch to start decaying learning rate
 py.arg('--lr', type=float, default=0.0002)
 py.arg('--beta_1', type=float, default=0.5)
 py.arg('--adversarial_loss_mode', default='gan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
