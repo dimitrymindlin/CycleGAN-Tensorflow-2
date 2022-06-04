@@ -10,8 +10,10 @@ def add_images(foreground, background):
     Expects foreground and background to be in range [-1,1]
     Return image in [-1,1]
     """
-    foreground = scale_to_zero_one(foreground)
-    background = scale_to_zero_one(background)
+    if np.min(foreground) < 0:
+        foreground = scale_to_zero_one(foreground)
+    if np.min(background) < 0:
+        background = scale_to_zero_one(background)
     new = tf.math.add(foreground, background)
     return scale_to_minus_one_one(tf.math.divide(new, tf.math.reduce_max(new)))
 
@@ -37,8 +39,10 @@ def get_background(img, attention):
 
 
 def multiply_images(img1, img2):
-    img1 = scale_to_zero_one(img1)
-    img2 = scale_to_zero_one(img2)
+    if np.min(img1) < 0:
+        img1 = scale_to_zero_one(img1)
+    if np.min(img2) < 0:
+        img2 = scale_to_zero_one(img2)
     new = tf.math.multiply(img1, img2)
     return scale_to_minus_one_one(new)
 
