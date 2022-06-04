@@ -73,15 +73,13 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 # ==============================================================================
 # =                                    data                                    =
 # ==============================================================================
-A_img_paths, B_img_paths, A_img_paths_test, B_img_paths_test = data.get_dataset_paths(args)
+A_img_paths, B_img_paths, A_img_paths_test, B_img_paths_test = data.get_dataset_paths(args.dataset)
 A_B_dataset, len_dataset = data.make_zip_dataset(A_img_paths, B_img_paths, args.batch_size, args.load_size,
                                                  args.crop_size, training=True, repeat=False)
 A_B_dataset_test, _ = data.make_zip_dataset(A_img_paths_test, B_img_paths_test, args.batch_size, args.load_size,
                                             args.crop_size, training=False, repeat=True)
-
 A2B_pool = data.ItemPool(args.pool_size)
 B2A_pool = data.ItemPool(args.pool_size)
-
 
 # ==============================================================================
 # =                                   models                                   =
@@ -285,7 +283,6 @@ with train_summary_writer.as_default():
         ep_cnt.assign_add(1)
 
         # train for an epoch
-        batch_count = 0
         for batch_count, (A, B) in enumerate(tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset)):
             A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
                                                  gradcam=gradcam)
@@ -322,9 +319,7 @@ with train_summary_writer.as_default():
                                    A_holder=A_holder,
                                    B_holder=B_holder)
 
-            batch_count += 1
 
         # save checkpoint
         if ep > 10:
             checkpoint.save(ep)
-
