@@ -12,5 +12,4 @@ python3 -m train_spa_gan \
   --identity_loss_weight 0 \
   --attention clf \
   --generator resnet \
-  --load_checkpoint spa_1_10_1_0_0
 
