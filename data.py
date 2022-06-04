@@ -122,10 +122,10 @@ def get_mura_data_paths():
         root = '../tensorflow_datasets/downloads/cjinny_mura-v11/'
         # root = '/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/'
         if train:
-            csv_path = "../tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/train_image_paths.csv"
+            csv_path = "../tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1_transformed/train_image_paths.csv"
             # csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/train_image_paths.csv"
         else:
-            csv_path = "../tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/valid_image_paths.csv"
+            csv_path = "../tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1__transformed/valid_image_paths.csv"
             # csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/valid_image_paths.csv"
 
         with open(csv_path, 'rb') as F:
@@ -133,8 +133,9 @@ def get_mura_data_paths():
             if part == 'all':
                 imgs = [root + str(x, encoding='utf-8').strip() for x in d]
             else:
-                imgs = [root + str(x, encoding='utf-8').strip() for x in d if
-                        str(x, encoding='utf-8').strip().split('/')[2] == part]
+                imgs = [root + str(x, encoding='utf-8').strip().replace("MURA-v1.1", "MURA-v1.1_transformed") for x in d
+                        if
+                        str(x, encoding='utf-8').strip().split('/')[2] in part]
 
         # imgs= [x.replace("/", "\\") for x in imgs]
         labels = [x.split('_')[-1].split('/')[0] for x in imgs]
