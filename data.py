@@ -125,7 +125,7 @@ def get_mura_data_paths():
             csv_path = "../tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1_transformed/train_image_paths.csv"
             # csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/train_image_paths.csv"
         else:
-            csv_path = "../tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1__transformed/valid_image_paths.csv"
+            csv_path = "../tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1_transformed/valid_image_paths.csv"
             # csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/valid_image_paths.csv"
 
         with open(csv_path, 'rb') as F:
