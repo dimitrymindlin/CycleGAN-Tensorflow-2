@@ -75,6 +75,9 @@ def delete_bad_imgs(img_paths):
         os.remove(os.path.join(name))
         print("DELETED ", name)
 
+delete_bad_imgs(A_img_paths)
+delete_bad_imgs(B_img_paths)
+quit()
 A_train_paths, A_test_paths = sklearn.model_selection.train_test_split(A_img_paths, test_size=0.2)
 B_train_paths, B_test_paths = sklearn.model_selection.train_test_split(B_img_paths, test_size=0.2)
 A_train_paths, A_valid_paths = sklearn.model_selection.train_test_split(A_train_paths, test_size=0.1)
