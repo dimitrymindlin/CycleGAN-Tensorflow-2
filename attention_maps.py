@@ -17,6 +17,8 @@ def normalize(img):
     -------
 
     """
+    if np.min(img) == np.max(img):
+        return img
     return (img - np.min(img)) / (np.max(img) - np.min(img))
 
 def shift_values_above_intensity(cam, attention_intensity: float):
