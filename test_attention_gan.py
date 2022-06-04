@@ -3,6 +3,8 @@ import sys
 
 import tqdm
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
+from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
+
 import imlib as im
 import numpy as np
 import pylib as py
@@ -16,6 +18,8 @@ import module
 # =                                   param                                    =
 # ==============================================================================
 from evaluation.kid import KID
+from imlib import plot_any_img
+from imlib.image_holder import ImageHolder, multiply_images, add_images
 
 gan_model_ts = "2022-05-26--15.51"
 py.arg('--experiment_dir', default=f"checkpoints/gans/horse2zebra/{gan_model_ts}")
@@ -92,21 +96,20 @@ py.mkdir(save_dir)
 @tf.function
 def sample_A2B(A):
     A2B = G_A2B(A, training=False)
-    A2B2A = G_B2A(A2B, training=False)
-    return A2B, A2B2A
+    return A2B
 
 
 @tf.function
 def sample_B2A(B):
     B2A = G_B2A(B, training=False)
-    B2A2B = G_A2B(B2A, training=False)
-    return B2A, B2A2B
+    return B2A
 
 
 # run
 clf = tf.keras.models.load_model(f"checkpoints/inception_horse2zebra_512/model", compile=False)
 oracle = tf.keras.models.load_model(f"checkpoints/resnet50_horse2zebra_256/model", compile=False)
 
+gradcam = GradcamPlusPlus(clf, clone=True)
 
 def calculate_tcv_os(dataset, translation_name):
     len_dataset = 0
@@ -115,10 +118,35 @@ def calculate_tcv_os(dataset, translation_name):
     y_pred_oracle = []
     for img_batch in tqdm.tqdm(dataset):
         if translation_name == "A2B":
-            translated_img_batch, cycled_img_batch = sample_A2B(img_batch)
+            sample_method = sample_A2B
+            cycle_method = sample_B2A
+            img_holder = ImageHolder(img_batch, 0, gradcam=gradcam, attention_type="attention-gan")
         else:
-            translated_img_batch, cycled_img_batch = sample_B2A(img_batch)
-        for img_i, translated_i, cycled_i in zip(img_batch, translated_img_batch, cycled_img_batch):
+            sample_method = sample_B2A
+            cycle_method = sample_A2B
+            img_holder = ImageHolder(img_batch, 1, gradcam=gradcam, attention_type="attention-gan")
+
+        img_transformed = sample_method(img_holder.img)
+        plot_any_img(img_holder.img)
+        plot_any_img(img_holder.attention)
+        plot_any_img(img_transformed)
+        # Combine new transformed image with attention -> Crop important part from transformed img
+        img_transformed_attention = multiply_images(img_transformed, img_holder.attention)
+        plot_any_img(img_transformed_attention)
+        # Add background to new img
+        translated_img = add_images(img_transformed_attention, img_holder.background)
+        plot_any_img(translated_img)
+        # Cycle
+        img_cycled = cycle_method(translated_img)
+        #plot_any_img(img_cycled)
+        #plot_any_img(img_holder.background)
+        # Combine new transformed image with attention
+        img_cycled_attention = multiply_images(img_cycled, img_holder.attention)
+        cycled_img = add_images(img_cycled_attention, img_holder.background)
+        #plot_any_img(img_cycled_attention)
+        #plot_any_img(cycled_img)
+
+        for img_i, translated_i, cycled_i in zip(img_batch, translated_img, cycled_img):
             translated_images.append(tf.squeeze(translated_i))
             # img_i = img_i.numpy()
             # translated_i = translated_i.numpy()
@@ -183,11 +211,10 @@ def calc_KID_for_model(translated_images, translation_name):
     print("KID STD", std)
 
 
-done = ["2022-05-23--18.32", "2022-05-26--08.38", "2022-05-26--15.51", "2022-05-31--14.02",
-                      "2022-05-30--08.09", "2022-05-31--13.04", "2022-06-01--13.06", "2022-06-02--12.45"]
-done_ep = ["39", "140", "180", "180", "180", "180", "180", "180"]
-checkpoint_ts_list = ["2022-06-02-12.30"]
-checkpoint_ep_list = ["180"]
+done = ["2022-05-31--14.02",  "2022-05-31--13.04", "2022-06-01--13.06", "2022-06-02--12.45"]
+done_ep = ["180",  "180", "180", "180"]
+checkpoint_ts_list = ["2022-05-31--14.02",  "2022-05-31--13.04", "2022-06-01--13.06", "2022-06-02--12.45"]
+checkpoint_ep_list = ["180",  "180", "180", "180"]
 
 
 with open('night_run.txt', 'w') as f:
