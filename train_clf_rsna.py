@@ -17,67 +17,10 @@ TF_LOG_DIR = "logs"
 
 ########## Data ############
 
-from struct import unpack
-from tqdm import tqdm
-import os
-
-marker_mapping = {
-    0xffd8: "Start of Image",
-    0xffe0: "Application Default Header",
-    0xffdb: "Quantization Table",
-    0xffc0: "Start of Frame",
-    0xffc4: "Define Huffman Table",
-    0xffda: "Start of Scan",
-    0xffd9: "End of Image"
-}
-
-
-class JPEG:
-    def __init__(self, image_file):
-        with open(image_file, 'rb') as f:
-            self.img_data = f.read()
-
-    def decode(self):
-        data = self.img_data
-        while (True):
-            marker, = unpack(">H", data[0:2])
-            # print(marker_mapping.get(marker))
-            if marker == 0xffd8:
-                data = data[2:]
-            elif marker == 0xffd9:
-                return
-            elif marker == 0xffda:
-                data = data[-2:]
-            else:
-                lenchunk, = unpack(">H", data[2:4])
-                data = data[2 + lenchunk:]
-            if len(data) == 0:
-                break
-
-
-
 
 A_img_paths = py.glob(py.join("../tensorflow_datasets/downloads/rsna", 'normal'), '*.jpg')[:8851]
 B_img_paths = py.glob(py.join("../tensorflow_datasets/downloads/rsna", 'pneumonia'), '*.jpg')
 
-
-
-def delete_bad_imgs(img_paths):
-    bads = []
-    for img in tqdm(img_paths):
-        image = JPEG(img)
-        try:
-            image.decode()
-        except:
-            bads.append(img)
-
-    for name in bads:
-        os.remove(os.path.join(name))
-        print("DELETED ", name)
-
-delete_bad_imgs(A_img_paths)
-delete_bad_imgs(B_img_paths)
-quit()
 A_train_paths, A_test_paths = sklearn.model_selection.train_test_split(A_img_paths, test_size=0.2)
 B_train_paths, B_test_paths = sklearn.model_selection.train_test_split(B_img_paths, test_size=0.2)
 A_train_paths, A_valid_paths = sklearn.model_selection.train_test_split(A_train_paths, test_size=0.1)
