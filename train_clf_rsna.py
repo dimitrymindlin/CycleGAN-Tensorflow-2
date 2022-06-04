@@ -17,8 +17,8 @@ TF_LOG_DIR = "logs"
 
 ########## Data ############
 
-A_img_paths = py.glob(py.join("/Users/dimitrymindlin/tensorflow_datasets/downloads/rsna", 'normal'), '*.jpg')[:8851]
-B_img_paths = py.glob(py.join("/Users/dimitrymindlin/tensorflow_datasets/downloads/rsna", 'pneumonia'), '*.jpg')
+A_img_paths = py.glob(py.join("../tensorflow_datasets/downloads/rsna", 'normal'), '*.jpg')[:8851]
+B_img_paths = py.glob(py.join("../tensorflow_datasets/downloads/rsna", 'pneumonia'), '*.jpg')
 A_train_paths, A_test_paths = sklearn.model_selection.train_test_split(A_img_paths, test_size=0.2)
 B_train_paths, B_test_paths = sklearn.model_selection.train_test_split(B_img_paths, test_size=0.2)
 A_train_paths, A_valid_paths = sklearn.model_selection.train_test_split(A_train_paths, test_size=0.1)
