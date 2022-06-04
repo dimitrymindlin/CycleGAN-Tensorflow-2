@@ -127,24 +127,15 @@ def calculate_tcv_os(dataset, translation_name):
             img_holder = ImageHolder(img_batch, 1, gradcam=gradcam, attention_type="attention-gan")
 
         img_transformed = sample_method(img_holder.img)
-        plot_any_img(img_holder.img)
-        plot_any_img(img_holder.attention)
-        plot_any_img(img_transformed)
         # Combine new transformed image with attention -> Crop important part from transformed img
         img_transformed_attention = multiply_images(img_transformed, img_holder.attention)
-        plot_any_img(img_transformed_attention)
         # Add background to new img
         translated_img = add_images(img_transformed_attention, img_holder.background)
-        plot_any_img(translated_img)
         # Cycle
         img_cycled = cycle_method(translated_img)
-        #plot_any_img(img_cycled)
-        #plot_any_img(img_holder.background)
         # Combine new transformed image with attention
         img_cycled_attention = multiply_images(img_cycled, img_holder.attention)
         cycled_img = add_images(img_cycled_attention, img_holder.background)
-        #plot_any_img(img_cycled_attention)
-        #plot_any_img(cycled_img)
 
         for img_i, translated_i, cycled_i in zip(img_batch, translated_img, cycled_img):
             translated_images.append(tf.squeeze(translated_i))
@@ -161,6 +152,7 @@ def calculate_tcv_os(dataset, translation_name):
                 img = np.concatenate([img_i.numpy(), translated_i.numpy(), cycled_i.numpy()], axis=1)
                 img_name = translation_name + "_" + str(len_dataset) + ".png"
                 im.imwrite(img, py.join(save_dir, img_name))
+
 
             # ssim_count += structural_similarity(img_i, translated_i, channel_axis=2, data_range=2)
             # psnr_count += peak_signal_noise_ratio(img_i, translated_i, data_range=2)
@@ -217,7 +209,7 @@ checkpoint_ts_list = ["2022-05-31--14.02",  "2022-05-31--13.04", "2022-06-01--13
 checkpoint_ep_list = ["180",  "180", "180", "180"]
 
 
-with open('night_run.txt', 'w') as f:
+with open('attention_gan_run.txt', 'w') as f:
     sys.stdout = f # Change the standard output to the file we created.
     for name, ep in zip(checkpoint_ts_list, checkpoint_ep_list):
         if name == "2022-05-23--18.32":

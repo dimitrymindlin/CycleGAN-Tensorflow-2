@@ -128,6 +128,7 @@ def calculate_tcv_os(dataset, translation_name):
             img_holder = ImageHolder(tf.squeeze(img_batch), 1, gradcam=gradcam, attention_type="spa-gan")
             translated_img_batch, cycled_img_batch = sample_B2A(img_holder.enhanced_img)
 
+
         for img_i, translated_i, cycled_i in zip(img_batch, translated_img_batch, cycled_img_batch):
             translated_images.append(tf.squeeze(translated_i))
             # img_i = img_i.numpy()
@@ -197,11 +198,11 @@ def calc_KID_for_model(translated_images, translation_name):
 
 done = ["2022-05-26--15.51", "2022-05-30--08.09"]
 done_ep = ["180",  "180"]
-checkpoint_ts_list = ["2022-06-02-12.30", "2022-05-26--15.51", "2022-05-30--08.09"]
-checkpoint_ep_list = ["180", "180",  "180"]
+checkpoint_ts_list = ["2022-05-26--15.53","2022-06-02-12.30", "2022-05-26--15.51", "2022-05-30--08.09"]
+checkpoint_ep_list = ["190","180", "180",  "180"]
 
 
-with open('night_run.txt', 'w') as f:
+with open('spa_gan_run.txt', 'w') as f:
     sys.stdout = f # Change the standard output to the file we created.
     for name, ep in zip(checkpoint_ts_list, checkpoint_ep_list):
         if name == "2022-05-23--18.32":
