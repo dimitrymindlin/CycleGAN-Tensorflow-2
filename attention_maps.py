@@ -19,8 +19,11 @@ def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity
     Applys gradcam to an image and returns the heatmap as well as the enhanced img.
     """
     # Generate cam map
-    cam_input = tf.image.resize(img, [512, 512], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-    cam = gradcam(CategoricalScore(class_index), cam_input, penultimate_layer=-1)
+    if img.get_shape()[-2] == 256:
+        cam_input = tf.image.resize(img, [512, 512], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        cam = gradcam(CategoricalScore(class_index), cam_input, penultimate_layer=-1)
+    else:
+        cam = gradcam(CategoricalScore(class_index), img, penultimate_layer=-1)
     if np.max(cam) == 0 and np.min(cam) == 0:
         print(f"Found image without attention...")
         cam = tf.ones(shape=cam.shape)
@@ -28,7 +31,8 @@ def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity
     # Turn to batched 3-channel array
     cam = tf.expand_dims(cam, axis=-1)
     cam = tf.image.grayscale_to_rgb(tf.convert_to_tensor(cam))
-    cam = tf.image.resize(cam, [256, 256], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+    if img.get_shape()[-2] == 256:
+        cam = tf.image.resize(cam, [256, 256], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
     # Convert img to same pixel values [0, 1]
     img = scale_to_zero_one(img)
 
