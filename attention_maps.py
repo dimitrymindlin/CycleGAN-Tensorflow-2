@@ -5,28 +5,12 @@ from tf_keras_vis.utils.scores import CategoricalScore
 
 from imlib import scale_to_zero_one, scale_to_minus_one_one, plot_any_img
 
-
-def normalize(img):
-    """
-    Normalize between 0 and 1
-    Parameters
-    ----------
-    img
-
-    Returns
-    -------
-
-    """
-    if np.min(img) == np.max(img):
-        return img
-    return (img - np.min(img)) / (np.max(img) - np.min(img))
-
 def shift_values_above_intensity(cam, attention_intensity: float):
     """
     makes sure all values are above attention_intensity value.
     """
     cam += attention_intensity
-    cam /= np.max(cam)
+    cam = tf.math.divide(cam, tf.reduce_max(cam))
     return cam
 
 
@@ -40,7 +24,7 @@ def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity
     if np.max(cam) == 0 and np.min(cam) == 0:
         print(f"Found image without attention...")
         cam = tf.ones(shape=cam.shape)
-    cam = normalize(cam)
+    cam = tf.math.divide(cam, tf.reduce_max(cam))
     # Turn to batched 3-channel array
     cam = tf.expand_dims(cam, axis=-1)
     cam = tf.image.grayscale_to_rgb(tf.convert_to_tensor(cam))
@@ -54,6 +38,6 @@ def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity
         cam = tf.ones(shape=cam.shape)
 
     # Interpolate by multiplication and normalise
-    img = cam * img
-    img = normalize(img)
+    img = tf.multiply(cam, img)
+    img = tf.math.divide(img, tf.reduce_max(img))
     return scale_to_minus_one_one(img), scale_to_minus_one_one(cam)  # [-1,1]
