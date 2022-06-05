@@ -36,7 +36,7 @@ py.arg('--counterfactual_loss_weight', type=float, default=1)
 py.arg('--feature_map_loss_weight', type=float, default=0)
 py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
-py.arg('--attention', type=str, default="clf", choices=['discriminator', 'clf'])
+py.arg('--attention', type=str, default="discriminator", choices=['discriminator', 'clf'])
 py.arg('--clf_name', type=str, default="inception")
 py.arg('--attention_intensity', type=float, default=1)
 py.arg('--attention_type', type=str, default="spa-gan")

@@ -31,7 +31,7 @@ def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity
     # Turn to batched 3-channel array
     cam = tf.expand_dims(cam, axis=-1)
     cam = tf.image.grayscale_to_rgb(tf.convert_to_tensor(cam))
-    if img.get_shape()[-2] == 256:
+    if img.get_shape()[-2] == 256 and attention_source != "discriminator":
         cam = tf.image.resize(cam, [256, 256], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
     # Convert img to same pixel values [0, 1]
     img = scale_to_zero_one(img)

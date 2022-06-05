@@ -83,9 +83,11 @@ def get_img_holders(A, B, attention_type, attention, attention_intensity=None, g
         if attention == "discriminator":
             # Both classes here 0 because the gradcam is for each discriminator and not the classifier.
             A_holder = ImageHolder(A, 0, gradcam_D_A, attention_type,
-                                   attention_intensity=attention_intensity, use_attention=attention)
+                                   attention_intensity=attention_intensity, use_attention=attention,
+                                   attention_source=attention)
             B_holder = ImageHolder(B, 0, gradcam_D_B, attention_type,
-                                   attention_intensity=attention_intensity, use_attention=attention)
+                                   attention_intensity=attention_intensity, use_attention=attention,
+                                   attention_source=attention)
         else:
             A_holder = ImageHolder(A, 0, gradcam, attention_type, attention_intensity=attention_intensity)
             B_holder = ImageHolder(B, 1, gradcam, attention_type, attention_intensity=attention_intensity)
