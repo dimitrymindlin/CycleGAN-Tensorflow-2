@@ -283,7 +283,8 @@ with train_summary_writer.as_default():
         ep_cnt.assign_add(1)
 
         # train for an epoch
-        for batch_count, (A, B) in enumerate(tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset)):
+        batch_count = 0
+        for A, B in tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset):
             A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
                                                  gradcam=gradcam)
 
@@ -318,8 +319,8 @@ with train_summary_writer.as_default():
                                    execution_id, ep, batch_count,
                                    A_holder=A_holder,
                                    B_holder=B_holder)
-
+            batch_count += 1
 
         # save checkpoint
-        if ep > 10:
+        if ep == 0 or ep > 10:
             checkpoint.save(ep)
