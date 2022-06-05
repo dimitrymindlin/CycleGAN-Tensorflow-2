@@ -21,7 +21,7 @@ import module
 from imlib.image_holder import get_img_holders
 
 py.arg('--dataset', default='horse2zebra')
-py.arg('--datasets_dir', default='datasets')
+py.arg('--datasets_dirclf =', default='datasets')
 py.arg('--load_size', type=int, default=286)  # load image to this size
 py.arg('--crop_size', type=int, default=256)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
@@ -115,7 +115,7 @@ clf = None
 if args.attention == "clf":
     clf = tf.keras.models.load_model(f"checkpoints/{args.clf_name}_{args.dataset}_512/model",
                                      compile=False)
-    #gradcam = Gradcam(clf, clone=True)
+    # gradcam = Gradcam(clf, clone=True)
     gradcam = GradcamPlusPlus(clf, clone=True)
 
 
@@ -138,7 +138,7 @@ train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 # ==============================================================================
 
 @tf.function
-def train_G_attention(A_enhanced, B_enhanced):
+def train_G_attention(A_enhanced, B_enhanced, A_attention, B_attention):
     """
     Generator with feature map loss
     Parameters
@@ -153,6 +153,8 @@ def train_G_attention(A_enhanced, B_enhanced):
     with tf.GradientTape() as t:
         A2B, A_real_feature_map = G_A2B(A_enhanced, training=True)
         B2A, B_real_feature_map = G_B2A(B_enhanced, training=True)
+        A2B = tf.math.multiply(A2B, A_attention)
+        B2A = tf.math.multiply(B2A, B_attention)
         A2B2A, B_fake_feature_map = G_B2A(A2B, training=True)
         B2A2B, A_fake_feature_map = G_A2B(B2A, training=True)
         A2A, _ = G_B2A(A_enhanced, training=True)
@@ -162,8 +164,10 @@ def train_G_attention(A_enhanced, B_enhanced):
         B2A_d_logits = D_A(B2A, training=True)
 
         if args.counterfactual_loss_weight > 0:
-            A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth, clf(tf.image.resize(A2B, [512,512])))
-            B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth, clf(tf.image.resize(A2B, [512, 512])))
+            A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
+                                                             clf(tf.image.resize(A2B, [512, 512])))
+            B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth,
+                                                             clf(tf.image.resize(A2B, [512, 512])))
         else:
             A2B_counterfactual_loss = 0
             B2A_counterfactual_loss = 0
@@ -199,10 +203,12 @@ def train_G_attention(A_enhanced, B_enhanced):
 
 
 @tf.function
-def train_G(A_enhanced, B_enhanced):
+def train_G(A_enhanced, B_enhanced, A_attention, B_attention):
     with tf.GradientTape() as t:
         A2B = G_A2B(A_enhanced, training=True)
         B2A = G_B2A(B_enhanced, training=True)
+        A2B = tf.math.multiply(A2B, A_attention)
+        B2A = tf.math.multiply(B2A, B_attention)
         A2B2A = G_B2A(A2B, training=True)
         B2A2B = G_A2B(B2A, training=True)
         A2A = G_B2A(A_enhanced, training=True)
@@ -212,8 +218,10 @@ def train_G(A_enhanced, B_enhanced):
         B2A_d_logits = D_A(B2A, training=True)
 
         if args.counterfactual_loss_weight > 0:
-            A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth, clf(tf.image.resize(A2B, [512,512])))
-            B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth, clf(tf.image.resize(B2A, [512,512])))
+            A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
+                                                             clf(tf.image.resize(A2B, [512, 512])))
+            B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth,
+                                                             clf(tf.image.resize(B2A, [512, 512])))
         else:
             A2B_counterfactual_loss = 0
             B2A_counterfactual_loss = 0
@@ -271,9 +279,11 @@ def train_D(A, B, A2B, B2A):
 
 def train_step(A_holder, B_holder):
     if args.generator == "resnet-attention":
-        A2B, B2A, G_loss_dict = train_G_attention(A_holder.enhanced_img, B_holder.enhanced_img)
+        A2B, B2A, G_loss_dict = train_G_attention(A_holder.enhanced_img, B_holder.enhanced_img, A_holder.attention,
+                                                  B_holder.attention)
     else:
-        A2B, B2A, G_loss_dict = train_G(A_holder.enhanced_img, B_holder.enhanced_img)
+        A2B, B2A, G_loss_dict = train_G(A_holder.enhanced_img, B_holder.enhanced_img, A_holder.attention,
+                                        B_holder.attention)
     A_holder.transformed_part = A2B
     B_holder.transformed_part = B2A
 
