@@ -44,21 +44,23 @@ def multiply_images(img1, img2):
 
 
 class ImageHolder():
-    def __init__(self, img, class_label=None, gradcam=None, attention_type=None, attention=True, attention_intensity=1):
+    def __init__(self, img, class_label=None, gradcam=None, attention_type=None, use_attention=True,
+                 attention_intensity=1, attention_source="clf"):
         self.img = img  # original image
         self.attention = None  # heatmap
         self.foreground = None  # original image + heatmap
         self.background = None  # original image - heatmap
         self.enhanced_img = None  # original image * (heatmap + intensity)
         self.transformed_part = None  # depending on strategy, the part that should be transformed
-        if attention:
-            self.get_attention(class_label, gradcam, attention_type, attention_intensity)
+        if use_attention:
+            self.get_attention(class_label, gradcam, attention_type, attention_intensity, attention_source)
             self.split_fore_and_background_by_attention()
 
-    def get_attention(self, class_label, gradcam, attention_type, attention_intensity):
+    def get_attention(self, class_label, gradcam, attention_type, attention_intensity, attention_source):
         enhanced_img, attention = attention_maps.apply_gradcam(self.img, gradcam, class_label,
                                                                attention_type=attention_type,
-                                                               attention_intensity=attention_intensity)
+                                                               attention_intensity=attention_intensity,
+                                                               attention_source=attention_source)
 
         self.enhanced_img = enhanced_img
         self.attention = attention
@@ -75,15 +77,15 @@ class ImageHolder():
 def get_img_holders(A, B, attention_type, attention, attention_intensity=None, gradcam=None, gradcam_D_A=None,
                     gradcam_D_B=None):
     if attention_type == "none":
-        A_holder = ImageHolder(A, 0, attention=False, attention_intensity=attention_intensity)
-        B_holder = ImageHolder(B, 1, attention=False, attention_intensity=attention_intensity)
+        A_holder = ImageHolder(A, 0, use_attention=False, attention_intensity=attention_intensity)
+        B_holder = ImageHolder(B, 1, use_attention=False, attention_intensity=attention_intensity)
     elif attention_type == "spa-gan":
         if attention == "discriminator":
             # Both classes here 0 because the gradcam is for each discriminator and not the classifier.
             A_holder = ImageHolder(A, 0, gradcam_D_A, attention_type,
-                                   attention_intensity=attention_intensity)
+                                   attention_intensity=attention_intensity, use_attention=attention)
             B_holder = ImageHolder(B, 0, gradcam_D_B, attention_type,
-                                   attention_intensity=attention_intensity)
+                                   attention_intensity=attention_intensity, use_attention=attention)
         else:
             A_holder = ImageHolder(A, 0, gradcam, attention_type, attention_intensity=attention_intensity)
             B_holder = ImageHolder(B, 1, gradcam, attention_type, attention_intensity=attention_intensity)

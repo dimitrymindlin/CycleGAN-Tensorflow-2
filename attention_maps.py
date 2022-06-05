@@ -14,12 +14,12 @@ def shift_values_above_intensity(cam, attention_intensity: float):
     return cam
 
 
-def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity=1):
+def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity=1, attention_source="clf"):
     """
     Applys gradcam to an image and returns the heatmap as well as the enhanced img.
     """
     # Generate cam map
-    if img.get_shape()[-2] == 256:
+    if img.get_shape()[-2] == 256 and attention_source != "discriminator":
         cam_input = tf.image.resize(img, [512, 512], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
         cam = gradcam(CategoricalScore(class_index), cam_input, penultimate_layer=-1)
     else:
