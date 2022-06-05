@@ -353,9 +353,9 @@ with train_summary_writer.as_default():
         ep_cnt.assign_add(1)
 
         # train for an epoch
-        for batch_count, (A, B) in enumerate(
-                tqdm.tqdm(tf.data.Dataset.zip((train_horses, train_zebras)), desc='Inner Epoch Loop',
-                          total=len_dataset)):
+        batch_count = 0
+        for A, B in tqdm.tqdm(tf.data.Dataset.zip((train_horses, train_zebras)), desc='Inner Epoch Loop',
+                          total=len_dataset):
             A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention, args.attention_intensity,
                                                  gradcam=gradcam, gradcam_D_A=gradcam_D_A, gradcam_D_B=gradcam_D_B)
 
