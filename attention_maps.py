@@ -38,6 +38,6 @@ def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity
         cam = tf.ones(shape=cam.shape)
 
     # Interpolate by multiplication and normalise
-    img = tf.multiply(cam, img)
+    img = tf.math.multiply(cam, img)
     img = tf.math.divide(img, tf.reduce_max(img))
     return scale_to_minus_one_one(img), scale_to_minus_one_one(cam)  # [-1,1]
