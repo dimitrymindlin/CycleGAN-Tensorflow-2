@@ -36,7 +36,7 @@ py.arg('--cycle_loss_weight', type=float, default=10)
 py.arg('--counterfactual_loss_weight', type=float, default=0)
 py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
-py.arg('--attention', type=str, default="gradcam", choices=['gradcam', 'gradcam-plus-plus'])
+py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
 py.arg('--clf_name', type=str, default="inception")
 py.arg('--attention_type', type=str, default="attention-gan-original",
        choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
