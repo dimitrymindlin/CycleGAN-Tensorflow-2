@@ -5,9 +5,9 @@ cd /media/compute/homes/dmindlin/CycleGAN-Tensorflow-2
 
 python3 -m train_attention_gan_mura \
   --dataset horse2zebra \
-  --discriminator_loss_weight 1 \
-  --cycle_loss_weight 10 \
+  --discriminator_loss_weight 5 \
+  --cycle_loss_weight 5 \
   --counterfactual_loss_weight 1 \
-  --identity_loss_weight 1 \
+  --identity_loss_weight 0 \
   --generator resnet
 
