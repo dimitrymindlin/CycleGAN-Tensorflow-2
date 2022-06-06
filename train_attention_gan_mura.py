@@ -297,28 +297,28 @@ with train_summary_writer.as_default():
                        name='learning rate')
 
             # sample
-            if ep == 0:
-                if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1:
-                    try:
-                        A, B = next(test_iter)
-                    except StopIteration:  # When all elements finished
-                        # Create new iterator
-                        test_iter = iter(A_B_dataset_test)
-                        A, B = next(test_iter)
 
-                    A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
-                                                         gradcam=gradcam)
+            if G_optimizer.iterations.numpy() % 400 == 0 or G_optimizer.iterations.numpy() == 1:
+                try:
+                    A, B = next(test_iter)
+                except StopIteration:  # When all elements finished
+                    # Create new iterator
+                    test_iter = iter(A_B_dataset_test)
+                    A, B = next(test_iter)
 
-                    A2B, B2A, A2B_transformed, B2A_transformed = sample(A_holder.img, B_holder.img,
-                                                                        A_holder.attention, B_holder.attention,
-                                                                        A_holder.background, B_holder.background)
+                A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
+                                                     gradcam=gradcam)
 
-                    A_holder.transformed_part = A2B_transformed
-                    B_holder.transformed_part = B2A_transformed
-                    generate_image(args, clf, A, B, A2B, B2A,
-                                   execution_id, ep, batch_count,
-                                   A_holder=A_holder,
-                                   B_holder=B_holder)
+                A2B, B2A, A2B_transformed, B2A_transformed = sample(A_holder.img, B_holder.img,
+                                                                    A_holder.attention, B_holder.attention,
+                                                                    A_holder.background, B_holder.background)
+
+                A_holder.transformed_part = A2B_transformed
+                B_holder.transformed_part = B2A_transformed
+                generate_image(args, clf, A, B, A2B, B2A,
+                               execution_id, ep, batch_count,
+                               A_holder=A_holder,
+                               B_holder=B_holder)
             batch_count += 1
 
         # save checkpoint
