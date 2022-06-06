@@ -1,9 +1,7 @@
 from datetime import datetime, time
 
 import numpy as np
-from tf_keras_vis.gradcam import Gradcam
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
-from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
 
 import pylib as py
 import tensorflow as tf
@@ -13,7 +11,6 @@ import tf2gan as gan
 import tqdm
 import data
 import module
-import tensorflow_datasets as tfds
 
 # ==============================================================================
 # =                                   param                                    =
@@ -27,7 +24,7 @@ py.arg('--load_size', type=int, default=512)  # load image to this size
 py.arg('--crop_size', type=int, default=512)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
 py.arg('--epochs', type=int, default=30)
-py.arg('--epoch_decay', type=int, default=30)  # epoch to start decaying learning rate
+py.arg('--epoch_decay', type=int, default=29)  # epoch to start decaying learning rate
 py.arg('--lr', type=float, default=0.0002)
 py.arg('--beta_1', type=float, default=0.5)
 py.arg('--adversarial_loss_mode', default='gan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
@@ -150,8 +147,8 @@ def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, 
             B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth,
                                                              clf(tf.image.resize(A2B, [512, 512])))
         else:
-            A2B_counterfactual_loss = 0
-            B2A_counterfactual_loss = 0
+            A2B_counterfactual_loss = tf.zeros(())
+            B2A_counterfactual_loss = tf.zeros(())
 
         A2B_g_loss = g_loss_fn(A2B_d_logits)
         B2A_g_loss = g_loss_fn(B2A_d_logits)
