@@ -11,14 +11,14 @@ import tf2lib as tl
 import tf2gan as gan
 import tqdm
 
-from imlib import generate_image
+from imlib import generate_image, scale_to_minus_one_one
 import data
 import module
 
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-from imlib.image_holder import get_img_holders
+from imlib.image_holder import get_img_holders, multiply_images
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dirclf =', default='datasets')
@@ -153,8 +153,8 @@ def train_G_attention(A_enhanced, B_enhanced, A_attention, B_attention):
     with tf.GradientTape() as t:
         A2B, A_real_feature_map = G_A2B(A_enhanced, training=True)
         B2A, B_real_feature_map = G_B2A(B_enhanced, training=True)
-        A2B = tf.math.multiply(A2B, A_attention)
-        B2A = tf.math.multiply(B2A, B_attention)
+        A2B = multiply_images(A2B, scale_to_minus_one_one(A_attention))
+        B2A = multiply_images(B2A, scale_to_minus_one_one(B_attention))
         A2B2A, B_fake_feature_map = G_B2A(A2B, training=True)
         B2A2B, A_fake_feature_map = G_A2B(B2A, training=True)
         A2A, _ = G_B2A(A_enhanced, training=True)
@@ -207,8 +207,8 @@ def train_G(A_enhanced, B_enhanced, A_attention, B_attention):
     with tf.GradientTape() as t:
         A2B = G_A2B(A_enhanced, training=True)
         B2A = G_B2A(B_enhanced, training=True)
-        A2B = tf.math.multiply(A2B, A_attention)
-        B2A = tf.math.multiply(B2A, B_attention)
+        A2B = multiply_images(A2B, scale_to_minus_one_one(A_attention))
+        B2A = multiply_images(B2A, scale_to_minus_one_one(B_attention))
         A2B2A = G_B2A(A2B, training=True)
         B2A2B = G_A2B(B2A, training=True)
         A2A = G_B2A(A_enhanced, training=True)
