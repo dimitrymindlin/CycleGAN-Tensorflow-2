@@ -268,7 +268,7 @@ sample_dir = py.join(output_dir, 'images')
 py.mkdir(sample_dir)
 
 # Create GradCAM object
-if args.attention == "gradcam":
+if args.attention == "gradcam-plus-plus":
     gradcam = GradcamPlusPlus(clf, clone=True)
 else:
     gradcam = None
