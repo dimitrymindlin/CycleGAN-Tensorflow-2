@@ -1,6 +1,7 @@
 import tensorflow as tf
 import tensorflow.keras as keras
 import tensorflow.keras.layers as layers
+import numpy as np
 
 
 class KID(keras.metrics.Metric):
@@ -61,3 +62,33 @@ class KID(keras.metrics.Metric):
 
     def reset_state(self):
         self.kid_tracker.reset_state()
+
+
+def calc_KID_for_model(translated_images, translation_name, crop_size, train_horses, train_zebras):
+    kid = KID(image_size=crop_size)
+    kid_value_list = []
+
+    if translation_name == "A2B":
+        real_images = train_zebras
+        source_domain = train_horses
+    else:
+        real_images = train_horses
+        source_domain = train_zebras
+
+    for i in range(5):
+        sample = real_images.take(int(len(translated_images)/2))
+        source_domain_sample_count = len(translated_images) - int(len(translated_images)/2)
+        real_images_sample = tf.squeeze(tf.convert_to_tensor(list(sample)))
+        source_samples = source_domain.take(source_domain_sample_count)
+        source_images_sample = tf.squeeze(tf.convert_to_tensor(list(source_samples)))
+        all_samples = tf.concat((real_images_sample, source_images_sample), axis=0)
+        kid.reset_state()
+        kid.update_state(all_samples,
+                         tf.convert_to_tensor(translated_images), )
+        kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
+
+    print(kid_value_list)
+    mean = float("{0:.3f}".format(np.mean(kid_value_list) * 100))
+    std = float("{0:.3f}".format(np.std(kid_value_list, dtype=np.float64) * 100))
+    print("KID mean", mean)
+    print("KID STD", std)

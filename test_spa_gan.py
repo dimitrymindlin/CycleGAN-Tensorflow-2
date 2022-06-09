@@ -2,7 +2,6 @@ import os
 import sys
 
 import tqdm
-from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 
 import imlib as im
@@ -10,16 +9,15 @@ import numpy as np
 import pylib as py
 import tensorflow as tf
 import tf2lib as tl
-import tensorflow_datasets as tfds
-import data
 import module
 
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-from evaluation.kid import KID
-from imlib import plot_any_img
-from imlib.image_holder import get_img_holders, ImageHolder
+from evaluation.kid import calc_KID_for_model
+from evaluation.load_test_data import load_test_data
+
+from imlib.image_holder import ImageHolder
 
 gan_model_ts = "2022-05-26--15.51"
 py.arg('--experiment_dir', default=f"checkpoints/gans/horse2zebra/{gan_model_ts}")
@@ -35,48 +33,7 @@ args = py.args()
 # =                                    test                                    =
 # ==============================================================================
 # data
-AUTOTUNE = tf.data.AUTOTUNE
-dataset, metadata = tfds.load('cycle_gan/horse2zebra',
-                              with_info=True, as_supervised=True)
-
-train_horses, train_zebras = dataset['trainA'], dataset['trainB']
-test_horses, test_zebras = dataset['testA'], dataset['testB']
-
-BUFFER_SIZE = 100
-BATCH_SIZE = 1
-IMG_WIDTH = 256
-IMG_HEIGHT = 256
-
-
-# normalizing the images to [-1, 1]
-def normalize(image):
-    image = tf.cast(image, tf.float32)
-    image = (image / 127.5) - 1
-    return image
-
-
-def preprocess_image_test(image, label):
-    image = normalize(image)
-    return image
-
-
-train_horses = train_horses.map(
-    preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
-    BUFFER_SIZE).batch(BATCH_SIZE)
-
-train_zebras = train_zebras.map(
-    preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
-    BUFFER_SIZE).batch(BATCH_SIZE)
-
-test_horses = test_horses.map(
-    preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
-    BUFFER_SIZE).batch(BATCH_SIZE)
-
-test_zebras = test_zebras.map(
-    preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
-    BUFFER_SIZE).batch(BATCH_SIZE)
-
-OUTPUT_CHANNELS = 3
+train_horses, test_horses, train_zebras, test_zebras = load_test_data()
 # model
 G_A2B = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
 G_B2A = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
@@ -163,8 +120,8 @@ def calculate_tcv_os(dataset, translation_name):
     #print(f"Results for {translation_name}")
     # print(f"SSIM: ", ssim_count / len_dataset)
     # print(f"PSNR: ", psnr_count / len_dataset)
-    print(f"TCV:", tcv)
-    print(f"OS :", os)
+    print(f"TCV:", float("{0:.3f}".format(np.mean(tcv))))
+    print(f"OS :", float("{0:.3f}".format(np.mean(os))))
     return tcv, os, translated_images
 
 
@@ -172,34 +129,11 @@ def calculate_tcv_os(dataset, translation_name):
 # tcv, os = calculate_tcv_os(test_zebras, "B2A")
 
 
-def calc_KID_for_model(translated_images, translation_name):
-    kid = KID(image_size=args.crop_size)
-    kid_value_list = []
+done = ["2022-05-26--15.51","2022-05-26--15.53","2022-06-02--12.30", "2022-06-03--14.20", "2022-06-04--08.20", "2022-06-04--14.10"]
+done_ep = ["180","190","180", "160", "180", "160"]
 
-    if translation_name == "A2B":
-        real_images = train_zebras
-    else:
-        real_images = train_horses
-
-    for i in range(5):
-        sample = real_images.take(len(translated_images))
-        real_images_sample = tf.squeeze(tf.convert_to_tensor(list(sample)))
-        kid.reset_state()
-        kid.update_state(real_images_sample,
-                         tf.convert_to_tensor(translated_images), )
-        kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
-
-    print(kid_value_list)
-    mean = float("{0:.3f}".format(np.mean(kid_value_list) * 100))
-    std = float("{0:.3f}".format(np.std(kid_value_list, dtype=np.float64) * 100))
-    print("KID mean", mean)
-    print("KID STD", std)
-
-
-done = ["2022-05-26--15.51", "2022-05-30--08.09"]
-done_ep = ["180",  "180"]
-checkpoint_ts_list = ["2022-05-26--15.53","2022-06-02-12.30", "2022-05-26--15.51", "2022-05-30--08.09"]
-checkpoint_ep_list = ["190","180", "180",  "180"]
+checkpoint_ts_list = ["2022-05-30--08.09", "2022-05-26--15.51","2022-05-26--15.53","2022-06-02--12.30", "2022-06-03--14.20", "2022-06-04--08.20", "2022-06-04--14.10"]
+checkpoint_ep_list = ["180", "180","190","180", "160", "180", "160"]
 
 
 with open('spa_gan_run.txt', 'w') as f:
@@ -218,11 +152,11 @@ with open('spa_gan_run.txt', 'w') as f:
         save_dir = py.join(f"checkpoints/gans/horse2zebra/{name}", 'generated_imgs', "A2B")
         py.mkdir(save_dir)
         _, _, translated_images_A2B = calculate_tcv_os(test_horses, "A2B")
-        calc_KID_for_model(translated_images_A2B, "A2B")
+        calc_KID_for_model(translated_images_A2B, "A2B", args.crop_size, train_horses, train_zebras)
 
         print("-> B2A")
         save_dir = py.join(f"checkpoints/gans/horse2zebra/{name}", 'generated_imgs', "B2A")
         py.mkdir(save_dir)
         _, _, translated_images_B2A = calculate_tcv_os(test_zebras, "B2A")
-        calc_KID_for_model(translated_images_B2A, "B2A")
+        calc_KID_for_model(translated_images_B2A, "B2A", args.crop_size, train_horses, train_zebras)
         print("_______________________")
