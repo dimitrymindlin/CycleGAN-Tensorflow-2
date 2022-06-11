@@ -3,6 +3,8 @@ import tensorflow.keras as keras
 import tensorflow.keras.layers as layers
 import numpy as np
 
+from imlib import plot_any_img
+
 
 class KID(keras.metrics.Metric):
     def __init__(self, image_size, name="kid", **kwargs):
@@ -64,26 +66,33 @@ class KID(keras.metrics.Metric):
         self.kid_tracker.reset_state()
 
 
-def calc_KID_for_model(translated_images, translation_name, crop_size, train_horses, train_zebras):
+def calc_KID_for_model(translated_images, translation_name, crop_size, A_dataset, B_dataset):
     kid = KID(image_size=crop_size)
     kid_value_list = []
 
     if translation_name == "A2B":
-        real_images = train_zebras
-        source_domain = train_horses
+        source_domain = A_dataset
+        target_domain = B_dataset
     else:
-        real_images = train_horses
-        source_domain = train_zebras
+        source_domain = B_dataset
+        target_domain = A_dataset
+
+    target_sample_size = int(len(translated_images) / 2)
+    all_target_samples = list(target_domain.take(target_sample_size*5))
+    source_sample_size = len(translated_images) - int(len(translated_images) / 2)
+    all_source_samples = list(source_domain.take(source_sample_size*5))
 
     for i in range(5):
-        source_domain.shuffle(batch_size=len(translated_images))
-        sample = real_images.take(int(len(translated_images) / 2))
-        source_domain_sample_count = len(translated_images) - int(len(translated_images) / 2)
-        real_images_sample = tf.squeeze(tf.convert_to_tensor(list(sample)))
-        source_samples = source_domain.take(source_domain_sample_count)
-        source_images_sample = tf.squeeze(tf.convert_to_tensor(list(source_samples)))
-        all_samples = tf.concat((real_images_sample, source_images_sample), axis=0)
-        kid.update_state(all_samples,
+        if i == 4:
+            target_samples = all_target_samples[i * target_sample_size:]
+            source_samples = all_source_samples[i * source_sample_size:]
+        else:
+            target_samples = all_target_samples[i*target_sample_size:(i+1)*target_sample_size]
+            source_samples = all_source_samples[i*source_sample_size:(i+1)*source_sample_size]
+        target_sample_tensor = tf.squeeze(tf.convert_to_tensor(target_samples))
+        source_sample_tensor = tf.squeeze(tf.convert_to_tensor(source_samples))
+        all_samples_tensor = tf.concat((target_sample_tensor, source_sample_tensor), axis=0)
+        kid.update_state(all_samples_tensor,
                          tf.convert_to_tensor(translated_images))
         kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
         kid.reset_state()
