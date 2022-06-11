@@ -61,9 +61,9 @@ def make_zip_dataset(A_img_paths, B_img_paths, batch_size, load_size, crop_size,
             B_repeat = 1
 
     A_dataset = make_dataset(A_img_paths, batch_size, load_size, crop_size, training, drop_remainder=True,
-                             shuffle=shuffle, repeat=A_repeat)
+                             shuffle=shuffle, repeat=1)
     B_dataset = make_dataset(B_img_paths, batch_size, load_size, crop_size, training, drop_remainder=True,
-                             shuffle=shuffle, repeat=B_repeat)
+                             shuffle=shuffle, repeat=1)
 
     A_B_dataset = tf.data.Dataset.zip((A_dataset, B_dataset))
     len_dataset = max(len(A_img_paths), len(B_img_paths)) // batch_size
@@ -120,13 +120,13 @@ def get_mura_data_paths():
 
     def filenames(part, train=True):
         root = '../tensorflow_datasets/downloads/cjinny_mura-v11/'
-        #root = '/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/'
+        root = '/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/'
         if train:
             csv_path = "../tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/train_image_paths.csv"
-            #csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/train_image_paths.csv"
+            csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/train_image_paths.csv"
         else:
             csv_path = "../tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/valid_image_paths.csv"
-            #csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/valid_image_paths.csv"
+            csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/valid_image_paths.csv"
 
         with open(csv_path, 'rb') as F:
             d = F.readlines()
