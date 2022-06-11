@@ -76,6 +76,7 @@ def calc_KID_for_model(translated_images, translation_name, crop_size, train_hor
         source_domain = train_zebras
 
     for i in range(5):
+        source_domain.shuffle(batch_size=len(translated_images))
         sample = real_images.take(int(len(translated_images) / 2))
         source_domain_sample_count = len(translated_images) - int(len(translated_images) / 2)
         real_images_sample = tf.squeeze(tf.convert_to_tensor(list(sample)))
