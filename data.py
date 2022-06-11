@@ -29,7 +29,7 @@ def make_dataset(img_paths, batch_size, load_size, crop_size, training, drop_rem
         @tf.function
         def _map_fn(img, label=None):  # preprocessing
             img = tf.cast(img, tf.float32)
-            img = tfa.image.equalize(img)
+            #img = tfa.image.equalize(img)
             img = tf.image.resize_with_pad(img, crop_size, crop_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
             if not special_normalisation:
                 img = img / 255.0 * 2 - 1
@@ -48,7 +48,7 @@ def make_dataset(img_paths, batch_size, load_size, crop_size, training, drop_rem
                                        labels=labels)
 
 
-def make_zip_dataset(A_img_paths, B_img_paths, batch_size, load_size, crop_size, training, shuffle=True, repeat=False):
+def make_zip_dataset(A_img_paths, B_img_paths, batch_size, load_size, crop_size, training, shuffle=False, repeat=False):
     # zip two datasets aligned by the longer one
     if repeat:
         A_repeat = B_repeat = None  # cycle both
@@ -67,7 +67,7 @@ def make_zip_dataset(A_img_paths, B_img_paths, batch_size, load_size, crop_size,
 
     A_B_dataset = tf.data.Dataset.zip((A_dataset, B_dataset))
     len_dataset = max(len(A_img_paths), len(B_img_paths)) // batch_size
-
+    return A_dataset, B_dataset
     return A_B_dataset, len_dataset
 
 
@@ -120,20 +120,20 @@ def get_mura_data_paths():
 
     def filenames(part, train=True):
         root = '../tensorflow_datasets/downloads/cjinny_mura-v11/'
-        # root = '/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/'
+        #root = '/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/'
         if train:
-            csv_path = "../tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1_transformed/train_image_paths.csv"
-            # csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/train_image_paths.csv"
+            csv_path = "../tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/train_image_paths.csv"
+            #csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/train_image_paths.csv"
         else:
-            csv_path = "../tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1_transformed/valid_image_paths.csv"
-            # csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/valid_image_paths.csv"
+            csv_path = "../tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/valid_image_paths.csv"
+            #csv_path = "/Users/dimitrymindlin/tensorflow_datasets/downloads/cjinny_mura-v11/MURA-v1.1/valid_image_paths.csv"
 
         with open(csv_path, 'rb') as F:
             d = F.readlines()
             if part == 'all':
                 imgs = [root + str(x, encoding='utf-8').strip() for x in d]
             else:
-                imgs = [root + str(x, encoding='utf-8').strip().replace("MURA-v1.1", "MURA-v1.1_transformed") for x in d
+                imgs = [root + str(x, encoding='utf-8').strip().replace("MURA-v1.1", "MURA-v1.1") for x in d
                         if
                         str(x, encoding='utf-8').strip().split('/')[2] in part]
 
@@ -160,8 +160,8 @@ def get_dataset_paths(args):
         train_x, train_y, valid_x, valid_y, test_x, test_y = get_mura_data_paths()
         A_img_paths = [filename for filename in train_x if "negative" in filename]
         B_img_paths = [filename for filename in train_x if "positive" in filename]
-        A_img_paths_test = [filename for filename in train_x if "negative" in filename]
-        B_img_paths_test = [filename for filename in train_x if "positive" in filename]
+        A_img_paths_test = [filename for filename in test_x if "negative" in filename]
+        B_img_paths_test = [filename for filename in test_x if "positive" in filename]
     else:
         A_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainA'), '*.jpg')
         B_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'trainB'), '*.jpg')
