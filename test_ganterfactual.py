@@ -64,6 +64,7 @@ def calculate_tcv_os(dataset, translation_name, G_A2B, G_B2A):
         normalisation_factor = np.max((np.max(translated), np.abs(np.min(translated))))
         translated /= normalisation_factor  # [-1, 1]
         # Cycle
+        print(tf.shape(translated))
         img_cycled = cycle_generator.predict(translated)
         normalisation_factor = np.max((np.max(img_cycled), np.abs(np.min(img_cycled))))
         img_cycled /= normalisation_factor  # [-1, 1]
@@ -97,26 +98,26 @@ def calculate_tcv_os(dataset, translation_name, G_A2B, G_B2A):
 done = [ ]
 checkpoint_ts_list = ["GANterfactual_2022-03-29--00.56", "GANterfactual_2022-03-26--06.18"]
 
-with open(f'ganterfactual_{args.dataset}.txt', 'w') as f:
-    sys.stdout = f  # Change the standard output to the file we created.
-    for name in checkpoint_ts_list:
-        cyclegan_folder = f"checkpoints/gans/mura/{name}"
-        custom_objects = {"InstanceNormalization": InstanceNormalization}
-        G_A2B = tf.keras.models.load_model(os.path.join(cyclegan_folder, 'generator_np.h5'),
-                                          custom_objects=custom_objects)
-        G_B2A = tf.keras.models.load_model(os.path.join(cyclegan_folder, 'generator_pn.h5'),
-                                          custom_objects=custom_objects)
+#with open(f'ganterfactual_{args.dataset}.txt', 'w') as f:
+    #sys.stdout = f  # Change the standard output to the file we created.
+for name in checkpoint_ts_list:
+    cyclegan_folder = f"checkpoints/gans/mura/{name}"
+    custom_objects = {"InstanceNormalization": InstanceNormalization}
+    G_A2B = tf.keras.models.load_model(os.path.join(cyclegan_folder, 'generator_np.h5'),
+                                      custom_objects=custom_objects)
+    G_B2A = tf.keras.models.load_model(os.path.join(cyclegan_folder, 'generator_pn.h5'),
+                                      custom_objects=custom_objects)
 
-        print(f"Starting {name}")
-        print("-> A2B")
-        save_dir = py.join(f"checkpoints/gans/{args.dataset}/{name}", 'generated_imgs', "A2B")
-        py.mkdir(save_dir)
-        _, _, translated_images_A2B = calculate_tcv_os(A_dataset_test, "A2B", G_A2B, G_B2A)
-        calc_KID_for_model(translated_images_A2B, "A2B", args.crop_size, A_dataset, B_dataset)
+    """"print(f"Starting {name}")
+    print("-> A2B")
+    save_dir = py.join(f"checkpoints/gans/{args.dataset}/{name}", 'generated_imgs', "A2B")
+    py.mkdir(save_dir)
+    _, _, translated_images_A2B = calculate_tcv_os(A_dataset_test, "A2B", G_A2B, G_B2A)
+    calc_KID_for_model(translated_images_A2B, "A2B", args.crop_size, A_dataset, B_dataset)"""
 
-        print("-> B2A")
-        save_dir = py.join(f"checkpoints/gans/{args.dataset}/{name}", 'generated_imgs', "B2A")
-        py.mkdir(save_dir)
-        _, _, translated_images_B2A = calculate_tcv_os(B_dataset_test, "B2A", G_A2B, G_B2A)
-        calc_KID_for_model(translated_images_B2A, "B2A", args.crop_size, A_dataset, B_dataset)
-        print("_______________________")
+    print("-> B2A")
+    save_dir = py.join(f"checkpoints/gans/{args.dataset}/{name}", 'generated_imgs', "B2A")
+    py.mkdir(save_dir)
+    _, _, translated_images_B2A = calculate_tcv_os(B_dataset_test, "B2A", G_A2B, G_B2A)
+    calc_KID_for_model(translated_images_B2A, "B2A", args.crop_size, A_dataset, B_dataset)
+    print("_______________________")
