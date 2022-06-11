@@ -96,7 +96,7 @@ def calculate_tcv_os(dataset, translation_name, G_A2B, G_B2A):
 
 
 done = [ ]
-checkpoint_ts_list = ["GANterfactual_2022-03-29--00.56", "GANterfactual_2022-03-26--06.18"]
+checkpoint_ts_list = ["GANterfactual_2022-03-29--00.56", "GANterfactual_2022-03-26--06.18", "GANterfactual_2022-03-05--17.08", "GANterfactual_2022-03-29--10.12"]
 
 #with open(f'ganterfactual_{args.dataset}.txt', 'w') as f:
     #sys.stdout = f  # Change the standard output to the file we created.
