@@ -64,7 +64,6 @@ def calculate_tcv_os(dataset, translation_name, G_A2B, G_B2A):
         normalisation_factor = np.max((np.max(translated), np.abs(np.min(translated))))
         translated /= normalisation_factor  # [-1, 1]
         # Cycle
-        print(tf.shape(translated))
         img_cycled = cycle_generator.predict(translated)
         normalisation_factor = np.max((np.max(img_cycled), np.abs(np.min(img_cycled))))
         img_cycled /= normalisation_factor  # [-1, 1]
