@@ -95,7 +95,7 @@ def calculate_tcv_os(dataset, translation_name, G_A2B, G_B2A):
 
 
 done = [ ]
-checkpoint_ts_list = ["GANterfactual_2022-03-26--06.18", "GANterfactual_2022-03-29--00.56"]
+checkpoint_ts_list = ["GANterfactual_2022-03-29--00.56", "GANterfactual_2022-03-26--06.18"]
 
 with open(f'ganterfactual_{args.dataset}.txt', 'w') as f:
     sys.stdout = f  # Change the standard output to the file we created.
@@ -106,12 +106,13 @@ with open(f'ganterfactual_{args.dataset}.txt', 'w') as f:
                                           custom_objects=custom_objects)
         G_B2A = tf.keras.models.load_model(os.path.join(cyclegan_folder, 'generator_pn.h5'),
                                           custom_objects=custom_objects)
-        print(f"Starting {name}")
-        print("-> A2B")
-        save_dir = py.join(f"checkpoints/gans/{args.dataset}/{name}", 'generated_imgs', "A2B")
-        py.mkdir(save_dir)
-        _, _, translated_images_A2B = calculate_tcv_os(A_dataset_test, "A2B", G_A2B, G_B2A)
-        calc_KID_for_model(translated_images_A2B, "A2B", args.crop_size, A_dataset, B_dataset)
+        if name != "GANterfactual_2022-03-26--06.18":
+            print(f"Starting {name}")
+            print("-> A2B")
+            save_dir = py.join(f"checkpoints/gans/{args.dataset}/{name}", 'generated_imgs', "A2B")
+            py.mkdir(save_dir)
+            _, _, translated_images_A2B = calculate_tcv_os(A_dataset_test, "A2B", G_A2B, G_B2A)
+            calc_KID_for_model(translated_images_A2B, "A2B", args.crop_size, A_dataset, B_dataset)
 
         print("-> B2A")
         save_dir = py.join(f"checkpoints/gans/{args.dataset}/{name}", 'generated_imgs', "B2A")
