@@ -39,8 +39,8 @@ A_dataset_test, B_dataset_test = data.make_zip_dataset(A_img_paths_test, B_img_p
                                                  args.crop_size, training=False, repeat=False)
 
 # run
-clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}/2022-06-04--00.05/model", compile=False)
-oracle = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}/2022-03-24--12.42/model", compile=False)
+oracle = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}/2022-06-04--00.05/model", compile=False)
+clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}/2022-03-24--12.42/model", compile=False)
 save_dir = None
 gradcam = GradcamPlusPlus(clf, clone=True)
 
