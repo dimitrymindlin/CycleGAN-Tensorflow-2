@@ -75,17 +75,24 @@ def calc_KID_for_model(translated_images, translation_name, crop_size, train_hor
         real_images = train_horses
         source_domain = train_zebras
 
+    split_index = int(len(translated_images)/5)
+
     for i in range(5):
-        sample = real_images.take(int(len(translated_images)/2))
-        source_domain_sample_count = len(translated_images) - int(len(translated_images)/2)
-        real_images_sample = tf.squeeze(tf.convert_to_tensor(list(sample)))
-        source_samples = source_domain.take(source_domain_sample_count)
-        source_images_sample = tf.squeeze(tf.convert_to_tensor(list(source_samples)))
-        all_samples = tf.concat((real_images_sample, source_images_sample), axis=0)
-        kid.reset_state()
-        kid.update_state(all_samples,
-                         tf.convert_to_tensor(translated_images), )
+        for j in range(5):
+            if j == 4:
+                translated_images_tmp = translated_images[j * split_index:]
+            else:
+                translated_images_tmp = translated_images[j*split_index:(j+1)*split_index]
+            sample = real_images.take(int(len(translated_images_tmp)/2))
+            source_domain_sample_count = len(translated_images_tmp) - int(len(translated_images_tmp)/2)
+            real_images_sample = tf.squeeze(tf.convert_to_tensor(list(sample)))
+            source_samples = source_domain.take(source_domain_sample_count)
+            source_images_sample = tf.squeeze(tf.convert_to_tensor(list(source_samples)))
+            all_samples = tf.concat((real_images_sample, source_images_sample), axis=0)
+            kid.update_state(all_samples,
+                             tf.convert_to_tensor(translated_images_tmp))
         kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
+        kid.reset_state()
 
     print(kid_value_list)
     mean = float("{0:.3f}".format(np.mean(kid_value_list) * 100))
