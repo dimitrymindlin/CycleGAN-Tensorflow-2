@@ -15,7 +15,7 @@ import module
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-py.arg('--dataset', default='horse2zebra')
+py.arg('--dataset', default='mura')
 py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=512)  # load image to this size
 py.arg('--crop_size', type=int, default=512)  # then crop to this size
