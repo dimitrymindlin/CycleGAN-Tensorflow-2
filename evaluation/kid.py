@@ -66,36 +66,49 @@ class KID(keras.metrics.Metric):
         self.kid_tracker.reset_state()
 
 
-def calc_KID_for_model(translated_images, translation_name, crop_size, A_dataset, B_dataset):
+def calc_KID_for_model(translated_images, translation_name, crop_size, A_dataset, B_dataset = None):
     kid = KID(image_size=crop_size)
     kid_value_list = []
-
-    if translation_name == "A2B":
-        source_domain = A_dataset
-        target_domain = B_dataset
-    else:
-        source_domain = B_dataset
-        target_domain = A_dataset
-
-    target_sample_size = int(len(translated_images) / 2)
-    all_target_samples = list(target_domain.take(target_sample_size*5))
-    source_sample_size = len(translated_images) - int(len(translated_images) / 2)
-    all_source_samples = list(source_domain.take(source_sample_size*5))
-
-    for i in range(5):
-        if i == 4:
-            target_samples = all_target_samples[i * target_sample_size:]
-            source_samples = all_source_samples[i * source_sample_size:]
+    if B_dataset:
+        if translation_name == "A2B":
+            source_domain = A_dataset
+            target_domain = B_dataset
         else:
-            target_samples = all_target_samples[i*target_sample_size:(i+1)*target_sample_size]
-            source_samples = all_source_samples[i*source_sample_size:(i+1)*source_sample_size]
-        target_sample_tensor = tf.squeeze(tf.convert_to_tensor(target_samples))
-        source_sample_tensor = tf.squeeze(tf.convert_to_tensor(source_samples))
-        all_samples_tensor = tf.concat((target_sample_tensor, source_sample_tensor), axis=0)
-        kid.update_state(all_samples_tensor,
-                         tf.convert_to_tensor(translated_images))
-        kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
-        kid.reset_state()
+            source_domain = B_dataset
+            target_domain = A_dataset
+
+        target_sample_size = int(len(translated_images) / 2)
+        all_target_samples = list(target_domain.take(target_sample_size*5))
+        source_sample_size = len(translated_images) - int(len(translated_images) / 2)
+        all_source_samples = list(source_domain.take(source_sample_size*5))
+
+        for i in range(5):
+            if i == 4:
+                target_samples = all_target_samples[i * target_sample_size:]
+                source_samples = all_source_samples[i * source_sample_size:]
+            else:
+                target_samples = all_target_samples[i*target_sample_size:(i+1)*target_sample_size]
+                source_samples = all_source_samples[i*source_sample_size:(i+1)*source_sample_size]
+            target_sample_tensor = tf.squeeze(tf.convert_to_tensor(target_samples))
+            source_sample_tensor = tf.squeeze(tf.convert_to_tensor(source_samples))
+            all_samples_tensor = tf.concat((target_sample_tensor, source_sample_tensor), axis=0)
+            kid.update_state(all_samples_tensor,
+                             tf.convert_to_tensor(translated_images))
+            kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
+            kid.reset_state()
+    else:
+        all_samples_list = list(A_dataset.take(len(translated_images) * 5))
+        for i in range(5):
+            if i == 4:
+                tmp_samples = all_samples_list[i * len(translated_images):]
+            else:
+                tmp_samples = all_samples_list[i*len(translated_images):(i+1)*len(translated_images)]
+
+            tmp_samples_tensor = tf.squeeze(tf.convert_to_tensor(tmp_samples))
+            kid.update_state(tmp_samples_tensor,
+                             tf.convert_to_tensor(translated_images))
+            kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
+            kid.reset_state()
 
     print(kid_value_list)
     mean = float("{0:.3f}".format(np.mean(kid_value_list) * 100))
