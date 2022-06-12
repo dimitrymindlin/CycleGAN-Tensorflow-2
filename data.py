@@ -61,13 +61,12 @@ def make_zip_dataset(A_img_paths, B_img_paths, batch_size, load_size, crop_size,
             B_repeat = 1
 
     A_dataset = make_dataset(A_img_paths, batch_size, load_size, crop_size, training, drop_remainder=True,
-                             shuffle=shuffle, repeat=1)
+                             shuffle=shuffle, repeat=A_repeat)
     B_dataset = make_dataset(B_img_paths, batch_size, load_size, crop_size, training, drop_remainder=True,
-                             shuffle=shuffle, repeat=1)
+                             shuffle=shuffle, repeat=B_repeat)
 
     A_B_dataset = tf.data.Dataset.zip((A_dataset, B_dataset))
     len_dataset = max(len(A_img_paths), len(B_img_paths)) // batch_size
-    return A_dataset, B_dataset
     return A_B_dataset, len_dataset
 
 
@@ -133,7 +132,7 @@ def get_mura_data_paths():
             if part == 'all':
                 imgs = [root + str(x, encoding='utf-8').strip() for x in d]
             else:
-                imgs = [root + str(x, encoding='utf-8').strip().replace("MURA-v1.1", "MURA-v1.1") for x in d
+                imgs = [root + str(x, encoding='utf-8').strip().replace("MURA-v1.1", "MURA-v1.1_transformed") for x in d
                         if
                         str(x, encoding='utf-8').strip().split('/')[2] in part]
 
