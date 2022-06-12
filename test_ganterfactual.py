@@ -31,9 +31,6 @@ args = py.args()
 # ==============================================================================
 A_img_paths, B_img_paths, A_img_paths_test, B_img_paths_test = data.get_dataset_paths(args)
 
-print(A_img_paths_test)
-print(B_img_paths_test)
-
 A_dataset, B_dataset = data.make_zip_dataset(A_img_paths, B_img_paths, args.batch_size, args.crop_size,
                                                  args.crop_size, training=False, repeat=False)
 
