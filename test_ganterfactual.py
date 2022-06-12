@@ -10,7 +10,7 @@ import numpy as np
 import pylib as py
 import tensorflow as tf
 import data
-
+from skimage import color
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
@@ -20,7 +20,7 @@ gan_model_ts = "2022-05-26--15.51"
 py.arg('--dataset', default='mura')
 py.arg('--datasets_dir', default='datasets')
 py.arg('--batch_size', type=int, default=1)
-py.arg('--print_images', type=bool, default=False)
+py.arg('--print_images', type=bool, default=True)
 py.arg('--crop_size', type=int, default=512)
 py.arg('--gan_model_ts', type=str, default=None)
 
@@ -31,6 +31,8 @@ args = py.args()
 # ==============================================================================
 A_img_paths, B_img_paths, A_img_paths_test, B_img_paths_test = data.get_dataset_paths(args)
 
+print(A_img_paths_test)
+print(B_img_paths_test)
 
 A_dataset, B_dataset = data.make_zip_dataset(A_img_paths, B_img_paths, args.batch_size, args.crop_size,
                                                  args.crop_size, training=False, repeat=False)
@@ -54,7 +56,6 @@ def calculate_tcv_os(dataset, translation_name, G_A2B, G_B2A):
         if translation_name == "A2B":
             first_genrator = G_A2B
             cycle_generator = G_B2A
-
         else:
             first_genrator = G_B2A
             cycle_generator = G_A2B
@@ -74,7 +75,7 @@ def calculate_tcv_os(dataset, translation_name, G_A2B, G_B2A):
             y_pred_oracle.append(
                 int(np.argmax(oracle(tf.expand_dims(translated_i, axis=0)))))
             if args.print_images:
-                img = np.concatenate([img_i, translated_i, cycled_i], axis=1)
+                img = color.rgb2gray(np.concatenate([img_i, translated_i, cycled_i], axis=1))
                 img_name = translation_name + "_" + str(len_dataset) + ".png"
                 im.imwrite(img, py.join(save_dir, img_name))
 
@@ -94,7 +95,7 @@ def calculate_tcv_os(dataset, translation_name, G_A2B, G_B2A):
     return tcv, os, translated_images
 
 
-done = [ ]
+done = ["GANterfactual_2022-03-29--00.56", "GANterfactual_2022-03-26--06.18", "GANterfactual_2022-03-05--17.08", "GANterfactual_2022-03-29--10.12"]
 checkpoint_ts_list = ["GANterfactual_2022-03-29--00.56", "GANterfactual_2022-03-26--06.18", "GANterfactual_2022-03-05--17.08", "GANterfactual_2022-03-29--10.12"]
 
 with open(f'ganterfactual_{args.dataset}.txt', 'w') as f:
@@ -112,11 +113,11 @@ with open(f'ganterfactual_{args.dataset}.txt', 'w') as f:
         save_dir = py.join(f"checkpoints/gans/{args.dataset}/{name}", 'generated_imgs', "A2B")
         py.mkdir(save_dir)
         _, _, translated_images_A2B = calculate_tcv_os(A_dataset_test, "A2B", G_A2B, G_B2A)
-        calc_KID_for_model(translated_images_A2B, "A2B", args.crop_size, A_dataset, B_dataset)
+        calc_KID_for_model(translated_images_A2B, "A2B", args.crop_size, B_dataset)
 
         print("-> B2A")
         save_dir = py.join(f"checkpoints/gans/{args.dataset}/{name}", 'generated_imgs', "B2A")
         py.mkdir(save_dir)
         _, _, translated_images_B2A = calculate_tcv_os(B_dataset_test, "B2A", G_A2B, G_B2A)
-        calc_KID_for_model(translated_images_B2A, "B2A", args.crop_size, A_dataset, B_dataset)
+        calc_KID_for_model(translated_images_B2A, "B2A", args.crop_size, A_dataset)
         print("_______________________")
