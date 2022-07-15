@@ -9,6 +9,6 @@ python3 -m train_attention_gan \
   --cycle_loss_weight 10 \
   --counterfactual_loss_weight 1 \
   --identity_loss_weight 0 \
-  --generator resnet
+  --generator resnet \
   --start_attention_epoch 10 \
 
