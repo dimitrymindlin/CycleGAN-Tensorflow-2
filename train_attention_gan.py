@@ -335,6 +335,8 @@ with train_summary_writer.as_default():
                                    B_holder=B_holder)
 
             batch_count += 1
+            if batch_count > 50:
+                break
         # Calculate KID after epoch and log
         kid_A2B = calc_KID_for_model(A2B_pool, "A2B", args.crop_size, train_horses, train_zebras)
         print("kid_B2A ", kid_A2B)
