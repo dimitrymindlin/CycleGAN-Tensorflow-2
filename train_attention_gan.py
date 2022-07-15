@@ -18,6 +18,7 @@ import tensorflow_datasets as tfds
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
+from evaluation.kid import calc_KID_for_model
 from imlib import generate_image
 from imlib.image_holder import get_img_holders, multiply_images, add_images
 
@@ -334,6 +335,15 @@ with train_summary_writer.as_default():
                                    B_holder=B_holder)
 
             batch_count += 1
+            if batch_count > 50:
+                break
+        # Calculate KID after epoch and log
+        kid_A2B = calc_KID_for_model(A2B_pool, "A2B", args.crop_size, train_horses, train_zebras)
+        print("kid_B2A ", kid_A2B)
+        kid_B2A = calc_KID_for_model(B2A_pool, "B2A", args.crop_size, train_horses, train_zebras)
+        print("kid_B2A ", kid_B2A)
+        tl.summary(kid_A2B, step=ep, name='kid_A2B')
+        tl.summary(kid_B2A, step=ep, name='kid_B2A')
 
         # save checkpoint
         if ep > 90 and ep % 20 == 0:
