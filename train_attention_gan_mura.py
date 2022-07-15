@@ -319,5 +319,5 @@ with train_summary_writer.as_default():
             batch_count += 1
 
         # save checkpoint
-        if ep == 0 or ep > 10:
+        if ep > 15 and ep % 2 == 0:
             checkpoint.save(ep)

@@ -43,6 +43,7 @@ py.arg('--attention_type', type=str, default="attention-gan-original",
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 py.arg('--discriminator', type=str, default="patch-gan", choices=['classic', 'patch-gan'])
 py.arg('--load_checkpoint', type=str, default=None)
+py.arg('--start_attention_epoch', type=int, default = 2)
 args = py.args()
 
 # output_dir
@@ -114,31 +115,42 @@ train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 # ==============================================================================
 
 @tf.function
-def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, B_background):
+def train_G(A_img, B_img, A_attention, B_attention, A_background, B_background, ep_cnt):
     with tf.GradientTape() as t:
         A2B_transformed = G_A2B(A_img, training=True)
         B2A_transformed = G_B2A(B_img, training=True)
-        # Combine new transformed image with attention -> Crop important part from transformed img
-        A2B_transformed_attention = multiply_images(A2B_transformed, A_attention)
-        B2A_transformed_attention = multiply_images(B2A_transformed, B_attention)
-        # Add background to new img
-        A2B = add_images(A2B_transformed_attention, A_background)
-        B2A = add_images(B2A_transformed_attention, B_background)
-        # Cycle
-        A2B2A_transformed = G_B2A(A2B, training=True)
-        B2A2B_transformed = G_A2B(B2A, training=True)
-        # Combine new transformed image with attention
-        A2B2A_transformed_attention = multiply_images(A2B2A_transformed, A_attention)
-        A2B2A = add_images(A2B2A_transformed_attention, A_background)
-        B2A2B_transformed_attention = multiply_images(B2A2B_transformed, B_attention)
-        B2A2B = add_images(B2A2B_transformed_attention, B_background)
-
-        A2A_transformed = G_B2A(A_img, training=True)
-        A2A_transformed_attention = multiply_images(A2A_transformed, A_attention)
-        A2A = add_images(A2A_transformed_attention, A_background)
-        B2B_transformed = G_A2B(B_img, training=True)
-        B2B_transformed_attention = multiply_images(B2B_transformed, B_attention)
-        B2B = add_images(B2B_transformed_attention, B_background)
+        if ep_cnt >= args.start_attention_epoch:
+            # Combine new transformed image with attention -> Crop important part from transformed img
+            A2B_transformed_attention = multiply_images(A2B_transformed, A_attention)
+            B2A_transformed_attention = multiply_images(B2A_transformed, B_attention)
+            # Add background to new img
+            A2B = add_images(A2B_transformed_attention, A_background)
+            B2A = add_images(B2A_transformed_attention, B_background)
+            # Cycle
+            A2B2A_transformed = G_B2A(A2B, training=True)
+            B2A2B_transformed = G_A2B(B2A, training=True)
+            # Combine new transformed image with attention
+            A2B2A_transformed_attention = multiply_images(A2B2A_transformed, A_attention)
+            A2B2A = add_images(A2B2A_transformed_attention, A_background)
+            B2A2B_transformed_attention = multiply_images(B2A2B_transformed, B_attention)
+            B2A2B = add_images(B2A2B_transformed_attention, B_background)
+            A2A_transformed = G_B2A(A_img, training=True)
+            A2A_transformed_attention = multiply_images(A2A_transformed, A_attention)
+            A2A = add_images(A2A_transformed_attention, A_background)
+            B2B_transformed = G_A2B(B_img, training=True)
+            B2B_transformed_attention = multiply_images(B2B_transformed, B_attention)
+            B2B = add_images(B2B_transformed_attention, B_background)
+        else:
+            A2B = A2B_transformed
+            B2A = B2A_transformed
+            A2B2A_transformed = G_B2A(A2B_transformed, training=True)
+            B2A2B_transformed = G_A2B(B2A_transformed, training=True)
+            A2B2A = A2B2A_transformed
+            B2A2B = B2A2B_transformed
+            A2A_transformed = G_B2A(A_img, training=True)
+            A2A = A2A_transformed
+            B2B_transformed = G_A2B(B_img, training=True)
+            B2B = B2B_transformed
 
         A2B_d_logits = D_B(A2B, training=True)
         B2A_d_logits = D_A(B2A, training=True)
@@ -205,10 +217,11 @@ def train_D(A, B, A2B, B2A):
             'D_B_acc': train_D_B_acc.result()}
 
 
-def train_step(A_holder, B_holder):
-    A2B, B2A, G_loss_dict = train_G_attention_gan(A_holder.img, B_holder.img,
-                                                  A_holder.attention, B_holder.attention,
-                                                  A_holder.background, B_holder.background)
+def train_step(A_holder, B_holder, ep_cnt):
+    A2B, B2A, G_loss_dict = train_G(A_holder.img, B_holder.img,
+                                    A_holder.attention, B_holder.attention,
+                                    A_holder.background, B_holder.background,
+                                    ep_cnt)
 
     # cannot autograph `A2B_pool`
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
@@ -288,7 +301,7 @@ with train_summary_writer.as_default():
             A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
                                                  gradcam=gradcam)
 
-            G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
+            G_loss_dict, D_loss_dict = train_step(A_holder, B_holder, ep_cnt)
 
             # # summary
             tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
@@ -324,4 +337,8 @@ with train_summary_writer.as_default():
 
         # save checkpoint
         if ep > 90 and ep % 20 == 0:
+            checkpoint.save(ep)
+        if ep == 9:
+            checkpoint.save(ep)
+        if ep == 30:
             checkpoint.save(ep)
