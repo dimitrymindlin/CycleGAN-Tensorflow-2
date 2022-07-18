@@ -66,10 +66,10 @@ class KID(keras.metrics.Metric):
         self.kid_tracker.reset_state()
 
 
-def calc_KID_for_model(translated_images, translation_name, crop_size, A_dataset, B_dataset = None, data_length=50):
+def calc_KID_for_model(translated_images, translation_name, crop_size, A_dataset, B_dataset = None):
     kid = KID(image_size=crop_size)
     kid_value_list = []
-    images_length = data_length
+    images_length = len(translated_images)
     if B_dataset:
         if translation_name == "A2B":
             source_domain = A_dataset

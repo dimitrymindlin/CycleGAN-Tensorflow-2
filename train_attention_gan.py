@@ -335,12 +335,10 @@ with train_summary_writer.as_default():
                                    B_holder=B_holder)
 
             batch_count += 1
-            if batch_count > 50:
-                break
         # Calculate KID after epoch and log
-        kid_A2B = calc_KID_for_model(A2B_pool, "A2B", args.crop_size, train_horses, train_zebras)
+        kid_A2B = calc_KID_for_model(A2B_pool.items, "A2B", args.crop_size, train_horses, train_zebras)
         print("kid_B2A ", kid_A2B)
-        kid_B2A = calc_KID_for_model(B2A_pool, "B2A", args.crop_size, train_horses, train_zebras)
+        kid_B2A = calc_KID_for_model(B2A_pool.items, "B2A", args.crop_size, train_horses, train_zebras)
         print("kid_B2A ", kid_B2A)
         tl.summary(kid_A2B, step=ep, name='kid_A2B')
         tl.summary(kid_B2A, step=ep, name='kid_B2A')
