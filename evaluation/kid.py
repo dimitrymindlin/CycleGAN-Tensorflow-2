@@ -116,3 +116,4 @@ def calc_KID_for_model(translated_images, translation_name, crop_size, A_dataset
     std = float("{0:.3f}".format(np.std(kid_value_list, dtype=np.float64) * 100))
     print("KID mean", mean)
     print("KID STD", std)
+    return mean, std
