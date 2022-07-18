@@ -338,10 +338,10 @@ with train_summary_writer.as_default():
         # Calculate KID after epoch and log
         kid_A2B_mean, kid_A2B_std = calc_KID_for_model(A2B_pool.items, "A2B", args.crop_size, train_horses, train_zebras)
         kid_B2A_mean, kid_B2A_std = calc_KID_for_model(B2A_pool.items, "B2A", args.crop_size, train_horses, train_zebras)
-        tl.summary(kid_A2B_mean, step=ep, name='kid_A2B_mean')
-        tl.summary(kid_A2B_std, step=ep, name='kid_A2B_std')
-        tl.summary(kid_B2A_mean, step=ep, name='kid_B2A_mean')
-        tl.summary(kid_B2A_std, step=ep, name='kid_B2A_std')
+        tl.summary({'kid_A2B_mean': kid_A2B_mean}, step=ep,name='kid_A2B_mean')
+        tl.summary({'kid_A2B_std': kid_A2B_std}, step=ep,name='kid_A2B_std')
+        tl.summary({'kid_B2A_mean': kid_A2B_mean}, step=ep, name='kid_B2A_mean')
+        tl.summary({'kid_B2A_std': kid_A2B_mean}, step=ep, name='kid_B2A_std')
 
         # save checkpoint
         if ep > 90 and ep % 20 == 0:
