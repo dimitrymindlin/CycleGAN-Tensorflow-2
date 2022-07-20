@@ -123,6 +123,11 @@ D_B.compile(loss='mse',
             optimizer=D_optimizer,
             metrics=['accuracy'])
 
+# Metrics to log
+train_D_A_acc = tf.keras.metrics.BinaryAccuracy()
+train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
+counterfactual_loss_fn = tf.losses.MeanSquaredError()
+
 patch = int(args.crop_size / 2 ** 4)
 disc_patch = (patch, patch, 1)
 valid = np.ones((args.batch_size,) + disc_patch)
