@@ -75,15 +75,12 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 # ==============================================================================
 # =                                    data                                    =
 # ==============================================================================
-A_img_paths, B_img_paths, A_img_paths_test, B_img_paths_test = data.get_dataset_paths(args)
-A_B_dataset, len_dataset = data.make_zip_dataset(A_img_paths, B_img_paths, args.batch_size, args.load_size,
-                                                 args.crop_size, training=True, repeat=False)
-A_B_dataset_test, _ = data.make_zip_dataset(A_img_paths_test, B_img_paths_test, args.batch_size, args.load_size,
-                                            args.crop_size, training=False, repeat=True)
 
 A2B_pool = data.ItemPool(args.pool_size)
 B2A_pool = data.ItemPool(args.pool_size)
 
+A_B_dataset, B_A_dataset_test, A_B_dataset_test, B_A_dataset_test, len_dataset = data.load_tfds_dataset(args.dataset,
+                                                                                           args.crop_size)
 # ==============================================================================
 # =                                   models                                   =
 # ==============================================================================
