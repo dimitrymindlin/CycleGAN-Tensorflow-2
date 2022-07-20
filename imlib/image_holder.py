@@ -52,6 +52,7 @@ class ImageHolder():
         self.background = None  # original image - heatmap
         self.enhanced_img = None  # original image * (heatmap + intensity)
         self.transformed_part = None  # depending on strategy, the part that should be transformed
+        self.transformed_without_attention = None  # TODO: Delete after testing
         if use_attention:
             self.get_attention(class_label, gradcam, attention_type, attention_intensity, attention_source)
             self.split_fore_and_background_by_attention()

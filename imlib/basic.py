@@ -109,8 +109,8 @@ def save_images_with_attention(A_holder, A2B, B_holder, B2A, clf, dataset,
                            axis=0), n_rows=2)
     else:  # attention-gan
         img = immerge(
-            np.concatenate([A_holder.img, A_holder.attention, A_holder.transformed_part, A2B,
-                            B_holder.img, B_holder.attention, B_holder.transformed_part, B2A],
+            np.concatenate([A_holder.img, A_holder.transformed_without_attention, A_holder.attention, A_holder.transformed_part, A2B,
+                            B_holder.img, B_holder.transformed_without_attention, B_holder.attention, B_holder.transformed_part, B2A],
                            axis=0), n_rows=2)
 
     img_folder = f'output_{dataset}/{execution_id}/images'

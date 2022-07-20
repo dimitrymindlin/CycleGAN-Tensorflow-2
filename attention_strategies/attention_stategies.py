@@ -15,6 +15,10 @@ def attention_gan_original(A, B, G_A2B, G_B2A, training=True):
     B2A_transformed = G_B2A(B.img, training=training)
     # Combine new transformed image with attention
     A2B_transformed_attention = multiply_images(A2B_transformed, A.attention)
+    #TODO: Delete after testing
+    A.transformed_without_attention = A2B_transformed
+    B.transformed_without_attention = B2A_transformed
+    #TODO: End
     A.transformed_part = A2B_transformed_attention
     B2A_transformed_attention = multiply_images(B2A_transformed, B.attention)
     B.transformed_part = B2A_transformed_attention
