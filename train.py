@@ -17,7 +17,7 @@ import module
 from attention_strategies.attention_strategies import attention_gan_original, attention_gan_foreground, spa_gan, \
     no_attention
 from imlib import generate_image
-from imlib.image_holder import ImageHolder
+from imlib.image_layers import ImageLayers
 
 # ==============================================================================
 # =                                   param                                    =
@@ -150,9 +150,56 @@ else:
 # =                                 train step                                 =
 # ==============================================================================
 
+@tf.function
+def train_G(A, B):  # No attention but counterfactual loss
+    with tf.GradientTape() as t:
+        A2B = G_A2B(A, training=True)
+        B2A = G_B2A(B, training=True)
+        A2B2A = G_B2A(A2B, training=True)
+        B2A2B = G_A2B(B2A, training=True)
+        A2A = G_B2A(A, training=True)
+        B2B = G_A2B(B, training=True)
+
+        A2B_d_logits = D_B(A2B, training=True)
+        B2A_d_logits = D_A(B2A, training=True)
+
+        if args.counterfactual_loss_weight > 0:
+            A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
+                                                             clf(tf.image.resize(A2B, [512, 512])))
+            B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth,
+                                                             clf(tf.image.resize(A2B, [512, 512])))
+        else:
+            A2B_counterfactual_loss = 0
+            B2A_counterfactual_loss = 0
+
+        A2B_g_loss = g_loss_fn(A2B_d_logits)
+        B2A_g_loss = g_loss_fn(B2A_d_logits)
+        A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
+        B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
+        A2A_id_loss = identity_loss_fn(A, A2A)
+        B2B_id_loss = identity_loss_fn(B, B2B)
+
+        G_loss = (A2B_g_loss + B2A_g_loss) + \
+                 (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + \
+                 (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
+                 (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight
+
+    G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
+    G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
+
+    return A2B, B2A, {'A2B_g_loss': A2B_g_loss,
+                      'B2A_g_loss': B2A_g_loss,
+                      'A2B2A_cycle_loss': A2B2A_cycle_loss,
+                      'B2A2B_cycle_loss': B2A2B_cycle_loss,
+                      'A2A_id_loss': A2A_id_loss,
+                      'B2B_id_loss': B2B_id_loss,
+                      'A2B_counterfactual_loss': A2B_counterfactual_loss,
+                      'B2A_counterfactual_loss': B2A_counterfactual_loss}
+
+
 def train_G(A, B):
     with tf.GradientTape() as t:
-        A2B, B2A, A2B2A, B2A2B = attention_strategy(A_holder, B_holder, G_A2B, G_B2A, training=True)
+        A2B, B2A, A2B2A, B2A2B = attention_strategy(A_layers, B_layers, G_A2B, G_B2A, training=True)
         # cycle loss
         A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
         B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
@@ -243,30 +290,30 @@ def train_D(A, B, A2B, B2A):
             }
 
 
-def train_step(A_holder, B_holder):
+def train_step(A_layers, B_layers):
     """
     Parameters
     ----------
-    A ImageHolder of image A
-    B ImageHolder of image B
+    A ImageLayers of image A
+    B ImageLayers of image B
     -------
     """
 
     if args.attention_type == "spa-gan":
-        A2B, B2A, G_loss_dict = train_G(A_holder.enhanced_img, B_holder.enhanced_img)
+        A2B, B2A, G_loss_dict = train_G(A_layers.enhanced_img, B_layers.enhanced_img)
     else:
-        A2B, B2A, G_loss_dict = train_G(A_holder.img, B_holder.img)
+        A2B, B2A, G_loss_dict = train_G(A_layers.img, B_layers.img)
 
     # cannot autograph `A2B_pool`
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
     B2A = B2A_pool(B2A)  # because of the communication between CPU and GPU
 
-    D_loss_dict = train_D(A_holder, B_holder, A2B, B2A)
+    D_loss_dict = train_D(A_layers, B_layers, A2B, B2A)
 
     return G_loss_dict, D_loss_dict
 
 
-def sample(A_holder, B_holder):
+def sample(A_layers, B_layers):
     """
     Parameters
     ----------
@@ -274,7 +321,7 @@ def sample(A_holder, B_holder):
     B AttentionImage if attention mode, else normal image tensor
     -------
     """
-    return attention_strategy(A_holder, B_holder, G_A2B, G_B2A, training=False)
+    return attention_strategy(A_layers, B_layers, G_A2B, G_B2A, training=False)
 
 
 # ==============================================================================
@@ -328,13 +375,13 @@ with train_summary_writer.as_default():
         batch_count = 0
         for A, B in tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset):
             if args.attention_type == "none":
-                A_holder = ImageHolder(A, 0, attention=False, attention_intensity=args.attention_intensity)
-                B_holder = ImageHolder(B, 1, attention=False, attention_intensity=args.attention_intensity)
+                A_layers = ImageLayers(A, 0, attention=False, attention_intensity=args.attention_intensity)
+                B_layers = ImageLayers(B, 1, attention=False, attention_intensity=args.attention_intensity)
             else:  # Attention-strategies
-                A_holder = ImageHolder(A, 0, gradcam, args.attention_type, attention_intensity=args.attention_intensity)
-                B_holder = ImageHolder(B, 1, gradcam, args.attention_type, attention_intensity=args.attention_intensity)
+                A_layers = ImageLayers(A, 0, gradcam, args.attention_type, attention_intensity=args.attention_intensity)
+                B_layers = ImageLayers(B, 1, gradcam, args.attention_type, attention_intensity=args.attention_intensity)
 
-            G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
+            G_loss_dict, D_loss_dict = train_step(A_layers, B_layers)
 
             # summary
             tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
@@ -351,17 +398,17 @@ with train_summary_writer.as_default():
                         # Create new iterator
                         test_iter = iter(A_B_dataset_test)
                     # Get images
-                    A_holder = ImageHolder(A, 0, gradcam, args.attention_type,
+                    A_layers = ImageLayers(A, 0, gradcam, args.attention_type,
                                            attention_intensity=args.attention_intensity)
-                    B_holder = ImageHolder(B, 1, gradcam, args.attention_type,
+                    B_layers = ImageLayers(B, 1, gradcam, args.attention_type,
                                            attention_intensity=args.attention_intensity)
-                    A2B, B2A = sample(A_holder, B_holder)
+                    A2B, B2A = sample(A_layers, B_layers)
 
                     # Save images
                     generate_image(args, clf, A, B, A2B, B2A,
                                    execution_id, ep, batch_count,
-                                   A_attention_image=A_holder,
-                                   B_attention_image=B_holder)
+                                   A_attention_image=A_layers,
+                                   B_attention_image=B_layers)
 
             batch_count += 1
 
