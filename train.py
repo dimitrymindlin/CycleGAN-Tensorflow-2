@@ -45,20 +45,29 @@ py.arg('--attention_type', type=str, default="none",
        choices=['attention-gan-foreground', 'spa-gan', 'none', 'attention-gan-original'])
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 py.arg('--discriminator', type=str, default="patch-gan", choices=['classic', 'patch-gan'])
+py.arg('--load_checkpoint', type=str, default=None)
 args = py.args()
 
-execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
 # output_dir
-try:
-    output_dir = py.join(f'output_{args.dataset}/{execution_id}')
-    py.mkdir(output_dir)
-except FileExistsError:
-    time.sleep(60)
+if not args.load_checkpoint:
     execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
+    # output_dir
+    try:
+        output_dir = py.join(f'output_{args.dataset}/{execution_id}')
+        py.mkdir(output_dir)
+    except FileExistsError:
+        time.sleep(60)
+        execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
+        output_dir = py.join(f'output_{args.dataset}/{execution_id}')
+        py.mkdir(output_dir)
+else:
+    # For loading checkpoint
+    execution_id = args.load_checkpoint
     output_dir = py.join(f'output_{args.dataset}/{execution_id}')
-    py.mkdir(output_dir)
 
 TF_LOG_DIR = f"logs/{args.dataset}/"
+
+py.mkdir(output_dir)
 
 # save settings
 py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
