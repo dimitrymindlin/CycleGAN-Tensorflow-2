@@ -18,7 +18,7 @@ from evaluation.load_test_data import load_test_data
 gan_model_ts = "2022-05-26--15.51"
 py.arg('--experiment_dir', default=f"checkpoints/gans/horse2zebra/{gan_model_ts}")
 py.arg('--batch_size', type=int, default=32)
-py.arg('--print_images', type=bool, default=True)
+py.arg('--print_images', type=bool, default=False)
 py.arg('--crop_size', type=int, default=256)
 py.arg('--gan_model_ts', type=str, default=None)
 args = py.args()
@@ -137,9 +137,9 @@ with open('normal_run.txt', 'w') as f:
         _, _, translated_images_A2B = calculate_tcv_os(test_horses, "A2B")
         calc_KID_for_model(translated_images_A2B, "A2B", args.crop_size, train_horses, train_zebras)
 
-        print("-> B2A")
+        """print("-> B2A")
         save_dir = py.join(f"checkpoints/gans/horse2zebra/{name}", 'generated_imgs', "B2A")
         py.mkdir(save_dir)
         _, _, translated_images_B2A = calculate_tcv_os(test_zebras, "B2A")
         calc_KID_for_model(translated_images_B2A, "B2A", args.crop_size, train_horses, train_zebras)
-        print("_______________________")
+        print("_______________________")"""
