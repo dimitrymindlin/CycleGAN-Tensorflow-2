@@ -1,7 +1,7 @@
 ### Attention Gan Original
 # From "Attention-GAN for Object Transfiguration in Wild Images"
 from imlib import plot_any_img
-from imlib.image_holder import add_images, multiply_images
+from imlib.image_layers import add_images, multiply_images
 import numpy as np
 
 

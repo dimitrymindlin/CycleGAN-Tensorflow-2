@@ -42,7 +42,7 @@ def multiply_images(img1, img2):
     return scale_to_minus_one_one(new)
 
 
-class ImageHolder():
+class ImageLayers:
     def __init__(self, img, class_label=None, gradcam=None, attention_type=None, attention=True, attention_intensity=1):
         self.img = img  # original image
         self.attention = None  # heatmap
