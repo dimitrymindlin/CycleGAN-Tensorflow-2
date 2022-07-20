@@ -121,6 +121,7 @@ def train_G(A_img, B_img, A_attention, B_attention, A_background, B_background, 
         A2B_transformed = G_A2B(A_img, training=True)
         B2A_transformed = G_B2A(B_img, training=True)
         if ep_cnt >= args.start_attention_epoch:
+            print(f"No attention in epoch {ep_cnt}")
             # Combine new transformed image with attention -> Crop important part from transformed img
             A2B_transformed_attention = multiply_images(A2B_transformed, A_attention)
             B2A_transformed_attention = multiply_images(B2A_transformed, B_attention)
@@ -311,7 +312,7 @@ with train_summary_writer.as_default():
                        name='learning rate')
 
             # sample
-            if ep == 0 or ep > 15 or ep % 3 == 0:
+            if ep == 0 or ep % 5 == 0:
                 if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1:
                     try:
                         A, B = next(test_iter)
@@ -345,8 +346,4 @@ with train_summary_writer.as_default():
 
         # save checkpoint
         if ep > 90 and ep % 20 == 0:
-            checkpoint.save(ep)
-        if ep == 9:
-            checkpoint.save(ep)
-        if ep == 30:
             checkpoint.save(ep)
