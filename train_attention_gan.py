@@ -1,9 +1,7 @@
 from datetime import datetime, time
 
 import numpy as np
-from tf_keras_vis.gradcam import Gradcam
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
-from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
 
 import pylib as py
 import tensorflow as tf
@@ -13,14 +11,14 @@ import tf2gan as gan
 import tqdm
 import data
 import module
-import tensorflow_datasets as tfds
 
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
+from attention_strategies import attention_strategies
 from evaluation.kid import calc_KID_for_model
 from imlib import generate_image
-from imlib.image_holder import get_img_holders, multiply_images, add_images
+from imlib.image_holder import get_img_holders
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
@@ -41,10 +39,12 @@ py.arg('--attention', type=str, default="gradcam", choices=['gradcam', 'gradcam-
 py.arg('--clf_name', type=str, default="inception")
 py.arg('--attention_type', type=str, default="attention-gan-original",
        choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
+py.arg('--current_attention_type', type=str, default="none")
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 py.arg('--discriminator', type=str, default="patch-gan", choices=['classic', 'patch-gan'])
 py.arg('--load_checkpoint', type=str, default=None)
-py.arg('--start_attention_epoch', type=int, default = 2)
+py.arg('--start_attention_epoch', type=int, default=2)
+
 args = py.args()
 
 # output_dir
@@ -112,83 +112,78 @@ train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 
 
 # ==============================================================================
-# =                                 train step                                 =
+# =                              helper functions                              =
 # ==============================================================================
 
+def calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B, l_fm=None):
+    # Calculate Losses
+    A2B_d_logits = D_B(A2B, training=True)
+    B2A_d_logits = D_A(B2A, training=True)
+
+    if args.counterfactual_loss_weight > 0:
+        A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
+                                                         clf(tf.image.resize(A2B, [512, 512])))
+        B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth,
+                                                         clf(tf.image.resize(A2B, [512, 512])))
+    else:
+        A2B_counterfactual_loss = tf.zeros(())
+        B2A_counterfactual_loss = tf.zeros(())
+
+    A2B_g_loss = g_loss_fn(A2B_d_logits)
+    B2A_g_loss = g_loss_fn(B2A_d_logits)
+    A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
+    B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
+    A2A_id_loss = identity_loss_fn(A, A2A)
+    B2B_id_loss = identity_loss_fn(B, B2B)
+
+    G_loss = (A2B_g_loss + B2A_g_loss) + \
+             (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
+             + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
+             (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight
+
+    G_loss_dict = {'A2B_g_loss': A2B_g_loss,
+                   'B2A_g_loss': B2A_g_loss,
+                   'A2B2A_cycle_loss': A2B2A_cycle_loss,
+                   'B2A2B_cycle_loss': B2A2B_cycle_loss,
+                   'A2A_id_loss': A2A_id_loss,
+                   'B2B_id_loss': B2B_id_loss,
+                   'A2B_counterfactual_loss': A2B_counterfactual_loss,
+                   'B2A_counterfactual_loss': B2A_counterfactual_loss}
+
+    if l_fm is not None:
+        G_loss_dict['GA_A2B_fm_loss'] = l_fm[0]
+        G_loss_dict['GB_B2A_fm_loss'] = l_fm[1]
+        G_loss += (l_fm[0] + l_fm[1]) * args.feature_map_loss_weight
+
+    return G_loss, G_loss_dict
+
+
+# ==============================================================================
+# =                                 train step                                 =
+# ==============================================================================
 @tf.function
-def train_G(A_img, B_img, A_attention, B_attention, A_background, B_background, ep_cnt):
+def train_G_no_attentiion(A_img, B_img, G_A2B, G_B2A):
+    # Generate images
     with tf.GradientTape() as t:
-        A2B_transformed = G_A2B(A_img, training=True)
-        B2A_transformed = G_B2A(B_img, training=True)
-        if ep_cnt >= args.start_attention_epoch:
-            print(f"No attention in epoch {ep_cnt}")
-            # Combine new transformed image with attention -> Crop important part from transformed img
-            A2B_transformed_attention = multiply_images(A2B_transformed, A_attention)
-            B2A_transformed_attention = multiply_images(B2A_transformed, B_attention)
-            # Add background to new img
-            A2B = add_images(A2B_transformed_attention, A_background)
-            B2A = add_images(B2A_transformed_attention, B_background)
-            # Cycle
-            A2B2A_transformed = G_B2A(A2B, training=True)
-            B2A2B_transformed = G_A2B(B2A, training=True)
-            # Combine new transformed image with attention
-            A2B2A_transformed_attention = multiply_images(A2B2A_transformed, A_attention)
-            A2B2A = add_images(A2B2A_transformed_attention, A_background)
-            B2A2B_transformed_attention = multiply_images(B2A2B_transformed, B_attention)
-            B2A2B = add_images(B2A2B_transformed_attention, B_background)
-            A2A_transformed = G_B2A(A_img, training=True)
-            A2A_transformed_attention = multiply_images(A2A_transformed, A_attention)
-            A2A = add_images(A2A_transformed_attention, A_background)
-            B2B_transformed = G_A2B(B_img, training=True)
-            B2B_transformed_attention = multiply_images(B2B_transformed, B_attention)
-            B2B = add_images(B2B_transformed_attention, B_background)
-        else:
-            A2B = A2B_transformed
-            B2A = B2A_transformed
-            A2B2A_transformed = G_B2A(A2B_transformed, training=True)
-            B2A2B_transformed = G_A2B(B2A_transformed, training=True)
-            A2B2A = A2B2A_transformed
-            B2A2B = B2A2B_transformed
-            A2A_transformed = G_B2A(A_img, training=True)
-            A2A = A2A_transformed
-            B2B_transformed = G_A2B(B_img, training=True)
-            B2B = B2B_transformed
-
-        A2B_d_logits = D_B(A2B, training=True)
-        B2A_d_logits = D_A(B2A, training=True)
-
-        if args.counterfactual_loss_weight > 0:
-            A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
-                                                             clf(tf.image.resize(A2B, [512, 512])))
-            B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth,
-                                                             clf(tf.image.resize(A2B, [512, 512])))
-        else:
-            A2B_counterfactual_loss = 0
-            B2A_counterfactual_loss = 0
-
-        A2B_g_loss = g_loss_fn(A2B_d_logits)
-        B2A_g_loss = g_loss_fn(B2A_d_logits)
-        A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
-        B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
-        A2A_id_loss = identity_loss_fn(A, A2A)
-        B2B_id_loss = identity_loss_fn(B, B2B)
-
-        G_loss = (A2B_g_loss + B2A_g_loss) + \
-                 (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
-                 + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
-                 (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight
+        A2B, B2A, A2B2A, B2A2B, A2A, B2B = attention_strategies.no_attention(A_img, B_img, G_A2B, G_B2A)
+        G_loss, G_loss_dict = calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B)
 
     G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
     G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
+    return A2B, B2A, G_loss_dict
 
-    return A2B, B2A, {'A2B_g_loss': A2B_g_loss,
-                      'B2A_g_loss': B2A_g_loss,
-                      'A2B2A_cycle_loss': A2B2A_cycle_loss,
-                      'B2A2B_cycle_loss': B2A2B_cycle_loss,
-                      'A2A_id_loss': A2A_id_loss,
-                      'B2B_id_loss': B2B_id_loss,
-                      'A2B_counterfactual_loss': A2B_counterfactual_loss,
-                      'B2A_counterfactual_loss': B2A_counterfactual_loss}
+
+@tf.function
+def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, B_background):
+    # Generate images
+    with tf.GradientTape() as t:
+        A2B, B2A, A2B2A, B2A2B, A2A, B2B = attention_strategies.attention_gan(A_img, B_img, G_A2B, G_B2A, A_attention,
+                                                                              B_attention, A_background, B_background)
+        G_loss, G_loss_dict = calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B)
+
+    G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
+    G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
+    return A2B, B2A, G_loss_dict
 
 
 @tf.function
@@ -219,11 +214,13 @@ def train_D(A, B, A2B, B2A):
             'D_B_acc': train_D_B_acc.result()}
 
 
-def train_step(A_holder, B_holder, ep_cnt):
-    A2B, B2A, G_loss_dict = train_G(A_holder.img, B_holder.img,
-                                    A_holder.attention, B_holder.attention,
-                                    A_holder.background, B_holder.background,
-                                    ep_cnt)
+def train_step(A_holder, B_holder):
+    if args.current_attention_type == "none":
+        A2B, B2A, G_loss_dict = train_G_no_attentiion(A_holder.img, B_holder.img, G_A2B, G_B2A)
+    else:
+        A2B, B2A, G_loss_dict = train_G_attention_gan(A_holder.img, B_holder.img,
+                                                      A_holder.attention, B_holder.attention,
+                                                      A_holder.background, B_holder.background)
 
     # cannot autograph `A2B_pool`
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
@@ -237,15 +234,18 @@ def train_step(A_holder, B_holder, ep_cnt):
 
 
 @tf.function
+def sample_no_attention(A_img, B_img):
+    A2B, B2A, A2B2A, B2A2B = attention_strategies.no_attention(A_img, B_img, G_A2B, G_B2A,
+                                                               training=False)
+    return A2B, B2A, A2B2A, B2A2B
+
+
+@tf.function
 def sample(A_img, B_img, A_attention, B_attention, A_background, B_background):
-    A2B_transformed = G_A2B(A_img, training=False)
-    B2A_transformed = G_B2A(B_img, training=False)
-    # Combine new transformed image with attention -> Crop important part from transformed img
-    A2B_transformed_attention = multiply_images(A2B_transformed, A_attention)
-    B2A_transformed_attention = multiply_images(B2A_transformed, B_attention)
-    # Add background to new img
-    A2B = add_images(A2B_transformed_attention, A_background)
-    B2A = add_images(B2A_transformed_attention, B_background)
+    A2B, B2A, A2B_transformed, B2A_transformed = attention_strategies.attention_gan(A_img, B_img, G_A2B, G_B2A,
+                                                                                    A_attention,
+                                                                                    B_attention, A_background,
+                                                                                    B_background, training=False)
     return A2B, B2A, A2B_transformed, B2A_transformed
 
 
@@ -267,10 +267,9 @@ checkpoint = tl.Checkpoint(dict(G_A2B=G_A2B,
                            py.join(output_dir, 'checkpoints'))
 try:  # restore checkpoint including the epoch counter
     checkpoint.restore().assert_existing_objects_matched()
-    print("restored checkpoint :)")
+    print("restored checkpoint...")
     print(f"continuing with epoch {ep_cnt.numpy()}")
 except Exception as e:
-    print("Didn't find checkpoint :(")
     print(e)
 
 # summary
@@ -302,8 +301,13 @@ with train_summary_writer.as_default():
                           total=len_dataset)):
             A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
                                                  gradcam=gradcam)
+            # Select attention type
+            if ep < args.start_attention_epoch:
+                args.current_attention_type = "none"
+            else:
+                args.current_attention_type = args.attention_type
 
-            G_loss_dict, D_loss_dict = train_step(A_holder, B_holder, ep_cnt)
+            G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
 
             # # summary
             tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
@@ -312,8 +316,8 @@ with train_summary_writer.as_default():
                        name='learning rate')
 
             # sample
-            if ep == 0 or ep % 5 == 0:
-                if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1:
+            if ep == 0 or ep == 1 or ep % 5 == 0:
+                if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1 or G_optimizer.iterations.numpy() == 2:
                     try:
                         A, B = next(test_iter)
                     except StopIteration:  # When all elements finished
@@ -324,23 +328,39 @@ with train_summary_writer.as_default():
                     A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
                                                          gradcam=gradcam)
 
-                    A2B, B2A, A2B_transformed, B2A_transformed = sample(A_holder.img, B_holder.img,
-                                                                        A_holder.attention, B_holder.attention,
-                                                                        A_holder.background, B_holder.background)
+                    if args.current_attention_type == "none":
+                        A2B, B2A, A2B2A, B2A2B = sample_no_attention(A_holder.img, B_holder.img)
+                        generate_image(args, clf, A, B, A2B, B2A,
+                                       execution_id, ep, batch_count,
+                                       A_holder=A_holder,
+                                       B_holder=B_holder,
+                                       A2B2A=A2B2A,
+                                       B2A2B=B2A2B)
 
-                    A_holder.transformed_part = A2B_transformed
-                    B_holder.transformed_part = B2A_transformed
-                    generate_image(args, clf, A, B, A2B, B2A,
-                                   execution_id, ep, batch_count,
-                                   A_holder=A_holder,
-                                   B_holder=B_holder)
+                    else:
+                        A2B, B2A, A2B_transformed, B2A_transformed = sample(A_holder.img, B_holder.img,
+                                                                            A_holder.attention, B_holder.attention,
+                                                                            A_holder.background, B_holder.background)
+
+                        A_holder.transformed_part = A2B_transformed
+                        B_holder.transformed_part = B2A_transformed
+
+                        generate_image(args, clf, A, B, A2B, B2A,
+                                       execution_id, ep, batch_count,
+                                       A_holder=A_holder,
+                                       B_holder=B_holder)
 
             batch_count += 1
+            args.start_attention_epoch = 0
+            if batch_count == 2:
+                quit()
         # Calculate KID after epoch and log
-        kid_A2B_mean, kid_A2B_std = calc_KID_for_model(A2B_pool.items, "A2B", args.crop_size, train_horses, train_zebras)
-        kid_B2A_mean, kid_B2A_std = calc_KID_for_model(B2A_pool.items, "B2A", args.crop_size, train_horses, train_zebras)
-        tl.summary({'kid_A2B_mean': tf.Variable(kid_A2B_mean)}, step=ep,name='kid_A2B_mean')
-        tl.summary({'kid_A2B_std': tf.Variable(kid_A2B_std)}, step=ep,name='kid_A2B_std')
+        kid_A2B_mean, kid_A2B_std = calc_KID_for_model(A2B_pool.items, "A2B", args.crop_size, train_horses,
+                                                       train_zebras)
+        kid_B2A_mean, kid_B2A_std = calc_KID_for_model(B2A_pool.items, "B2A", args.crop_size, train_horses,
+                                                       train_zebras)
+        tl.summary({'kid_A2B_mean': tf.Variable(kid_A2B_mean)}, step=ep, name='kid_A2B_mean')
+        tl.summary({'kid_A2B_std': tf.Variable(kid_A2B_std)}, step=ep, name='kid_A2B_std')
         tl.summary({'kid_B2A_mean': tf.Variable(kid_A2B_mean)}, step=ep, name='kid_B2A_mean')
         tl.summary({'kid_B2A_std': tf.Variable(kid_A2B_mean)}, step=ep, name='kid_B2A_std')
 

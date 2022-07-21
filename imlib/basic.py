@@ -14,17 +14,16 @@ def generate_image(args, clf, A, B, A2B, B2A,
                    B_holder=None,
                    A2B2A=None,
                    B2A2B=None):
-    try:
-        if args.attention_type != "none":  # Save with attention
-            if args.dataset == "mura":
-                imgs = [A, A_holder.attention, A_holder.transformed_part, A2B,
-                        B, B_holder.attention, B_holder.transformed_part, B2A]
-                save_mura_images_with_attention(imgs, clf, args.dataset, execution_id, ep, batch_count)
-            else:
-                save_images_with_attention(A_holder, A2B, B_holder, B2A,
-                                           clf, args.dataset, execution_id, ep, batch_count,
-                                           args.attention_type)
-    except AttributeError:  # Normal run because args.attention_type not in train.py
+    if args.current_attention_type != "none":  # Save with attention
+        if args.dataset == "mura":
+            imgs = [A, A_holder.attention, A_holder.transformed_part, A2B,
+                    B, B_holder.attention, B_holder.transformed_part, B2A]
+            save_mura_images_with_attention(imgs, clf, args.dataset, execution_id, ep, batch_count)
+        else:
+            save_images_with_attention(A_holder, A2B, B_holder, B2A,
+                                       clf, args.dataset, execution_id, ep, batch_count,
+                                       args.current_attention_type)
+    else:  # Normal run because args.attention_type not in train.py
         if args.dataset == "mura":
             imgs = [A, A2B, B, B2A]
             save_mura_images(imgs, clf, args.dataset, execution_id, ep, batch_count)
@@ -109,8 +108,8 @@ def save_images_with_attention(A_holder, A2B, B_holder, B2A, clf, dataset,
                            axis=0), n_rows=2)
     else:  # attention-gan
         img = immerge(
-            np.concatenate([A_holder.img, A_holder.transformed_without_attention, A_holder.attention, A_holder.transformed_part, A2B,
-                            B_holder.img, B_holder.transformed_without_attention, B_holder.attention, B_holder.transformed_part, B2A],
+            np.concatenate([A_holder.img, A_holder.attention, A_holder.transformed_part, A2B,
+                            B_holder.img, B_holder.attention, B_holder.transformed_part, B2A],
                            axis=0), n_rows=2)
 
     img_folder = f'output_{dataset}/{execution_id}/images'
