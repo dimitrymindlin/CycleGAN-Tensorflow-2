@@ -316,8 +316,8 @@ with train_summary_writer.as_default():
                        name='learning rate')
 
             # sample
-            if ep == 0 or ep == 1 or ep % 5 == 0:
-                if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1 or G_optimizer.iterations.numpy() == 2:
+            if ep == 0 or ep % 5 == 0:
+                if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1:
                     try:
                         A, B = next(test_iter)
                     except StopIteration:  # When all elements finished
@@ -351,9 +351,7 @@ with train_summary_writer.as_default():
                                        B_holder=B_holder)
 
             batch_count += 1
-            args.start_attention_epoch = 0
-            if batch_count == 2:
-                quit()
+
         # Calculate KID after epoch and log
         kid_A2B_mean, kid_A2B_std = calc_KID_for_model(A2B_pool.items, "A2B", args.crop_size, train_horses,
                                                        train_zebras)
