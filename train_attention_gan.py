@@ -3,7 +3,9 @@ import time
 
 import numpy as np
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
-
+from tf_keras_vis.gradcam import Gradcam
+from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
+import attention_strategies.attention_strategies
 import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
@@ -34,14 +36,15 @@ py.arg('--adversarial_loss_mode', default='gan', choices=['gan', 'hinge_v1', 'hi
 py.arg('--discriminator_loss_weight', type=float, default=1)
 py.arg('--cycle_loss_weight', type=float, default=10)
 py.arg('--counterfactual_loss_weight', type=float, default=0)
+py.arg('--feature_map_loss_weight', type=float, default=0)
 py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
-py.arg('--attention', type=str, default="gradcam", choices=['gradcam', 'gradcam-plus-plus'])
 py.arg('--clf_name', type=str, default="inception")
-py.arg('--attention_type', type=str, default="attention-gan-original",
-       choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
+py.arg('--attention_source', type=str, default='clf', choices=['discriminator', 'clf'])
+py.arg('--attention_type', type=str, default='none',
+       choices=['attention-gan-original', 'spa-gan', 'none'])
 py.arg('--current_attention_type', type=str, default="none")
-py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
+py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet', "resnet-attention"])
 py.arg('--discriminator', type=str, default="patch-gan", choices=['classic', 'patch-gan'])
 py.arg('--load_checkpoint', type=str, default=None)
 py.arg('--start_attention_epoch', type=int, default=2)
@@ -87,8 +90,12 @@ train_horses, train_zebras, test_horses, test_zebras, len_dataset = data.load_tf
 # =                                   models                                   =
 # ==============================================================================
 
-G_A2B = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
-G_B2A = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
+if args.generator == "resnet-attention":
+    G_A2B = module.ResnetAttentionGenerator(input_shape=(args.crop_size, args.crop_size, 3))
+    G_B2A = module.ResnetAttentionGenerator(input_shape=(args.crop_size, args.crop_size, 3))
+else:
+    G_A2B = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
+    G_B2A = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
 
 D_A = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
 D_B = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
@@ -96,12 +103,27 @@ D_B = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
 d_loss_fn, g_loss_fn = gan.get_adversarial_losses_fn(args.adversarial_loss_mode)
 cycle_loss_fn = tf.losses.MeanAbsoluteError()
 identity_loss_fn = tf.losses.MeanAbsoluteError()
+feature_map_loss_fn = gan.get_feature_map_loss_fn()
 counterfactual_loss_fn = tf.losses.MeanSquaredError()
 
 class_A_ground_truth = np.stack([np.ones(args.batch_size), np.zeros(args.batch_size)]).T
 class_B_ground_truth = np.stack([np.zeros(args.batch_size), np.ones(args.batch_size)]).T
 
-clf = tf.keras.models.load_model(f"checkpoints/{args.clf_name}_{args.dataset}_512/model", compile=False)
+# Correct settings for spa-gan with feature-map-loss
+if args.feature_map_loss_weight > 0:
+    args.generator = "resnet-attention"
+    # Create GradCAM object for discriminators
+    gradcam = None
+    gradcam_D_A = None
+    gradcam_D_B = None
+    args.counterfactual_loss_weight = 0
+    gradcam_D_A = Gradcam(D_A, model_modifier=ReplaceToLinear(), clone=True)
+    gradcam_D_B = Gradcam(D_B, model_modifier=ReplaceToLinear(), clone=True)
+
+clf = None
+if args.attention_source == "clf" and args.attention_type != "none":
+    clf = tf.keras.models.load_model(f"checkpoints/{args.clf_name}_{args.dataset}_512/model", compile=False)
+    gradcam = GradcamPlusPlus(clf, clone=True)
 
 G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
 D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
@@ -163,7 +185,7 @@ def calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B, l_fm=None):
 # =                                 train step                                 =
 # ==============================================================================
 @tf.function
-def train_G_no_attentiion(A_img, B_img, G_A2B, G_B2A):
+def train_G_no_attention(A_img, B_img, G_A2B, G_B2A):
     # Generate images
     with tf.GradientTape() as t:
         A2B, B2A, A2B2A, B2A2B, A2A, B2B = attention_strategies.no_attention(A_img, B_img, G_A2B, G_B2A)
@@ -217,7 +239,7 @@ def train_D(A, B, A2B, B2A):
 
 def train_step(A_holder, B_holder):
     if args.current_attention_type == "none":
-        A2B, B2A, G_loss_dict = train_G_no_attentiion(A_holder.img, B_holder.img, G_A2B, G_B2A)
+        A2B, B2A, G_loss_dict = train_G_no_attention(A_holder.img, B_holder.img, G_A2B, G_B2A)
     else:
         A2B, B2A, G_loss_dict = train_G_attention_gan(A_holder.img, B_holder.img,
                                                       A_holder.attention, B_holder.attention,
@@ -234,7 +256,7 @@ def train_step(A_holder, B_holder):
     return G_loss_dict, D_loss_dict
 
 
-@tf.function
+# @tf.function
 def sample_no_attention(A_img, B_img):
     A2B, B2A, A2B2A, B2A2B = attention_strategies.no_attention(A_img, B_img, G_A2B, G_B2A,
                                                                training=False)
@@ -282,7 +304,7 @@ sample_dir = py.join(output_dir, 'images')
 py.mkdir(sample_dir)
 
 # Create GradCAM object
-if args.attention == "gradcam":
+if args.attention_type != "none":
     gradcam = GradcamPlusPlus(clf, clone=True)
 else:
     gradcam = None
@@ -300,7 +322,7 @@ with train_summary_writer.as_default():
         for batch_count, (A, B) in enumerate(
                 tqdm.tqdm(tf.data.Dataset.zip((train_horses, train_zebras)), desc='Inner Epoch Loop',
                           total=len_dataset)):
-            A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
+            A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention_source,
                                                  gradcam=gradcam)
             # Select attention type
             if ep < args.start_attention_epoch:
@@ -326,7 +348,7 @@ with train_summary_writer.as_default():
                         test_iter = iter(tf.data.Dataset.zip(((test_horses, test_zebras))))
                         A, B = next(test_iter)
 
-                    A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
+                    A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention_source,
                                                          gradcam=gradcam)
 
                     if args.current_attention_type == "none":
