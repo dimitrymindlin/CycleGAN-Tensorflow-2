@@ -116,7 +116,7 @@ def train_G(A, B):
             A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
                                                              clf(tf.image.resize(A2B, [512, 512])))
             B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth,
-                                                             clf(tf.image.resize(A2B, [512, 512])))
+                                                             clf(tf.image.resize(B2A, [512, 512])))
         else:
             A2B_counterfactual_loss = 0
             B2A_counterfactual_loss = 0
