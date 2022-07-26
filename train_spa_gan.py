@@ -21,7 +21,7 @@ import module
 from imlib.image_holder import get_img_holders, multiply_images
 
 py.arg('--dataset', default='horse2zebra')
-py.arg('--datasets_dirclf =', default='datasets')
+py.arg('--datasets_dir =', default='datasets')
 py.arg('--load_size', type=int, default=286)  # load image to this size
 py.arg('--crop_size', type=int, default=256)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
@@ -160,8 +160,8 @@ def train_G_attention(A_enhanced, B_enhanced, A_attention, B_attention):
         A2A, _ = G_B2A(A_enhanced, training=True)
         B2B, _ = G_A2B(B_enhanced, training=True)
 
-        A2B_d_logits = D_B(A2B, training=True)
-        B2A_d_logits = D_A(B2A, training=True)
+        GA_A2B_fm_loss = feature_map_loss_fn(A_real_feature_map, A_fake_feature_map)
+        GB_B2A_fm_loss = feature_map_loss_fn(B_real_feature_map, B_fake_feature_map)
 
         if args.counterfactual_loss_weight > 0:
             A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
@@ -172,9 +172,8 @@ def train_G_attention(A_enhanced, B_enhanced, A_attention, B_attention):
             A2B_counterfactual_loss = 0
             B2A_counterfactual_loss = 0
 
-        GA_A2B_fm_loss = feature_map_loss_fn(A_real_feature_map, A_fake_feature_map)
-        GA_B2A_fm_loss = feature_map_loss_fn(B_real_feature_map, B_fake_feature_map)
-
+        A2B_d_logits = D_B(A2B, training=True)
+        B2A_d_logits = D_A(B2A, training=True)
         A2B_g_loss = g_loss_fn(A2B_d_logits)
         B2A_g_loss = g_loss_fn(B2A_d_logits)
         A2B2A_cycle_loss = cycle_loss_fn(A_enhanced, A2B2A)
@@ -184,7 +183,7 @@ def train_G_attention(A_enhanced, B_enhanced, A_attention, B_attention):
 
         G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + \
                  (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
-                 (GA_A2B_fm_loss + GA_B2A_fm_loss) * args.feature_map_loss_weight + \
+                 (GA_A2B_fm_loss + GB_B2A_fm_loss) * args.feature_map_loss_weight + \
                  (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight
 
     G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
@@ -197,7 +196,7 @@ def train_G_attention(A_enhanced, B_enhanced, A_attention, B_attention):
                       'A2A_id_loss': A2A_id_loss,
                       'B2B_id_loss': B2B_id_loss,
                       'GA_A2B_fm_loss': GA_A2B_fm_loss,
-                      'GA_B2A_fm_loss': GA_B2A_fm_loss,
+                      'GA_B2A_fm_loss': GB_B2A_fm_loss,
                       'A2B_counterfactual_loss': A2B_counterfactual_loss,
                       'B2A_counterfactual_loss': B2A_counterfactual_loss}
 
