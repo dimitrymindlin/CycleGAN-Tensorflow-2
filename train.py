@@ -33,6 +33,7 @@ py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 py.arg('--discriminator', type=str, default="patch-gan", choices=['classic', 'patch-gan'])
 py.arg('--load_checkpoint', type=str, default=None)
+py.arg('--current_attention_type', type=str, default="none")
 args = py.args()
 
 # output_dir
@@ -258,7 +259,7 @@ with train_summary_writer.as_default():
                         A, B = next(test_iter)
                     except StopIteration:  # When all elements finished
                         # Create new iterator
-                        test_iter = test_iter = iter(tf.data.Dataset.zip(((test_horses, test_zebras))))
+                        test_iter = iter(tf.data.Dataset.zip(((test_horses, test_zebras))))
                         A, B = next(test_iter)
 
                     A2B, B2A, A2B2A, B2A2B = sample(A, B)
