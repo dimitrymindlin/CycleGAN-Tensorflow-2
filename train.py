@@ -8,6 +8,8 @@ import tensorflow.keras as keras
 import tf2lib as tl
 import tf2gan as gan
 import tqdm
+
+from attention_strategies import attention_strategies
 from imlib import generate_image
 import data
 import module
@@ -105,12 +107,7 @@ if args.counterfactual_loss_weight > 0:
 @tf.function
 def train_G(A, B):
     with tf.GradientTape() as t:
-        A2B = G_A2B(A, training=True)
-        B2A = G_B2A(B, training=True)
-        A2B2A = G_B2A(A2B, training=True)
-        B2A2B = G_A2B(B2A, training=True)
-        A2A = G_B2A(A, training=True)
-        B2B = G_A2B(B, training=True)
+        A2B, B2A, A2B2A, B2A2B, A2A, B2B = attention_strategies.no_attention(A, B, G_A2B, G_B2A)
 
         A2B_d_logits = D_B(A2B, training=True)
         B2A_d_logits = D_A(B2A, training=True)
