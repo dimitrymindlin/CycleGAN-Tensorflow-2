@@ -116,7 +116,7 @@ train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 # =                              helper functions                              =
 # ==============================================================================
 
-def calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B, l_fm=None):
+def calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B):
     # Calculate Losses
     A2B_d_logits = D_B(A2B, training=True)
     B2A_d_logits = D_A(B2A, training=True)
@@ -125,7 +125,7 @@ def calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B, l_fm=None):
         A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
                                                          clf(tf.image.resize(A2B, [512, 512])))
         B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth,
-                                                         clf(tf.image.resize(A2B, [512, 512])))
+                                                         clf(tf.image.resize(B2A, [512, 512])))
     else:
         A2B_counterfactual_loss = tf.zeros(())
         B2A_counterfactual_loss = tf.zeros(())
@@ -150,11 +150,6 @@ def calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B, l_fm=None):
                    'B2B_id_loss': B2B_id_loss,
                    'A2B_counterfactual_loss': A2B_counterfactual_loss,
                    'B2A_counterfactual_loss': B2A_counterfactual_loss}
-
-    if l_fm is not None:
-        G_loss_dict['GA_A2B_fm_loss'] = l_fm[0]
-        G_loss_dict['GB_B2A_fm_loss'] = l_fm[1]
-        G_loss += (l_fm[0] + l_fm[1]) * args.feature_map_loss_weight
 
     return G_loss, G_loss_dict
 
