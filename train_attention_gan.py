@@ -101,8 +101,6 @@ counterfactual_loss_fn = tf.losses.MeanSquaredError()
 class_A_ground_truth = np.stack([np.ones(args.batch_size), np.zeros(args.batch_size)]).T
 class_B_ground_truth = np.stack([np.zeros(args.batch_size), np.ones(args.batch_size)]).T
 
-clf = tf.keras.models.load_model(f"checkpoints/{args.clf_name}_{args.dataset}_512/model", compile=False)
-
 G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
 D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
 G_optimizer = keras.optimizers.Adam(learning_rate=G_lr_scheduler, beta_1=args.beta_1)
@@ -111,11 +109,15 @@ D_optimizer = keras.optimizers.Adam(learning_rate=D_lr_scheduler, beta_1=args.be
 train_D_A_acc = tf.keras.metrics.BinaryAccuracy()
 train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 
+if args.counterfactual_loss_weight > 0:
+    clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}_512/model", compile=False)
+else:
+    clf = None
+
 
 # ==============================================================================
 # =                              helper functions                              =
 # ==============================================================================
-
 def calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B):
     # Calculate Losses
     A2B_d_logits = D_B(A2B, training=True)
@@ -158,8 +160,7 @@ def calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B):
 # =                                 train step                                 =
 # ==============================================================================
 @tf.function
-def train_G_no_attentiion(A_img, B_img, G_A2B, G_B2A):
-    # Generate images
+def train_G_no_attention(A_img, B_img):
     with tf.GradientTape() as t:
         A2B, B2A, A2B2A, B2A2B, A2A, B2B = attention_strategies.no_attention(A_img, B_img, G_A2B, G_B2A)
         G_loss, G_loss_dict = calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B)
@@ -212,7 +213,7 @@ def train_D(A, B, A2B, B2A):
 
 def train_step(A_holder, B_holder):
     if args.current_attention_type == "none":
-        A2B, B2A, G_loss_dict = train_G_no_attentiion(A_holder.img, B_holder.img, G_A2B, G_B2A)
+        A2B, B2A, G_loss_dict = train_G_no_attention(A_holder.img, B_holder.img)
     else:
         A2B, B2A, G_loss_dict = train_G_attention_gan(A_holder.img, B_holder.img,
                                                       A_holder.attention, B_holder.attention,

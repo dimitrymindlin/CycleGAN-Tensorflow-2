@@ -84,6 +84,10 @@ D_B = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
 d_loss_fn, g_loss_fn = gan.get_adversarial_losses_fn(args.adversarial_loss_mode)
 cycle_loss_fn = tf.losses.MeanAbsoluteError()
 identity_loss_fn = tf.losses.MeanAbsoluteError()
+counterfactual_loss_fn = tf.losses.MeanSquaredError()
+
+class_A_ground_truth = np.stack([np.ones(args.batch_size), np.zeros(args.batch_size)]).T
+class_B_ground_truth = np.stack([np.zeros(args.batch_size), np.ones(args.batch_size)]).T
 
 G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
 D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
@@ -92,13 +96,12 @@ D_optimizer = keras.optimizers.Adam(learning_rate=D_lr_scheduler, beta_1=args.be
 
 train_D_A_acc = tf.keras.metrics.BinaryAccuracy()
 train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
-counterfactual_loss_fn = tf.losses.MeanSquaredError()
-
-class_A_ground_truth = np.stack([np.ones(args.batch_size), np.zeros(args.batch_size)]).T
-class_B_ground_truth = np.stack([np.zeros(args.batch_size), np.ones(args.batch_size)]).T
 
 if args.counterfactual_loss_weight > 0:
     clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}_512/model", compile=False)
+else:
+    clf = None
+
 
 # ==============================================================================
 # =                                 train step                                 =
@@ -140,16 +143,15 @@ def calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B):
 
     return G_loss, G_loss_dict
 
+
 @tf.function
 def train_G(A, B):
     with tf.GradientTape() as t:
         A2B, B2A, A2B2A, B2A2B, A2A, B2B = attention_strategies.no_attention(A, B, G_A2B, G_B2A)
-
         G_loss, G_loss_dict = calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B)
 
     G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
     G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
-
     return A2B, B2A, G_loss_dict
 
 
@@ -182,7 +184,7 @@ def train_D(A, B, A2B, B2A):
 
 
 def train_step(A, B):
-    A2B, B2A, G_loss_dict = train_G(A,B)
+    A2B, B2A, G_loss_dict = train_G(A, B)
 
     # cannot autograph `A2B_pool`
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
@@ -197,10 +199,8 @@ def train_step(A, B):
 
 @tf.function
 def sample(A, B):
-    A2B = G_A2B(A, training=False)
-    B2A = G_B2A(B, training=False)
-    A2B2A = G_B2A(A2B, training=False)
-    B2A2B = G_A2B(B2A, training=False)
+    A2B, B2A, A2B2A, B2A2B = attention_strategies.no_attention(A, B, G_A2B, G_B2A,
+                                                               training=False)
     return A2B, B2A, A2B2A, B2A2B
 
 
