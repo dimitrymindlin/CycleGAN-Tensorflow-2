@@ -163,7 +163,39 @@ def calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B):
 def train_G_no_attention(A_img, B_img):
     with tf.GradientTape() as t:
         A2B, B2A, A2B2A, B2A2B, A2A, B2B = attention_strategies.no_attention(A_img, B_img, G_A2B, G_B2A)
-        G_loss, G_loss_dict = calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B)
+        # Calculate Losses
+        A2B_d_logits = D_B(A2B, training=True)
+        B2A_d_logits = D_A(B2A, training=True)
+
+        if args.counterfactual_loss_weight > 0:
+            A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
+                                                             clf(tf.image.resize(A2B, [512, 512])))
+            B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth,
+                                                             clf(tf.image.resize(B2A, [512, 512])))
+        else:
+            A2B_counterfactual_loss = tf.zeros(())
+            B2A_counterfactual_loss = tf.zeros(())
+
+        A2B_g_loss = g_loss_fn(A2B_d_logits)
+        B2A_g_loss = g_loss_fn(B2A_d_logits)
+        A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
+        B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
+        A2A_id_loss = identity_loss_fn(A, A2A)
+        B2B_id_loss = identity_loss_fn(B, B2B)
+
+        G_loss = (A2B_g_loss + B2A_g_loss) + \
+                 (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
+                 + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
+                 (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight
+
+        G_loss_dict = {'A2B_g_loss': A2B_g_loss,
+                       'B2A_g_loss': B2A_g_loss,
+                       'A2B2A_cycle_loss': A2B2A_cycle_loss,
+                       'B2A2B_cycle_loss': B2A2B_cycle_loss,
+                       'A2A_id_loss': A2A_id_loss,
+                       'B2B_id_loss': B2B_id_loss,
+                       'A2B_counterfactual_loss': A2B_counterfactual_loss,
+                       'B2A_counterfactual_loss': B2A_counterfactual_loss}
 
     G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
     G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
@@ -176,7 +208,39 @@ def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, 
     with tf.GradientTape() as t:
         A2B, B2A, A2B2A, B2A2B, A2A, B2B = attention_strategies.attention_gan(A_img, B_img, G_A2B, G_B2A, A_attention,
                                                                               B_attention, A_background, B_background)
-        G_loss, G_loss_dict = calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B)
+        # Calculate Losses
+        A2B_d_logits = D_B(A2B, training=True)
+        B2A_d_logits = D_A(B2A, training=True)
+
+        if args.counterfactual_loss_weight > 0:
+            A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
+                                                             clf(tf.image.resize(A2B, [512, 512])))
+            B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth,
+                                                             clf(tf.image.resize(B2A, [512, 512])))
+        else:
+            A2B_counterfactual_loss = tf.zeros(())
+            B2A_counterfactual_loss = tf.zeros(())
+
+        A2B_g_loss = g_loss_fn(A2B_d_logits)
+        B2A_g_loss = g_loss_fn(B2A_d_logits)
+        A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
+        B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
+        A2A_id_loss = identity_loss_fn(A, A2A)
+        B2B_id_loss = identity_loss_fn(B, B2B)
+
+        G_loss = (A2B_g_loss + B2A_g_loss) + \
+                 (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
+                 + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
+                 (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight
+
+        G_loss_dict = {'A2B_g_loss': A2B_g_loss,
+                       'B2A_g_loss': B2A_g_loss,
+                       'A2B2A_cycle_loss': A2B2A_cycle_loss,
+                       'B2A2B_cycle_loss': B2A2B_cycle_loss,
+                       'A2A_id_loss': A2A_id_loss,
+                       'B2B_id_loss': B2B_id_loss,
+                       'A2B_counterfactual_loss': A2B_counterfactual_loss,
+                       'B2A_counterfactual_loss': B2A_counterfactual_loss}
 
     G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
     G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
@@ -350,7 +414,7 @@ with train_summary_writer.as_default():
             batch_count += 1
 
         # Calculate KID after epoch and log
-        if ep > 130 and ep % 5 == 0:
+        if ep > 100 and ep % 5 == 0:
             kid_A2B_mean, kid_A2B_std = calc_KID_for_model(A2B_pool.items, "A2B", args.crop_size, train_horses,
                                                            train_zebras)
             kid_B2A_mean, kid_B2A_std = calc_KID_for_model(B2A_pool.items, "B2A", args.crop_size, train_horses,
