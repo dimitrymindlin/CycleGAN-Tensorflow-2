@@ -19,7 +19,7 @@ import module
 from attention_strategies import attention_strategies
 from evaluation.kid import calc_KID_for_model
 from imlib import generate_image
-from imlib.image_holder import get_img_holders
+from imlib.image_holder import get_img_holders, multiply_images, add_images
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
@@ -162,7 +162,14 @@ def calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B):
 @tf.function
 def train_G_no_attention(A_img, B_img):
     with tf.GradientTape() as t:
-        A2B, B2A, A2B2A, B2A2B, A2A, B2B = attention_strategies.no_attention(A_img, B_img, G_A2B, G_B2A)
+        A2B = G_A2B(A_img, training=True)
+        B2A = G_B2A(B_img, training=True)
+        # Cycle
+        A2B2A = G_B2A(A2B, training=True)
+        B2A2B = G_A2B(B2A, training=True)
+        # ID
+        A2A = G_B2A(A_img, training=True)
+        B2B = G_A2B(B_img, training=True)
         # Calculate Losses
         A2B_d_logits = D_B(A2B, training=True)
         B2A_d_logits = D_A(B2A, training=True)
@@ -205,9 +212,32 @@ def train_G_no_attention(A_img, B_img):
 @tf.function
 def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, B_background):
     # Generate images
+    training = True
     with tf.GradientTape() as t:
-        A2B, B2A, A2B2A, B2A2B, A2A, B2B = attention_strategies.attention_gan(A_img, B_img, G_A2B, G_B2A, A_attention,
-                                                                              B_attention, A_background, B_background)
+        A2B_transformed = G_A2B(A_img, training=True)
+        B2A_transformed = G_B2A(B_img, training=True)
+        # Combine new transformed image with attention -> Crop important part from transformed img
+        A2B_transformed_attention = multiply_images(A2B_transformed, A_attention)
+        B2A_transformed_attention = multiply_images(B2A_transformed, B_attention)
+        # Add background to new img
+        A2B = add_images(A2B_transformed_attention, A_background)
+        B2A = add_images(B2A_transformed_attention, B_background)
+
+        # Cycle
+        A2B2A_transformed = G_B2A(A2B, training=True)
+        B2A2B_transformed = G_A2B(B2A, training=True)
+        # Combine new transformed image with attention
+        A2B2A_transformed_attention = multiply_images(A2B2A_transformed, A_attention)
+        A2B2A = add_images(A2B2A_transformed_attention, A_background)
+        B2A2B_transformed_attention = multiply_images(B2A2B_transformed, B_attention)
+        B2A2B = add_images(B2A2B_transformed_attention, B_background)
+        # ID
+        A2A_transformed = G_B2A(A_img, training=True)
+        A2A_transformed_attention = multiply_images(A2A_transformed, A_attention)
+        A2A = add_images(A2A_transformed_attention, A_background)
+        B2B_transformed = G_A2B(B_img, training=True)
+        B2B_transformed_attention = multiply_images(B2B_transformed, B_attention)
+        B2B = add_images(B2B_transformed_attention, B_background)
         # Calculate Losses
         A2B_d_logits = D_B(A2B, training=True)
         B2A_d_logits = D_A(B2A, training=True)
@@ -296,17 +326,25 @@ def train_step(A_holder, B_holder):
 
 @tf.function
 def sample_no_attention(A_img, B_img):
-    A2B, B2A, A2B2A, B2A2B = attention_strategies.no_attention(A_img, B_img, G_A2B, G_B2A,
-                                                               training=False)
+    training = False
+    A2B = G_A2B(A_img, training=training)
+    B2A = G_B2A(B_img, training=training)
+    # Cycle
+    A2B2A = G_B2A(A2B, training=training)
+    B2A2B = G_A2B(B2A, training=training)
     return A2B, B2A, A2B2A, B2A2B
 
 
 @tf.function
 def sample(A_img, B_img, A_attention, B_attention, A_background, B_background):
-    A2B, B2A, A2B_transformed, B2A_transformed = attention_strategies.attention_gan(A_img, B_img, G_A2B, G_B2A,
-                                                                                    A_attention,
-                                                                                    B_attention, A_background,
-                                                                                    B_background, training=False)
+    A2B_transformed = G_A2B(A_img, training=True)
+    B2A_transformed = G_B2A(B_img, training=True)
+    # Combine new transformed image with attention -> Crop important part from transformed img
+    A2B_transformed_attention = multiply_images(A2B_transformed, A_attention)
+    B2A_transformed_attention = multiply_images(B2A_transformed, B_attention)
+    # Add background to new img
+    A2B = add_images(A2B_transformed_attention, A_background)
+    B2A = add_images(B2A_transformed_attention, B_background)
     return A2B, B2A, A2B_transformed, B2A_transformed
 
 
