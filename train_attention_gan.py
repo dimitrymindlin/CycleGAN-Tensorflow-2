@@ -109,7 +109,7 @@ D_optimizer = keras.optimizers.Adam(learning_rate=D_lr_scheduler, beta_1=args.be
 train_D_A_acc = tf.keras.metrics.BinaryAccuracy()
 train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 
-if args.counterfactual_loss_weight > 0:
+if args.counterfactual_loss_weight > 0 or args.attention_type == "attention-gan-original":
     clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}_512/model", compile=False)
 else:
     clf = None
