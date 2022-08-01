@@ -23,11 +23,11 @@ def generate_image(args, clf, A, B, A2B, B2A,
             save_images_with_attention(A_holder, A2B, B_holder, B2A,
                                        clf, args.dataset, execution_id, ep, batch_count,
                                        args.current_attention_type)
-    else:  # Normal run because args.attention_type not in train.py
+    else:  # Normal run because args.current_attention_type is "none"
         if args.dataset == "mura":
             imgs = [A, A2B, B, B2A]
             save_mura_images(imgs, clf, args.dataset, execution_id, ep, batch_count)
-        else:
+        else: # Horse2Zebra
             img = immerge(np.concatenate([A, A2B, A2B2A, B, B2A, B2A2B], axis=0), n_rows=2)
             img_folder = f'output_{args.dataset}/{execution_id}/images'
             imwrite(img, f"{img_folder}/%d_%d.png" % (ep, batch_count))

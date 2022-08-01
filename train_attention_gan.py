@@ -162,14 +162,7 @@ def calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B):
 @tf.function
 def train_G_no_attention(A_img, B_img):
     with tf.GradientTape() as t:
-        A2B = G_A2B(A_img, training=True)
-        B2A = G_B2A(B_img, training=True)
-        # Cycle
-        A2B2A = G_B2A(A2B, training=True)
-        B2A2B = G_A2B(B2A, training=True)
-        # ID
-        A2A = G_B2A(A_img, training=True)
-        B2B = G_A2B(B_img, training=True)
+        A2B, B2A, A2B2A, B2A2B, A2A, B2B = attention_strategies.no_attention(A_img, B_img, G_A2B, G_B2A)
         # Calculate Losses
         A2B_d_logits = D_B(A2B, training=True)
         B2A_d_logits = D_A(B2A, training=True)
@@ -326,12 +319,8 @@ def train_step(A_holder, B_holder):
 
 @tf.function
 def sample_no_attention(A_img, B_img):
-    training = False
-    A2B = G_A2B(A_img, training=training)
-    B2A = G_B2A(B_img, training=training)
-    # Cycle
-    A2B2A = G_B2A(A2B, training=training)
-    B2A2B = G_A2B(B2A, training=training)
+    A2B, B2A, A2B2A, B2A2B = attention_strategies.no_attention(A_img, B_img, G_A2B, G_B2A,
+                                                               training=False)
     return A2B, B2A, A2B2A, B2A2B
 
 
@@ -398,13 +387,14 @@ with train_summary_writer.as_default():
         for batch_count, (A, B) in enumerate(
                 tqdm.tqdm(tf.data.Dataset.zip((train_horses, train_zebras)), desc='Inner Epoch Loop',
                           total=len_dataset)):
-            A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
-                                                 gradcam=gradcam)
             # Select attention type
             if ep < args.start_attention_epoch:
                 args.current_attention_type = "none"
             else:
                 args.current_attention_type = args.attention_type
+
+            A_holder, B_holder = get_img_holders(A, B, args.current_attention_type, args.attention,
+                                                 gradcam=gradcam)
 
             G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
 
@@ -424,7 +414,7 @@ with train_summary_writer.as_default():
                         test_iter = iter(tf.data.Dataset.zip(((test_horses, test_zebras))))
                         A, B = next(test_iter)
 
-                    A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
+                    A_holder, B_holder = get_img_holders(A, B, args.current_attention_type, args.attention,
                                                          gradcam=gradcam)
 
                     if args.current_attention_type == "none":
