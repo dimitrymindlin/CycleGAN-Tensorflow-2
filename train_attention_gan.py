@@ -178,10 +178,10 @@ def train_G_no_attention(A_img, B_img):
 
         A2B_g_loss = g_loss_fn(A2B_d_logits)
         B2A_g_loss = g_loss_fn(B2A_d_logits)
-        A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
-        B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
-        A2A_id_loss = identity_loss_fn(A, A2A)
-        B2B_id_loss = identity_loss_fn(B, B2B)
+        A2B2A_cycle_loss = cycle_loss_fn(A_img, A2B2A)
+        B2A2B_cycle_loss = cycle_loss_fn(B_img, B2A2B)
+        A2A_id_loss = identity_loss_fn(A_img, A2A)
+        B2B_id_loss = identity_loss_fn(B_img, B2B)
 
         G_loss = (A2B_g_loss + B2A_g_loss) + \
                  (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
