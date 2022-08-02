@@ -156,10 +156,9 @@ def calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B):
 
 
 @tf.function
-def train_G_no_attention(A, B):
+def train_G_no_attention(A_img, B_img):
     with tf.GradientTape() as t:
-        A2B, B2A, A2B2A, B2A2B, A2A, B2B = attention_strategies.no_attention(A, B, G_A2B, G_B2A)
-        #G_loss, G_loss_dict = calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B)
+        A2B, B2A, A2B2A, B2A2B, A2A, B2B = attention_strategies.no_attention(A_img, B_img, G_A2B, G_B2A)
         # Calculate Losses
         A2B_d_logits = D_B(A2B, training=True)
         B2A_d_logits = D_A(B2A, training=True)
@@ -175,10 +174,10 @@ def train_G_no_attention(A, B):
 
         A2B_g_loss = g_loss_fn(A2B_d_logits)
         B2A_g_loss = g_loss_fn(B2A_d_logits)
-        A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
-        B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
-        A2A_id_loss = identity_loss_fn(A, A2A)
-        B2B_id_loss = identity_loss_fn(B, B2B)
+        A2B2A_cycle_loss = cycle_loss_fn(A_img, A2B2A)
+        B2A2B_cycle_loss = cycle_loss_fn(B_img, B2A2B)
+        A2A_id_loss = identity_loss_fn(A_img, A2A)
+        B2B_id_loss = identity_loss_fn(B_img, B2B)
 
         G_loss = (A2B_g_loss + B2A_g_loss) + \
                  (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
@@ -314,8 +313,8 @@ def train_step(A_holder, B_holder):
 
 
 @tf.function
-def sample_no_attention(A, B):
-    A2B, B2A, A2B2A, B2A2B = attention_strategies.no_attention(A, B, G_A2B, G_B2A,
+def sample_no_attention(A_img, B_img):
+    A2B, B2A, A2B2A, B2A2B = attention_strategies.no_attention(A_img, B_img, G_A2B, G_B2A,
                                                                training=False)
     return A2B, B2A, A2B2A, B2A2B
 
