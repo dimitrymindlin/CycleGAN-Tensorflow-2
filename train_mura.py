@@ -2,6 +2,8 @@ from datetime import datetime, time
 
 import numpy as np
 import tensorflow_datasets as tfds
+from mura import get_mura_ds_by_body_part_split_class
+
 import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
@@ -53,7 +55,7 @@ else:
     output_dir = py.join(f'output_{args.dataset}/{execution_id}')
 
 TF_LOG_DIR = f"logs/{args.dataset}/"
-
+TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets/"
 py.mkdir(output_dir)
 
 # save settings
@@ -66,11 +68,13 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 A2B_pool = data.ItemPool(args.pool_size)
 B2A_pool = data.ItemPool(args.pool_size)
 
-A_img_paths, B_img_paths, A_img_paths_test, B_img_paths_test = data.get_dataset_paths(args)
-A_B_dataset, len_dataset = data.make_zip_dataset(A_img_paths, B_img_paths, args.batch_size, args.load_size,
-                                                 args.crop_size, training=True, repeat=False)
-A_B_dataset_test, _ = data.make_zip_dataset(A_img_paths_test, B_img_paths_test, args.batch_size, args.load_size,
-                                            args.crop_size, training=False, repeat=True)
+special_normalisation = tf.keras.applications.inception_v3.preprocess_input
+
+A_B_dataset, A_B_dataset_test, len_dataset_train = get_mura_ds_by_body_part_split_class(args.body_parts,
+                                                                                        TFDS_PATH,
+                                                                                        args.batch_size,
+                                                                                        args.crop_size,
+                                                                                        args.load_size)
 # ==============================================================================
 # =                                   models                                   =
 # ==============================================================================
@@ -85,8 +89,8 @@ d_loss_fn, g_loss_fn = gan.get_adversarial_losses_fn(args.adversarial_loss_mode)
 cycle_loss_fn = tf.losses.MeanAbsoluteError()
 identity_loss_fn = tf.losses.MeanAbsoluteError()
 
-G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
-D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
+G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset_train, args.epoch_decay * len_dataset_train)
+D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset_train, args.epoch_decay * len_dataset_train)
 G_optimizer = keras.optimizers.Adam(learning_rate=G_lr_scheduler, beta_1=args.beta_1)
 D_optimizer = keras.optimizers.Adam(learning_rate=D_lr_scheduler, beta_1=args.beta_1)
 
@@ -99,6 +103,7 @@ class_B_ground_truth = np.stack([np.zeros(args.batch_size), np.ones(args.batch_s
 
 if args.counterfactual_loss_weight > 0:
     clf = tf.keras.models.load_model(f"checkpoints/direct_inception/2022-06-04--00.05/model", compile=False)
+
 
 # ==============================================================================
 # =                                 train step                                 =
@@ -180,7 +185,7 @@ def train_D(A, B, A2B, B2A):
 
 
 def train_step(A, B):
-    A2B, B2A, G_loss_dict = train_G(A,B)
+    A2B, B2A, G_loss_dict = train_G(A, B)
 
     # cannot autograph `A2B_pool`
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
@@ -244,7 +249,7 @@ with train_summary_writer.as_default():
 
         # train for an epoch
         batch_count = 0
-        for A, B in tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset):
+        for A, B in tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset_train):
             G_loss_dict, D_loss_dict = train_step(A, B)
 
             # # summary

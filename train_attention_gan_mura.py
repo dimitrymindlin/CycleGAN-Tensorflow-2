@@ -1,6 +1,7 @@
 from datetime import datetime, time
 
 import numpy as np
+from mura import get_mura_ds_by_body_part_split_class
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 
 import pylib as py
@@ -20,6 +21,7 @@ from imlib.image_holder import get_img_holders, multiply_images, add_images
 
 py.arg('--dataset', default='mura')
 py.arg('--datasets_dir', default='datasets')
+py.arg('--body_parts', default=["XR_WRIST"])
 py.arg('--load_size', type=int, default=512)  # load image to this size
 py.arg('--crop_size', type=int, default=512)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
@@ -59,10 +61,12 @@ else:
     print(f"Setting {args.load_checkpoint} as checkpoint.")
     execution_id = args.load_checkpoint
     output_dir = py.join(f'output_{args.dataset}/{execution_id}')
-
-TF_LOG_DIR = f"logs/{args.dataset}/"
-
 py.mkdir(output_dir)
+TF_LOG_DIR = f"logs/{args.dataset}/"
+if len(tf.config.list_physical_devices('GPU')) == 0:
+    TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
+else:
+    TFDS_PATH = "../tensorflow_datasets"
 
 # save settings
 py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
@@ -70,13 +74,16 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 # ==============================================================================
 # =                                    data                                    =
 # ==============================================================================
-A_img_paths, B_img_paths, A_img_paths_test, B_img_paths_test = data.get_dataset_paths(args)
-A_B_dataset, len_dataset = data.make_zip_dataset(A_img_paths, B_img_paths, args.batch_size, args.load_size,
-                                                 args.crop_size, training=True, repeat=False)
-A_B_dataset_test, _ = data.make_zip_dataset(A_img_paths_test, B_img_paths_test, args.batch_size, args.load_size,
-                                            args.crop_size, training=False, repeat=True)
 A2B_pool = data.ItemPool(args.pool_size)
 B2A_pool = data.ItemPool(args.pool_size)
+
+special_normalisation = tf.keras.applications.inception_v3.preprocess_input
+
+A_B_dataset, A_B_dataset_test, len_dataset_train = get_mura_ds_by_body_part_split_class(args.body_parts,
+                                                                                        TFDS_PATH,
+                                                                                        args.batch_size,
+                                                                                        args.crop_size,
+                                                                                        args.load_size)
 
 # ==============================================================================
 # =                                   models                                   =
@@ -96,10 +103,10 @@ counterfactual_loss_fn = tf.losses.MeanSquaredError()
 class_A_ground_truth = np.stack([np.ones(args.batch_size), np.zeros(args.batch_size)]).T
 class_B_ground_truth = np.stack([np.zeros(args.batch_size), np.ones(args.batch_size)]).T
 
-clf = tf.keras.models.load_model(f"checkpoints/direct_inception/2022-06-04--00.05/model", compile=False)
+clf = tf.keras.models.load_model(f"checkpoints/inception_mura/2022-06-04--00.05/model", compile=False)
 
-G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
-D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
+G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset_train, args.epoch_decay * len_dataset_train)
+D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset_train, args.epoch_decay * len_dataset_train)
 G_optimizer = keras.optimizers.Adam(learning_rate=G_lr_scheduler, beta_1=args.beta_1)
 D_optimizer = keras.optimizers.Adam(learning_rate=D_lr_scheduler, beta_1=args.beta_1)
 
@@ -281,7 +288,7 @@ with train_summary_writer.as_default():
 
         # train for an epoch
         batch_count = 0
-        for A, B in tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset):
+        for A, B in tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset_train):
             A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
                                                  gradcam=gradcam)
 
