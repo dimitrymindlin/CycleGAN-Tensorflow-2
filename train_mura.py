@@ -11,7 +11,7 @@ import tf2lib as tl
 import tf2gan as gan
 import tqdm
 from imlib import generate_image
-import data
+import standard_datasets_loading
 import module
 
 # ==============================================================================
@@ -55,8 +55,11 @@ else:
     output_dir = py.join(f'output_{args.dataset}/{execution_id}')
 
 TF_LOG_DIR = f"logs/{args.dataset}/"
-TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets/"
 py.mkdir(output_dir)
+if len(tf.config.list_physical_devices('GPU')) == 0:
+    TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
+else:
+    TFDS_PATH = "../tensorflow_datasets"
 
 # save settings
 py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
@@ -65,8 +68,8 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 # =                                    data                                    =
 # ==============================================================================
 
-A2B_pool = data.ItemPool(args.pool_size)
-B2A_pool = data.ItemPool(args.pool_size)
+A2B_pool = standard_datasets_loading.ItemPool(args.pool_size)
+B2A_pool = standard_datasets_loading.ItemPool(args.pool_size)
 
 special_normalisation = tf.keras.applications.inception_v3.preprocess_input
 

@@ -11,7 +11,7 @@ import tqdm
 
 from attention_strategies import attention_strategies
 from imlib import generate_image
-import data
+import standard_datasets_loading
 import module
 
 # ==============================================================================
@@ -66,11 +66,11 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 # =                                    data                                    =
 # ==============================================================================
 
-A2B_pool = data.ItemPool(args.pool_size)
-B2A_pool = data.ItemPool(args.pool_size)
+A2B_pool = standard_datasets_loading.ItemPool(args.pool_size)
+B2A_pool = standard_datasets_loading.ItemPool(args.pool_size)
 
-train_horses, train_zebras, test_horses, test_zebras, len_dataset = data.load_tfds_dataset(args.dataset,
-                                                                                           args.crop_size)
+train_horses, train_zebras, test_horses, test_zebras, len_dataset = standard_datasets_loading.load_tfds_dataset(args.dataset,
+                                                                                                                args.crop_size)
 # ==============================================================================
 # =                                   models                                   =
 # ==============================================================================
@@ -148,7 +148,7 @@ def calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B):
 def train_G(A, B):
     with tf.GradientTape() as t:
         A2B, B2A, A2B2A, B2A2B, A2A, B2B = attention_strategies.no_attention(A, B, G_A2B, G_B2A)
-        #G_loss, G_loss_dict = calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B)
+        # G_loss, G_loss_dict = calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B)
         # Calculate Losses
         A2B_d_logits = D_B(A2B, training=True)
         B2A_d_logits = D_A(B2A, training=True)

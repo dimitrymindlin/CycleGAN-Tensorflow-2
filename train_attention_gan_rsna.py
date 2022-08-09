@@ -12,7 +12,7 @@ import tensorflow.keras as keras
 import tf2lib as tl
 import tf2gan as gan
 import tqdm
-import data
+import standard_datasets_loading
 import module
 import tensorflow_datasets as tfds
 
@@ -79,12 +79,12 @@ A_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'normal'), '*.jpg
 B_img_paths = py.glob(py.join(args.datasets_dir, args.dataset, 'pneumonia'), '*.jpg')
 A_train_paths, A_test_paths = sklearn.model_selection.train_test_split(A_img_paths, test_size=0.3)
 B_train_paths, B_test_paths = sklearn.model_selection.train_test_split(B_img_paths, test_size=0.3)
-A_B_dataset, len_dataset = data.make_zip_dataset(A_train_paths, B_train_paths, args.batch_size, args.load_size, args.crop_size, training=True, repeat=False)
+A_B_dataset, len_dataset = standard_datasets_loading.make_zip_dataset(A_train_paths, B_train_paths, args.batch_size, args.load_size, args.crop_size, training=True, repeat=False)
 
-A2B_pool = data.ItemPool(args.pool_size)
-B2A_pool = data.ItemPool(args.pool_size)
+A2B_pool = standard_datasets_loading.ItemPool(args.pool_size)
+B2A_pool = standard_datasets_loading.ItemPool(args.pool_size)
 
-A_B_dataset_test, _ = data.make_zip_dataset(A_test_paths, B_test_paths, args.batch_size, args.load_size, args.crop_size, training=False, repeat=True)
+A_B_dataset_test, _ = standard_datasets_loading.make_zip_dataset(A_test_paths, B_test_paths, args.batch_size, args.load_size, args.crop_size, training=False, repeat=True)
 
 
 

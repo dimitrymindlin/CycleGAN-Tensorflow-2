@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras as keras
 import os
-import data
+import standard_datasets_loading
 from classifiers.rsna_model import RSNA_Net
 
 tensorboard_callback = keras.callbacks.TensorBoard(log_dir="log")
@@ -24,17 +24,17 @@ B_train_paths, B_test_paths = sklearn.model_selection.train_test_split(B_img_pat
 A_train_paths, A_valid_paths = sklearn.model_selection.train_test_split(A_train_paths, test_size=0.1)
 B_train_paths, B_valid_paths = sklearn.model_selection.train_test_split(B_train_paths, test_size=0.1)
 
-A_B_dataset, len_dataset = data.make_concat_dataset(A_train_paths, B_train_paths, batch_size, dimension,
-                                                    dimension, training=True, repeat=False,
-                                                    special_normalisation=special_normalisation)
+A_B_dataset, len_dataset = standard_datasets_loading.make_concat_dataset(A_train_paths, B_train_paths, batch_size, dimension,
+                                                                         dimension, training=True, repeat=False,
+                                                                         special_normalisation=special_normalisation)
 
-A_B_dataset_valid, _ = data.make_concat_dataset(A_valid_paths, B_valid_paths, batch_size, dimension,
-                                                    dimension, training=True, repeat=False,
-                                                    special_normalisation=special_normalisation)
+A_B_dataset_valid, _ = standard_datasets_loading.make_concat_dataset(A_valid_paths, B_valid_paths, batch_size, dimension,
+                                                                     dimension, training=True, repeat=False,
+                                                                     special_normalisation=special_normalisation)
 
-A_B_dataset_test, _ = data.make_concat_dataset(A_test_paths, B_test_paths, batch_size, dimension,
-                                               dimension, training=True, repeat=False,
-                                               special_normalisation=special_normalisation)
+A_B_dataset_test, _ = standard_datasets_loading.make_concat_dataset(A_test_paths, B_test_paths, batch_size, dimension,
+                                                                    dimension, training=True, repeat=False,
+                                                                    special_normalisation=special_normalisation)
 
 ########### Model #############
 

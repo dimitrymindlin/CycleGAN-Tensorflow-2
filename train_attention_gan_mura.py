@@ -10,7 +10,6 @@ import tensorflow.keras as keras
 import tf2lib as tl
 import tf2gan as gan
 import tqdm
-import data
 import module
 
 # ==============================================================================

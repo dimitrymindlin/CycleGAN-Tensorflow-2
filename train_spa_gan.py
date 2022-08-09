@@ -12,7 +12,7 @@ import tf2gan as gan
 import tqdm
 
 from imlib import generate_image, scale_to_minus_one_one
-import data
+import standard_datasets_loading
 import module
 
 # ==============================================================================
@@ -21,7 +21,7 @@ import module
 from imlib.image_holder import get_img_holders, multiply_images
 
 py.arg('--dataset', default='horse2zebra')
-py.arg('--datasets_dir =', default='datasets')
+py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=286)  # load image to this size
 py.arg('--crop_size', type=int, default=256)  # then crop to this size
 py.arg('--batch_size', type=int, default=1)
@@ -29,7 +29,7 @@ py.arg('--epochs', type=int, default=181)
 py.arg('--epoch_decay', type=int, default=100)  # epoch to start decaying learning rate
 py.arg('--lr', type=float, default=0.0002)
 py.arg('--beta_1', type=float, default=0.5)
-py.arg('--adversarial_loss_mode', default='lsgan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
+py.arg('--adversarial_loss_mode', default='gan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
 py.arg('--discriminator_loss_weight', type=float, default=1)
 py.arg('--cycle_loss_weight', type=float, default=10)
 py.arg('--counterfactual_loss_weight', type=float, default=1)
@@ -77,11 +77,11 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 # =                                    data                                    =
 # ==============================================================================
 
-A2B_pool = data.ItemPool(args.pool_size)
-B2A_pool = data.ItemPool(args.pool_size)
+A2B_pool = standard_datasets_loading.ItemPool(args.pool_size)
+B2A_pool = standard_datasets_loading.ItemPool(args.pool_size)
 
-train_horses, train_zebras, test_horses, test_zebras, len_dataset = data.load_tfds_dataset(args.dataset,
-                                                                                           args.crop_size)
+train_horses, train_zebras, test_horses, test_zebras, len_dataset = standard_datasets_loading.load_tfds_dataset(args.dataset,
+                                                                                                                args.crop_size)
 
 # ==============================================================================
 # =                                   models                                   =

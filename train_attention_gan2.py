@@ -13,7 +13,7 @@ import tqdm
 
 from attention_strategies import attention_strategies
 from imlib import generate_image
-import data
+import standard_datasets_loading
 import module
 
 # ==============================================================================
@@ -76,11 +76,11 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 # =                                    data                                    =
 # ==============================================================================
 
-A2B_pool = data.ItemPool(args.pool_size)
-B2A_pool = data.ItemPool(args.pool_size)
+A2B_pool = standard_datasets_loading.ItemPool(args.pool_size)
+B2A_pool = standard_datasets_loading.ItemPool(args.pool_size)
 
-train_horses, train_zebras, test_horses, test_zebras, len_dataset = data.load_tfds_dataset(args.dataset,
-                                                                                           args.crop_size)
+train_horses, train_zebras, test_horses, test_zebras, len_dataset = standard_datasets_loading.load_tfds_dataset(args.dataset,
+                                                                                                                args.crop_size)
 
 # ==============================================================================
 # =                                   models                                   =
