@@ -11,7 +11,7 @@ import pylib as py
 import tensorflow as tf
 import tf2lib as tl
 import tensorflow_datasets as tfds
-import data
+import standard_datasets_loading
 import module
 
 # ==============================================================================
@@ -35,14 +35,14 @@ args = py.args()
 # ==============================================================================
 # =                                    test                                    =
 # ==============================================================================
-A_img_paths, B_img_paths, A_img_paths_test, B_img_paths_test = data.get_dataset_paths(args)
+A_img_paths, B_img_paths, A_img_paths_test, B_img_paths_test = standard_datasets_loading.get_dataset_paths(args)
 
 
-A_dataset, B_dataset = data.make_zip_dataset(A_img_paths, B_img_paths, args.batch_size, args.crop_size,
-                                                 args.crop_size, training=False, repeat=False)
+A_dataset, B_dataset = standard_datasets_loading.make_zip_dataset(A_img_paths, B_img_paths, args.batch_size, args.crop_size,
+                                                                  args.crop_size, training=False, repeat=False)
 
-A_dataset_test, B_dataset_test = data.make_zip_dataset(A_img_paths_test, B_img_paths_test, args.batch_size, args.crop_size,
-                                                 args.crop_size, training=False, repeat=False)
+A_dataset_test, B_dataset_test = standard_datasets_loading.make_zip_dataset(A_img_paths_test, B_img_paths_test, args.batch_size, args.crop_size,
+                                                                            args.crop_size, training=False, repeat=False)
 
 # model
 G_A2B = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))

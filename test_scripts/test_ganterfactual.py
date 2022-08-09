@@ -9,7 +9,7 @@ import imlib as im
 import numpy as np
 import pylib as py
 import tensorflow as tf
-import data
+import standard_datasets_loading
 from skimage import color
 # ==============================================================================
 # =                                   param                                    =
@@ -29,13 +29,13 @@ args = py.args()
 # ==============================================================================
 # =                                    test                                    =
 # ==============================================================================
-A_img_paths, B_img_paths, A_img_paths_test, B_img_paths_test = data.get_dataset_paths(args)
+A_img_paths, B_img_paths, A_img_paths_test, B_img_paths_test = standard_datasets_loading.get_dataset_paths(args)
 
-A_dataset, B_dataset = data.make_zip_dataset(A_img_paths, B_img_paths, args.batch_size, args.crop_size,
-                                                 args.crop_size, training=False, repeat=False)
+A_dataset, B_dataset = standard_datasets_loading.make_zip_dataset(A_img_paths, B_img_paths, args.batch_size, args.crop_size,
+                                                                  args.crop_size, training=False, repeat=False)
 
-A_dataset_test, B_dataset_test = data.make_zip_dataset(A_img_paths_test, B_img_paths_test, args.batch_size, args.crop_size,
-                                                 args.crop_size, training=False, repeat=False)
+A_dataset_test, B_dataset_test = standard_datasets_loading.make_zip_dataset(A_img_paths_test, B_img_paths_test, args.batch_size, args.crop_size,
+                                                                            args.crop_size, training=False, repeat=False)
 
 # run
 oracle = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}/2022-06-04--00.05/model", compile=False)
