@@ -80,8 +80,9 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 A2B_pool = standard_datasets_loading.ItemPool(args.pool_size)
 B2A_pool = standard_datasets_loading.ItemPool(args.pool_size)
 
-train_horses, train_zebras, test_horses, test_zebras, len_dataset = standard_datasets_loading.load_tfds_dataset(args.dataset,
-                                                                                                                args.crop_size)
+train_horses, train_zebras, test_horses, test_zebras, len_dataset = standard_datasets_loading.load_tfds_dataset(
+    args.dataset,
+    args.crop_size)
 
 # ==============================================================================
 # =                                   models                                   =
@@ -375,6 +376,7 @@ else:
     gradcam = None
 
 # main loop
+kid_count = 0
 with train_summary_writer.as_default():
     for ep in tqdm.trange(args.epochs, desc='Epoch Loop'):
         if ep < ep_cnt:
@@ -447,8 +449,9 @@ with train_summary_writer.as_default():
                                                            train_zebras)
             kid_B2A_mean, kid_B2A_std = calc_KID_for_model(B2A_pool.items, "B2A", args.crop_size, train_horses,
                                                            train_zebras)
-            tl.summary({'kid_A2B_mean': tf.Variable(kid_A2B_mean)}, step=ep, name='kid_A2B_mean')
-            tl.summary({'kid_A2B_std': tf.Variable(kid_A2B_std)}, step=ep, name='kid_A2B_std')
-            tl.summary({'kid_B2A_mean': tf.Variable(kid_A2B_mean)}, step=ep, name='kid_B2A_mean')
-            tl.summary({'kid_B2A_std': tf.Variable(kid_A2B_mean)}, step=ep, name='kid_B2A_std')
+            tl.summary({'kid_A2B_mean': tf.Variable(kid_A2B_mean)}, step=kid_count, name='kid_A2B_mean')
+            tl.summary({'kid_A2B_std': tf.Variable(kid_A2B_std)}, step=kid_count, name='kid_A2B_std')
+            tl.summary({'kid_B2A_mean': tf.Variable(kid_A2B_mean)}, step=kid_count, name='kid_B2A_mean')
+            tl.summary({'kid_B2A_std': tf.Variable(kid_A2B_mean)}, step=kid_count, name='kid_B2A_std')
             checkpoint.save(ep)
+            kid_count += 1
