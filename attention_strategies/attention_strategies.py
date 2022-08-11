@@ -4,8 +4,6 @@ from imlib import scale_to_minus_one_one
 from imlib.image_holder import add_images, multiply_images
 
 
-# from train_spa_gan import feature_map_loss_fn
-
 def no_attention(A_img, B_img, G_A2B, G_B2A, training=True):
     """
     This function doesn't use any of the attention mechanisms and translates the images as the original cycle-gan.

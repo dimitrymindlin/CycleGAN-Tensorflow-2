@@ -12,14 +12,15 @@ import tf2gan as gan
 import tqdm
 import standard_datasets_loading
 import module
-
-# ==============================================================================
-# =                                   param                                    =
-# ==============================================================================
 from attention_strategies import attention_strategies
 from evaluation.kid import calc_KID_for_model
 from imlib import generate_image
 from imlib.image_holder import get_img_holders, multiply_images, add_images
+
+# ==============================================================================
+# =                                   param                                    =
+# ==============================================================================
+
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
@@ -65,10 +66,12 @@ else:
     print(f"Setting {args.load_checkpoint} as checkpoint.")
     execution_id = args.load_checkpoint
     output_dir = py.join(f'output_{args.dataset}/{execution_id}')
-
-TF_LOG_DIR = f"logs/{args.dataset}/"
-
 py.mkdir(output_dir)
+TF_LOG_DIR = f"logs/{args.dataset}/"
+if len(tf.config.list_physical_devices('GPU')) == 0:
+    TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
+else:
+    TFDS_PATH = "../tensorflow_datasets"
 
 # save settings
 py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)

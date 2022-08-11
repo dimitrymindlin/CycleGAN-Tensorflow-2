@@ -84,7 +84,8 @@ A_B_dataset, A_B_dataset_test, len_dataset_train = get_mura_ds_by_body_part_spli
                                                                                         TFDS_PATH,
                                                                                         args.batch_size,
                                                                                         args.crop_size,
-                                                                                        args.load_size)
+                                                                                        args.load_size,
+                                                                                        special_normalisation)
 
 # ==============================================================================
 # =                                   models                                   =
@@ -120,10 +121,10 @@ train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 # ==============================================================================
 
 @tf.function
-def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, B_background):
+def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, B_background, training=True):
     with tf.GradientTape() as t:
-        A2B_transformed = G_A2B(A_img, training=True)
-        B2A_transformed = G_B2A(B_img, training=True)
+        A2B_transformed = G_A2B(A_img, training=training)
+        B2A_transformed = G_B2A(B_img, training=training)
         # Combine new transformed image with attention -> Crop important part from transformed img
         A2B_transformed_attention = multiply_images(A2B_transformed, A_attention)
         B2A_transformed_attention = multiply_images(B2A_transformed, B_attention)
@@ -131,23 +132,23 @@ def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, 
         A2B = add_images(A2B_transformed_attention, A_background)
         B2A = add_images(B2A_transformed_attention, B_background)
         # Cycle
-        A2B2A_transformed = G_B2A(A2B, training=True)
-        B2A2B_transformed = G_A2B(B2A, training=True)
+        A2B2A_transformed = G_B2A(A2B, training=training)
+        B2A2B_transformed = G_A2B(B2A, training=training)
         # Combine new transformed image with attention
         A2B2A_transformed_attention = multiply_images(A2B2A_transformed, A_attention)
         A2B2A = add_images(A2B2A_transformed_attention, A_background)
         B2A2B_transformed_attention = multiply_images(B2A2B_transformed, B_attention)
         B2A2B = add_images(B2A2B_transformed_attention, B_background)
 
-        A2A_transformed = G_B2A(A_img, training=True)
+        A2A_transformed = G_B2A(A_img, training=training)
         A2A_transformed_attention = multiply_images(A2A_transformed, A_attention)
         A2A = add_images(A2A_transformed_attention, A_background)
-        B2B_transformed = G_A2B(B_img, training=True)
+        B2B_transformed = G_A2B(B_img, training=training)
         B2B_transformed_attention = multiply_images(B2B_transformed, B_attention)
         B2B = add_images(B2B_transformed_attention, B_background)
 
-        A2B_d_logits = D_B(A2B, training=True)
-        B2A_d_logits = D_A(B2A, training=True)
+        A2B_d_logits = D_B(A2B, training=training)
+        B2A_d_logits = D_A(B2A, training=training)
 
         if args.counterfactual_loss_weight > 0:
             A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
@@ -184,12 +185,12 @@ def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, 
 
 
 @tf.function
-def train_D(A, B, A2B, B2A):
+def train_D(A, B, A2B, B2A, training=True):
     with tf.GradientTape() as t:
-        A_d_logits = D_A(A, training=True)
-        B2A_d_logits = D_A(B2A, training=True)
-        B_d_logits = D_B(B, training=True)
-        A2B_d_logits = D_B(A2B, training=True)
+        A_d_logits = D_A(A, training=training)
+        B2A_d_logits = D_A(B2A, training=training)
+        B_d_logits = D_B(B, training=training)
+        A2B_d_logits = D_B(A2B, training=training)
 
         A_d_loss, B2A_d_loss = d_loss_fn(A_d_logits, B2A_d_logits)
         B_d_loss, A2B_d_loss = d_loss_fn(B_d_logits, A2B_d_logits)
@@ -228,9 +229,9 @@ def train_step(A_holder, B_holder):
 
 
 @tf.function
-def sample(A_img, B_img, A_attention, B_attention, A_background, B_background):
-    A2B_transformed = G_A2B(A_img, training=False)
-    B2A_transformed = G_B2A(B_img, training=False)
+def sample(A_img, B_img, A_attention, B_attention, A_background, B_background, training=False):
+    A2B_transformed = G_A2B(A_img, training=training)
+    B2A_transformed = G_B2A(B_img, training=training)
     # Combine new transformed image with attention -> Crop important part from transformed img
     A2B_transformed_attention = multiply_images(A2B_transformed, A_attention)
     B2A_transformed_attention = multiply_images(B2A_transformed, B_attention)
