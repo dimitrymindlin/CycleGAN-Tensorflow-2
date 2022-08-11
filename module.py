@@ -77,11 +77,26 @@ def ResnetGenerator(input_shape=(256, 256, 3),
 
 
 def ResnetAttentionGenerator(input_shape=(256, 256, 3),
-                    output_channels=3,
-                    dim=64,
-                    n_downsamplings=2,
-                    n_blocks=9,
-                    norm='instance_norm'):
+                             output_channels=3,
+                             dim=64,
+                             n_downsamplings=2,
+                             n_blocks=9,
+                             norm='instance_norm'):
+    """
+    Generator that additionally outputs the attention-map of the first upsampling layer.
+    Parameters
+    ----------
+    input_shape
+    output_channels
+    dim
+    n_downsamplings
+    n_blocks
+    norm
+
+    Returns
+    -------
+
+    """
     Norm = _get_norm_layer(norm)
 
     def _residual_block(x):
@@ -131,8 +146,6 @@ def ResnetAttentionGenerator(input_shape=(256, 256, 3),
             attention_map = _attention_map_layer(h)
         h = Norm()(h)
         h = tf.nn.relu(h)
-
-
 
     # 5
     h = tf.pad(h, [[0, 0], [3, 3], [3, 3], [0, 0]], mode='REFLECT')
@@ -193,7 +206,7 @@ class LinearDecay(keras.optimizers.schedules.LearningRateSchedule):
         self.current_learning_rate.assign(tf.cond(
             step >= self._step_decay,
             true_fn=lambda: self._initial_learning_rate * (
-                        1 - 1 / (self._steps - self._step_decay) * (step - self._step_decay)),
+                    1 - 1 / (self._steps - self._step_decay) * (step - self._step_decay)),
             false_fn=lambda: self._initial_learning_rate
         ))
         return self.current_learning_rate
