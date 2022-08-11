@@ -1,7 +1,4 @@
-import numpy as np
 import tensorflow as tf
-from sklearn.model_selection import train_test_split
-from sklearn.utils import shuffle
 import tf2lib as tl
 import tensorflow_addons as tfa
 import pylib as py
@@ -90,33 +87,6 @@ def make_concat_dataset(A_img_paths, B_img_paths, batch_size, load_size, crop_si
     return make_dataset(all_image_paths, batch_size, load_size, crop_size, training, drop_remainder=True,
                         shuffle=shuffle, repeat=repeat, labels=class_labels,
                         special_normalisation=special_normalisation), dataset_length
-
-
-class ItemPool:
-
-    def __init__(self, pool_size=50):
-        self.pool_size = pool_size
-        self.items = []
-
-    def __call__(self, in_items):
-        # `in_items` should be a batch tensor
-
-        if self.pool_size == 0:
-            return in_items
-
-        out_items = []
-        for in_item in in_items:
-            if len(self.items) < self.pool_size:
-                self.items.append(in_item)
-                out_items.append(in_item)
-            else:
-                if np.random.rand() > 0.5:
-                    idx = np.random.randint(0, len(self.items))
-                    out_item, self.items[idx] = self.items[idx], in_item
-                    out_items.append(out_item)
-                else:
-                    out_items.append(in_item)
-        return tf.stack(out_items, axis=0)
 
 
 def get_dataset_paths(args):
