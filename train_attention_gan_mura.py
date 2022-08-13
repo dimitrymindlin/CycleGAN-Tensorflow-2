@@ -8,7 +8,6 @@ import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
 
-import standard_datasets_loading
 import tf2lib as tl
 import tf2gan as gan
 import tqdm
@@ -19,6 +18,7 @@ import module
 # ==============================================================================
 from imlib import generate_image
 from imlib.image_holder import get_img_holders, multiply_images, add_images
+from tf2lib.data.item_pool import ItemPool
 
 py.arg('--dataset', default='mura')
 py.arg('--datasets_dir', default='datasets')
@@ -75,8 +75,8 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 # ==============================================================================
 # =                                    data                                    =
 # ==============================================================================
-A2B_pool = standard_datasets_loading.ItemPool(args.pool_size)
-B2A_pool = standard_datasets_loading.ItemPool(args.pool_size)
+A2B_pool = ItemPool(args.pool_size)
+B2A_pool = ItemPool(args.pool_size)
 
 special_normalisation = tf.keras.applications.inception_v3.preprocess_input
 
