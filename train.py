@@ -17,6 +17,8 @@ import module
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
+from tf2lib.data.item_pool import ItemPool
+
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=286)  # load image to this size
@@ -66,8 +68,8 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 # =                                    data                                    =
 # ==============================================================================
 
-A2B_pool = standard_datasets_loading.ItemPool(args.pool_size)
-B2A_pool = standard_datasets_loading.ItemPool(args.pool_size)
+A2B_pool = ItemPool(args.pool_size)
+B2A_pool = ItemPool(args.pool_size)
 
 train_horses, train_zebras, test_horses, test_zebras, len_dataset = standard_datasets_loading.load_tfds_dataset(
     args.dataset,
