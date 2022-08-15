@@ -280,14 +280,14 @@ def train_step(A_holder, B_holder):
 
 
 @tf.function
-def sample_no_attention(A_img, B_img, training=False):
+def sample_no_attention(A_img, B_img, training=True):
     A2B, B2A, A2B2A, B2A2B = attention_strategies.no_attention(A_img, B_img, G_A2B, G_B2A,
                                                                training=training)
     return A2B, B2A, A2B2A, B2A2B
 
 
 @tf.function
-def sample(A_img, B_img, A_attention, B_attention, A_background, B_background, training=False):
+def sample(A_img, B_img, A_attention, B_attention, A_background, B_background, training=True):
     A2B_transformed = G_A2B(A_img, training=training)
     B2A_transformed = G_B2A(B_img, training=training)
     # Combine new transformed image with attention -> Crop important part from transformed img
@@ -337,7 +337,7 @@ else:
     gradcam = None
 
 # main loop
-kid_count = 0
+#kid_count = 0
 with train_summary_writer.as_default():
     for ep in tqdm.trange(args.epochs, desc='Epoch Loop'):
         if ep < ep_cnt:
@@ -406,7 +406,8 @@ with train_summary_writer.as_default():
 
         # Calculate KID after epoch and log
         if (ep > 100 and ep % 5 == 0) or ep % 20:
-            kid_A2B_mean, kid_A2B_std = calc_KID_for_model(A2B_pool.items, "A2B", args.crop_size, train_horses,
+            checkpoint.save(ep)
+            """kid_A2B_mean, kid_A2B_std = calc_KID_for_model(A2B_pool.items, "A2B", args.crop_size, train_horses,
                                                            train_zebras)
             kid_B2A_mean, kid_B2A_std = calc_KID_for_model(B2A_pool.items, "B2A", args.crop_size, train_horses,
                                                            train_zebras)
@@ -414,5 +415,5 @@ with train_summary_writer.as_default():
             tl.summary({'kid_A2B_std': tf.Variable(kid_A2B_std)}, step=kid_count, name='kid_A2B_std')
             tl.summary({'kid_B2A_mean': tf.Variable(kid_A2B_mean)}, step=kid_count, name='kid_B2A_mean')
             tl.summary({'kid_B2A_std': tf.Variable(kid_A2B_mean)}, step=kid_count, name='kid_B2A_std')
-            checkpoint.save(ep)
-            kid_count += 1
+
+            kid_count += 1"""
