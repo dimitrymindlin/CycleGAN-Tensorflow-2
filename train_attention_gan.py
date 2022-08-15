@@ -280,14 +280,14 @@ def train_step(A_holder, B_holder):
 
 
 @tf.function
-def sample_no_attention(A_img, B_img, training=True):
+def sample_no_attention(A_img, B_img, training=False):
     A2B, B2A, A2B2A, B2A2B = attention_strategies.no_attention(A_img, B_img, G_A2B, G_B2A,
                                                                training=training)
     return A2B, B2A, A2B2A, B2A2B
 
 
 @tf.function
-def sample(A_img, B_img, A_attention, B_attention, A_background, B_background, training=True):
+def sample(A_img, B_img, A_attention, B_attention, A_background, B_background, training=False):
     A2B_transformed = G_A2B(A_img, training=training)
     B2A_transformed = G_B2A(B_img, training=training)
     # Combine new transformed image with attention -> Crop important part from transformed img
