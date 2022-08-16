@@ -7,8 +7,8 @@ python3 -m train_attention_gan \
   --dataset horse2zebra \
   --discriminator_loss_weight 1 \
   --cycle_loss_weight 10 \
-  --counterfactual_loss_weight 1 \
-  --identity_loss_weight 0 \
+  --counterfactual_loss_weight 0 \
+  --identity_loss_weight 5 \
   --generator resnet \
   --start_attention_epoch 100 \
 
