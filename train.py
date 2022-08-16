@@ -120,9 +120,12 @@ def train_G(A, B):
 
         if args.counterfactual_loss_weight > 0:
             A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
-                                                             clf(tf.image.resize(A2B, [512, 512])))
+                                                             clf(tf.image.resize(A2B, [512, 512],
+                                                                                 method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
             B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth,
-                                                             clf(tf.image.resize(B2A, [512, 512])))
+                                                             clf(tf.image.resize(A2B, [512, 512],
+                                                                                 method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
+
         else:
             A2B_counterfactual_loss = tf.zeros(())
             B2A_counterfactual_loss = tf.zeros(())

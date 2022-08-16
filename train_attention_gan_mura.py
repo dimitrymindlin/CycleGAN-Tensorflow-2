@@ -16,7 +16,7 @@ import module
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-from imlib import generate_image
+from imlib import generate_image, plot_any_img
 from imlib.image_holder import get_img_holders, multiply_images, add_images
 from tf2lib.data.item_pool import ItemPool
 
@@ -80,12 +80,13 @@ B2A_pool = ItemPool(args.pool_size)
 
 special_normalisation = tf.keras.applications.inception_v3.preprocess_input
 
-A_B_dataset, A_B_dataset_test, len_dataset_train = get_mura_ds_by_body_part_split_class(args.body_parts,
-                                                                                        TFDS_PATH,
-                                                                                        args.batch_size,
-                                                                                        args.crop_size,
-                                                                                        args.load_size,
-                                                                                        special_normalisation)
+A_B_dataset, A_B_dataset_valid, A_B_dataset_test, len_dataset_train = get_mura_ds_by_body_part_split_class(
+    args.body_parts,
+    TFDS_PATH,
+    args.batch_size,
+    args.crop_size,
+    args.load_size,
+    special_normalisation)
 
 # ==============================================================================
 # =                                   models                                   =
@@ -152,9 +153,11 @@ def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, 
 
         if args.counterfactual_loss_weight > 0:
             A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
-                                                             clf(tf.image.resize(A2B, [512, 512])))
+                                                             clf(tf.image.resize(A2B, [512, 512],
+                                                                                 method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
             B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth,
-                                                             clf(tf.image.resize(A2B, [512, 512])))
+                                                             clf(tf.image.resize(A2B, [512, 512],
+                                                                                 method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
         else:
             A2B_counterfactual_loss = tf.zeros(())
             B2A_counterfactual_loss = tf.zeros(())
@@ -294,6 +297,9 @@ with train_summary_writer.as_default():
             A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
                                                  gradcam=gradcam)
 
+            plot_any_img(A_holder.img)
+            plot_any_img(B_holder.img)
+
             G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
 
             # # summary
@@ -314,6 +320,8 @@ with train_summary_writer.as_default():
 
                 A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
                                                      gradcam=gradcam)
+                plot_any_img(A_holder.img)
+                plot_any_img(B_holder.img)
 
                 A2B, B2A, A2B_transformed, B2A_transformed = sample(A_holder.img, B_holder.img,
                                                                     A_holder.attention, B_holder.attention,

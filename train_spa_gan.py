@@ -19,6 +19,7 @@ import module
 # =                                   param                                    =
 # ==============================================================================
 from imlib.image_holder import get_img_holders, multiply_images
+from tf2lib.data.item_pool import ItemPool
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
@@ -77,11 +78,12 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 # =                                    data                                    =
 # ==============================================================================
 
-A2B_pool = standard_datasets_loading.ItemPool(args.pool_size)
-B2A_pool = standard_datasets_loading.ItemPool(args.pool_size)
+A2B_pool = ItemPool(args.pool_size)
+B2A_pool = ItemPool(args.pool_size)
 
-train_horses, train_zebras, test_horses, test_zebras, len_dataset = standard_datasets_loading.load_tfds_dataset(args.dataset,
-                                                                                                                args.crop_size)
+train_horses, train_zebras, test_horses, test_zebras, len_dataset = standard_datasets_loading.load_tfds_dataset(
+    args.dataset,
+    args.crop_size)
 
 # ==============================================================================
 # =                                   models                                   =
@@ -165,9 +167,12 @@ def train_G_attention(A_enhanced, B_enhanced, A_attention, B_attention):
 
         if args.counterfactual_loss_weight > 0:
             A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
-                                                             clf(tf.image.resize(A2B, [512, 512])))
+                                                             clf(tf.image.resize(A2B, [512, 512],
+                                                                                 method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
             B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth,
-                                                             clf(tf.image.resize(A2B, [512, 512])))
+                                                             clf(tf.image.resize(A2B, [512, 512],
+                                                                                 method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
+
         else:
             A2B_counterfactual_loss = 0
             B2A_counterfactual_loss = 0
@@ -354,7 +359,7 @@ with train_summary_writer.as_default():
         # train for an epoch
         batch_count = 0
         for A, B in tqdm.tqdm(tf.data.Dataset.zip((train_horses, train_zebras)), desc='Inner Epoch Loop',
-                          total=len_dataset):
+                              total=len_dataset):
             A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention, args.attention_intensity,
                                                  gradcam=gradcam, gradcam_D_A=gradcam_D_A, gradcam_D_B=gradcam_D_B)
 
