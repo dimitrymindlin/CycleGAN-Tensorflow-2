@@ -14,7 +14,6 @@ import tf2gan as gan
 import tqdm
 import module
 from attention_strategies import attention_strategies
-from evaluation.kid import calc_KID_for_model
 from imlib import generate_image
 from imlib.image_holder import get_img_holders, multiply_images, add_images
 
@@ -124,7 +123,8 @@ else:
 # =                                 train step                                 =
 # ==============================================================================
 @tf.function
-def train_G_no_attention(A_img, B_img, training=True):
+def train_G_no_attention(A_img, B_img):
+    training = True
     with tf.GradientTape() as t:
         A2B, B2A, A2B2A, B2A2B, A2A, B2B = attention_strategies.no_attention(A_img, B_img, G_A2B, G_B2A)
         # Calculate Losses
@@ -167,7 +167,8 @@ def train_G_no_attention(A_img, B_img, training=True):
 
 
 @tf.function
-def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, B_background, training=True):
+def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, B_background):
+    training = True
     with tf.GradientTape() as t:
         A2B_transformed = G_A2B(A_img, training=training)
         B2A_transformed = G_B2A(B_img, training=training)
@@ -233,7 +234,8 @@ def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, 
 
 
 @tf.function
-def train_D(A, B, A2B, B2A, training=True):
+def train_D(A, B, A2B, B2A):
+    training = True
     with tf.GradientTape() as t:
         A_d_logits = D_A(A, training=training)
         B2A_d_logits = D_A(B2A, training=training)
@@ -280,14 +282,16 @@ def train_step(A_holder, B_holder):
 
 
 @tf.function
-def sample_no_attention(A_img, B_img, training=False):
+def sample_no_attention(A_img, B_img):
+    training = False
     A2B, B2A, A2B2A, B2A2B = attention_strategies.no_attention(A_img, B_img, G_A2B, G_B2A,
                                                                training=training)
     return A2B, B2A, A2B2A, B2A2B
 
 
 @tf.function
-def sample(A_img, B_img, A_attention, B_attention, A_background, B_background, training=False):
+def sample(A_img, B_img, A_attention, B_attention, A_background, B_background):
+    training = False
     A2B_transformed = G_A2B(A_img, training=training)
     B2A_transformed = G_B2A(B_img, training=training)
     # Combine new transformed image with attention -> Crop important part from transformed img
@@ -337,7 +341,7 @@ else:
     gradcam = None
 
 # main loop
-#kid_count = 0
+# kid_count = 0
 with train_summary_writer.as_default():
     for ep in tqdm.trange(args.epochs, desc='Epoch Loop'):
         if ep < ep_cnt:
