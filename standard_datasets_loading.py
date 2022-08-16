@@ -46,7 +46,7 @@ def make_dataset(img_paths, batch_size, load_size, crop_size, training, drop_rem
 
 
 def make_zip_dataset(A_img_paths, B_img_paths, batch_size, load_size, crop_size, training, shuffle=False, repeat=False):
-    # zip two datasets aligned by the longer one
+    # zip two datasets aligned by the longer one (for GAN training)
     if repeat:
         A_repeat = B_repeat = None  # cycle both
     else:
@@ -68,24 +68,15 @@ def make_zip_dataset(A_img_paths, B_img_paths, batch_size, load_size, crop_size,
 
 
 def make_concat_dataset(A_img_paths, B_img_paths, batch_size, load_size, crop_size, training, shuffle=True,
-                        repeat=False, special_normalisation=None):
-    # zip two datasets aligned by the longer one
-    if repeat:
-        A_repeat = B_repeat = None  # cycle both
-    else:
-        if len(A_img_paths) >= len(B_img_paths):
-            A_repeat = 1
-            B_repeat = None  # cycle the shorter one
-        else:
-            A_repeat = None  # cycle the shorter one
-            B_repeat = 1
+                        repeat=1, special_normalisation=None):
+    # concat two datasets (for clf training)
     dataset_length = len(A_img_paths) + len(B_img_paths)
     class_labels = [(1, 0) for _ in range(len(A_img_paths))]
     class_labels.extend([(0, 1) for _ in range(len(B_img_paths))])
     A_img_paths.extend(B_img_paths)  # becoming all_image_paths
     all_image_paths = A_img_paths
     return make_dataset(all_image_paths, batch_size, load_size, crop_size, training, drop_remainder=True,
-                        shuffle=shuffle, repeat=repeat, labels=class_labels,
+                        shuffle=shuffle, repeat=1, labels=class_labels,
                         special_normalisation=special_normalisation), dataset_length
 
 
