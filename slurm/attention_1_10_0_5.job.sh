@@ -10,5 +10,5 @@ python3 -m train_attention_gan \
   --counterfactual_loss_weight 0 \
   --identity_loss_weight 5 \
   --generator resnet \
-  --start_attention_epoch 100 \
+  --start_attention_epoch 50 \
 
