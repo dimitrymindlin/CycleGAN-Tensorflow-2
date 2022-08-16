@@ -110,13 +110,13 @@ else:
 # =                                 train step                                 =
 # ==============================================================================
 @tf.function
-def train_G(A, B, training=True):
+def train_G(A, B):
     with tf.GradientTape() as t:
         A2B, B2A, A2B2A, B2A2B, A2A, B2B = attention_strategies.no_attention(A, B, G_A2B, G_B2A)
         # G_loss, G_loss_dict = calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B)
         # Calculate Losses
-        A2B_d_logits = D_B(A2B, training=training)
-        B2A_d_logits = D_A(B2A, training=training)
+        A2B_d_logits = D_B(A2B, training=True)
+        B2A_d_logits = D_A(B2A, training=True)
 
         if args.counterfactual_loss_weight > 0:
             A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
@@ -154,12 +154,12 @@ def train_G(A, B, training=True):
 
 
 @tf.function
-def train_D(A, B, A2B, B2A, training=True):
+def train_D(A, B, A2B, B2A):
     with tf.GradientTape() as t:
-        A_d_logits = D_A(A, training=training)
-        B2A_d_logits = D_A(B2A, training=training)
-        B_d_logits = D_B(B, training=training)
-        A2B_d_logits = D_B(A2B, training=training)
+        A_d_logits = D_A(A, training=True)
+        B2A_d_logits = D_A(B2A, training=True)
+        B_d_logits = D_B(B, training=True)
+        A2B_d_logits = D_B(A2B, training=True)
 
         A_d_loss, B2A_d_loss = d_loss_fn(A_d_logits, B2A_d_logits)
         B_d_loss, A2B_d_loss = d_loss_fn(B_d_logits, A2B_d_logits)
@@ -196,9 +196,9 @@ def train_step(A, B):
 
 
 @tf.function
-def sample(A, B, training=False):
+def sample(A, B):
     A2B, B2A, A2B2A, B2A2B = attention_strategies.no_attention(A, B, G_A2B, G_B2A,
-                                                               training=training)
+                                                               training=False)
     return A2B, B2A, A2B2A, B2A2B
 
 
