@@ -92,10 +92,10 @@ def load_tfds_dataset(dataset_name, img_size):
     dataset, metadata = tfds.load(f'cycle_gan/{dataset_name}',
                                   with_info=True, as_supervised=True)
 
-    train_horses, train_zebras = dataset['trainA'], dataset['trainB']
-    test_horses, test_zebras = dataset['testA'], dataset['testB']
+    A_train, B_train = dataset['trainA'], dataset['trainB'] # A=horses, B=zebras
+    A_test, B_test = dataset['testA'], dataset['testB']
     BUFFER_SIZE = 1000
-    len_dataset = len(train_zebras)
+    len_dataset_train = max(len(B_train), len(A_train))
     BATCH_SIZE = 1
     IMG_WIDTH = img_size
     IMG_HEIGHT = img_size
@@ -136,20 +136,23 @@ def load_tfds_dataset(dataset_name, img_size):
         image = normalize(image)
         return image
 
-    train_horses = train_horses.cache().map(
+    A_train = A_train.cache().map(
         preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
         BUFFER_SIZE).batch(BATCH_SIZE)
 
-    train_zebras = train_zebras.cache().map(
+    B_train = B_train.cache().map(
         preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
         BUFFER_SIZE).batch(BATCH_SIZE)
 
-    test_horses = test_horses.map(
+    A_test = A_test.map(
         preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
         BUFFER_SIZE).batch(BATCH_SIZE)
 
-    test_zebras = test_zebras.map(
+    B_test = B_test.map(
         preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
         BUFFER_SIZE).batch(BATCH_SIZE)
 
-    return train_horses, train_zebras, test_horses, test_zebras, len_dataset
+    A_B_dataset = tf.data.Dataset.zip(((A_train, B_train)))
+    A_B_dataset_test = tf.data.Dataset.zip(((A_test, B_test)))
+
+    return A_B_dataset, A_B_dataset_test, len_dataset_train

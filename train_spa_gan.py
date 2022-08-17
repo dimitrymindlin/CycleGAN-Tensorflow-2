@@ -82,9 +82,8 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 A2B_pool = ItemPool(args.pool_size)
 B2A_pool = ItemPool(args.pool_size)
 
-train_horses, train_zebras, test_horses, test_zebras, len_dataset = standard_datasets_loading.load_tfds_dataset(
-    args.dataset,
-    args.crop_size)
+A_B_dataset, A_B_dataset_test, len_dataset_train = standard_datasets_loading.load_tfds_dataset(args.dataset,
+                                                                                               args.crop_size)
 
 # ==============================================================================
 # =                                   models                                   =
@@ -127,8 +126,8 @@ else:  # discriminator attention
     gradcam_D_A = Gradcam(D_A, model_modifier=ReplaceToLinear(), clone=True)
     gradcam_D_B = Gradcam(D_B, model_modifier=ReplaceToLinear(), clone=True)
 
-G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
-D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset, args.epoch_decay * len_dataset)
+G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset_train, args.epoch_decay * len_dataset_train)
+D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset_train, args.epoch_decay * len_dataset_train)
 G_optimizer = keras.optimizers.Adam(learning_rate=G_lr_scheduler, beta_1=args.beta_1)
 D_optimizer = keras.optimizers.Adam(learning_rate=D_lr_scheduler, beta_1=args.beta_1)
 
@@ -344,7 +343,7 @@ except Exception as e:
 train_summary_writer = tf.summary.create_file_writer(py.join(TF_LOG_DIR + execution_id))
 
 # sample
-test_iter = iter(tf.data.Dataset.zip(((test_horses, test_zebras))))
+test_iter = iter(A_B_dataset_test)
 sample_dir = py.join(output_dir, 'images')
 py.mkdir(sample_dir)
 
@@ -359,8 +358,7 @@ with train_summary_writer.as_default():
 
         # train for an epoch
         batch_count = 0
-        for A, B in tqdm.tqdm(tf.data.Dataset.zip((train_horses, train_zebras)), desc='Inner Epoch Loop',
-                              total=len_dataset):
+        for A, B in tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset_train):
             A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention, args.attention_intensity,
                                                  gradcam=gradcam, gradcam_D_A=gradcam_D_A, gradcam_D_B=gradcam_D_B)
 
@@ -379,7 +377,7 @@ with train_summary_writer.as_default():
                         A, B = next(test_iter)
                     except StopIteration:  # When all elements finished
                         # Create new iterator
-                        test_iter = iter(tf.data.Dataset.zip(((test_horses, test_zebras))))
+                        test_iter = iter(A_B_dataset_test)
                         A, B = next(test_iter)
                     # Get images
                     A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
