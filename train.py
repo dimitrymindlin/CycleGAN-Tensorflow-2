@@ -1,6 +1,3 @@
-from datetime import datetime
-import time
-
 import numpy as np
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 import pylib as py
@@ -317,7 +314,6 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
 
                         if args.current_attention_type == "none":
                             A2B, B2A, A2B2A, B2A2B = sample_no_attention(A_holder.img, B_holder.img)
-
                         else:
                             A2B, B2A, A2B_transformed, B2A_transformed = sample_attention_gan(A_holder.img,
                                                                                               B_holder.img,
