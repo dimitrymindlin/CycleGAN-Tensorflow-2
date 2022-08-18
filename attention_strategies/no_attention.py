@@ -1,4 +1,4 @@
-def no_attention(A_img, B_img, G_A2B, G_B2A, training=True):
+def no_attention_step(A_img, B_img, G_A2B, G_B2A, training=True):
     """
     This function doesn't use any of the attention mechanisms and translates the images as the original cycle-gan.
     Parameters
