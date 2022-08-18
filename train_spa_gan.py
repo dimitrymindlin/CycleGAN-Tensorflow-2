@@ -1,4 +1,5 @@
-from datetime import datetime, time
+from datetime import datetime
+import time
 
 import numpy as np
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
@@ -7,18 +8,14 @@ from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
 import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
+import standard_datasets_loading
 import tf2lib as tl
 import tf2gan as gan
 import tqdm
-
-from imlib import generate_image, scale_to_minus_one_one
-import standard_datasets_loading
 import module
-
-# ==============================================================================
-# =                                   param                                    =
-# ==============================================================================
-from imlib.image_holder import get_img_holders, multiply_images
+from attention_strategies.spa_gan import spa_gan_step, spa_gan_step_fm
+from imlib import generate_image
+from imlib.image_holder import get_img_holders
 from tf2lib.data.item_pool import ItemPool
 
 py.arg('--dataset', default='horse2zebra')
@@ -39,6 +36,7 @@ py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 py.arg('--attention', type=str, default="clf", choices=['discriminator', 'clf'])
 py.arg('--clf_name', type=str, default="inception")
+py.arg('--clf_ckp_name', type=str, default="2022-06-04--00.00")  # Mura: 2022-06-04--00.05, H2Z: 2022-06-04--00.00
 py.arg('--attention_intensity', type=float, default=1)
 py.arg('--attention_type', type=str, default="spa-gan")
 py.arg('--generator', type=str, default="resnet-attention", choices=['resnet', 'unet', "resnet-attention"])
@@ -117,7 +115,7 @@ gradcam_D_B = None
 clf = None
 
 if args.attention == "clf":
-    clf = tf.keras.models.load_model(f"checkpoints/{args.clf_name}_{args.dataset}_512/model",
+    clf = tf.keras.models.load_model(f"checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
                                      compile=False)
     # gradcam = Gradcam(clf, clone=True)
     gradcam = GradcamPlusPlus(clf, clone=True)
@@ -142,9 +140,9 @@ train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 # ==============================================================================
 
 @tf.function
-def train_G_attention(A_enhanced, B_enhanced, A_attention, B_attention):
+def train_spa_gan_G_fm(A_img, B_img, A_attention, B_attention):
     """
-    Generator with feature map loss
+    Generator with feature map loss (fm)
     Parameters
     ----------
     A_enhanced
@@ -154,18 +152,13 @@ def train_G_attention(A_enhanced, B_enhanced, A_attention, B_attention):
     -------
 
     """
+    training = True
     with tf.GradientTape() as t:
-        A2B, A_real_feature_map = G_A2B(A_enhanced, training=True)
-        B2A, B_real_feature_map = G_B2A(B_enhanced, training=True)
-        A2B = multiply_images(A2B, scale_to_minus_one_one(A_attention))
-        B2A = multiply_images(B2A, scale_to_minus_one_one(B_attention))
-        A2B2A, B_fake_feature_map = G_B2A(A2B, training=True)
-        B2A2B, A_fake_feature_map = G_A2B(B2A, training=True)
-        A2A, _ = G_B2A(A_enhanced, training=True)
-        B2B, _ = G_A2B(B_enhanced, training=True)
+        A2B, B2A, A2B2A, B2A2B, A_enhanced, B_enhanced, A_forward_feature_map, B_forward_feature_map, A_cycle_feature_map, B_cycle_feature_map = spa_gan_step_fm(
+            A_img, B_img, G_A2B, G_B2A, A_attention, B_attention, training=True)
 
-        GA_A2B_fm_loss = feature_map_loss_fn(A_real_feature_map, A_fake_feature_map)
-        GB_B2A_fm_loss = feature_map_loss_fn(B_real_feature_map, B_fake_feature_map)
+        GA_A2B_fm_loss = feature_map_loss_fn(A_forward_feature_map, A_cycle_feature_map)
+        GB_B2A_fm_loss = feature_map_loss_fn(B_forward_feature_map, B_cycle_feature_map)
 
         if args.counterfactual_loss_weight > 0:
             A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
@@ -179,17 +172,14 @@ def train_G_attention(A_enhanced, B_enhanced, A_attention, B_attention):
             A2B_counterfactual_loss = 0
             B2A_counterfactual_loss = 0
 
-        A2B_d_logits = D_B(A2B, training=True)
-        B2A_d_logits = D_A(B2A, training=True)
+        A2B_d_logits = D_B(A2B, training=training)
+        B2A_d_logits = D_A(B2A, training=training)
         A2B_g_loss = g_loss_fn(A2B_d_logits)
         B2A_g_loss = g_loss_fn(B2A_d_logits)
         A2B2A_cycle_loss = cycle_loss_fn(A_enhanced, A2B2A)
         B2A2B_cycle_loss = cycle_loss_fn(B_enhanced, B2A2B)
-        A2A_id_loss = identity_loss_fn(A_enhanced, A2A)
-        B2B_id_loss = identity_loss_fn(B_enhanced, B2B)
 
         G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + \
-                 (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
                  (GA_A2B_fm_loss + GB_B2A_fm_loss) * args.feature_map_loss_weight + \
                  (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight
 
@@ -200,8 +190,6 @@ def train_G_attention(A_enhanced, B_enhanced, A_attention, B_attention):
                       'B2A_g_loss': B2A_g_loss,
                       'A2B2A_cycle_loss': A2B2A_cycle_loss,
                       'B2A2B_cycle_loss': B2A2B_cycle_loss,
-                      'A2A_id_loss': A2A_id_loss,
-                      'B2B_id_loss': B2B_id_loss,
                       'GA_A2B_fm_loss': GA_A2B_fm_loss,
                       'GA_B2A_fm_loss': GB_B2A_fm_loss,
                       'A2B_counterfactual_loss': A2B_counterfactual_loss,
@@ -209,16 +197,11 @@ def train_G_attention(A_enhanced, B_enhanced, A_attention, B_attention):
 
 
 @tf.function
-def train_G(A_enhanced, B_enhanced, A_attention, B_attention):
+def train_spa_gan_G(A_img, B_img, A_attention, B_attention):
     with tf.GradientTape() as t:
-        A2B = G_A2B(A_enhanced, training=True)
-        B2A = G_B2A(B_enhanced, training=True)
-        A2B = multiply_images(A2B, scale_to_minus_one_one(A_attention))
-        B2A = multiply_images(B2A, scale_to_minus_one_one(B_attention))
-        A2B2A = G_B2A(A2B, training=True)
-        B2A2B = G_A2B(B2A, training=True)
-        A2A = G_B2A(A_enhanced, training=True)
-        B2B = G_A2B(B_enhanced, training=True)
+        A2B, B2A, A2B2A, B2A2B, A_enhanced, B_enhanced = spa_gan_step(A_img, B_img, G_A2B, G_B2A, A_attention,
+                                                                      B_attention,
+                                                                      training=True)
 
         A2B_d_logits = D_B(A2B, training=True)
         B2A_d_logits = D_A(B2A, training=True)
@@ -236,11 +219,8 @@ def train_G(A_enhanced, B_enhanced, A_attention, B_attention):
         B2A_g_loss = g_loss_fn(B2A_d_logits)
         A2B2A_cycle_loss = cycle_loss_fn(A_enhanced, A2B2A)
         B2A2B_cycle_loss = cycle_loss_fn(B_enhanced, B2A2B)
-        A2A_id_loss = identity_loss_fn(A_enhanced, A2A)
-        B2B_id_loss = identity_loss_fn(B_enhanced, B2B)
 
-        G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight + (
-                A2A_id_loss + B2B_id_loss) * args.identity_loss_weight
+        G_loss = (A2B_g_loss + B2A_g_loss) + (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight
 
     G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
     G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
@@ -249,8 +229,6 @@ def train_G(A_enhanced, B_enhanced, A_attention, B_attention):
                       'B2A_g_loss': B2A_g_loss,
                       'A2B2A_cycle_loss': A2B2A_cycle_loss,
                       'B2A2B_cycle_loss': B2A2B_cycle_loss,
-                      'A2A_id_loss': A2A_id_loss,
-                      'B2B_id_loss': B2B_id_loss,
                       'A2B_counterfactual_loss': A2B_counterfactual_loss,
                       'B2A_counterfactual_loss': B2A_counterfactual_loss}
 
@@ -285,13 +263,11 @@ def train_D(A, B, A2B, B2A):
 
 def train_step(A_holder, B_holder):
     if args.generator == "resnet-attention":
-        A2B, B2A, G_loss_dict = train_G_attention(A_holder.enhanced_img, B_holder.enhanced_img, A_holder.attention,
-                                                  B_holder.attention)
+        A2B, B2A, G_loss_dict = train_spa_gan_G_fm(A_holder.enhanced_img, B_holder.enhanced_img, A_holder.attention,
+                                                   B_holder.attention)
     else:
-        A2B, B2A, G_loss_dict = train_G(A_holder.enhanced_img, B_holder.enhanced_img, A_holder.attention,
-                                        B_holder.attention)
-    A_holder.transformed_part = A2B
-    B_holder.transformed_part = B2A
+        A2B, B2A, G_loss_dict = train_spa_gan_G(A_holder.enhanced_img, B_holder.enhanced_img, A_holder.attention,
+                                                B_holder.attention)
 
     # cannot autograph `A2B_pool`
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
@@ -305,17 +281,13 @@ def train_step(A_holder, B_holder):
 
 
 @tf.function
-def sample_spa_gan(A_enhanced, B_enhanced):
-    A2B = G_A2B(A_enhanced, training=False)
-    B2A = G_B2A(B_enhanced, training=False)
-    return A2B, B2A
+def sample_spa_gan(A_img, B_img, A_attention, B_attention):
+    return spa_gan_step(A_img, B_img, G_A2B, G_B2A, A_attention, B_attention, training=False)
 
 
 @tf.function
-def sample_spa_gan_attention(A_enhanced, B_enhanced):
-    A2B, _ = G_A2B(A_enhanced, training=False)
-    B2A, _ = G_B2A(B_enhanced, training=False)
-    return A2B, B2A
+def sample_spa_gan_fm(A_img, B_img, A_attention, B_attention):
+    return spa_gan_step_fm(A_img, B_img, G_A2B, G_B2A, A_attention, B_attention, training=False)
 
 
 # ==============================================================================
@@ -351,6 +323,13 @@ py.mkdir(sample_dir)
 
 # main loop
 with train_summary_writer.as_default():
+    if args.generator == "resnet-attention":
+        G_train_method = train_spa_gan_G_fm
+        sample_method = sample_spa_gan_fm
+    else:
+        G_train_method = train_spa_gan_G
+        sample_method = sample_spa_gan
+
     for ep in tqdm.trange(args.epochs, desc='Epoch Loop'):
         if ep < ep_cnt:
             continue
@@ -386,11 +365,11 @@ with train_summary_writer.as_default():
                                                          args.attention_intensity,
                                                          gradcam=gradcam, gradcam_D_A=gradcam_D_A,
                                                          gradcam_D_B=gradcam_D_B)
-                    if args.generator == "resnet-attention":
-                        A2B, B2A = sample_spa_gan_attention(A_holder.enhanced_img, B_holder.enhanced_img)
-                    else:
-                        A2B, B2A = sample_spa_gan(A_holder.enhanced_img, B_holder.enhanced_img)
 
+                    A2B, B2A, A_enhanced, B_enhanced = sample_method(A_holder.img, B_holder.img, A_holder.attention,
+                                                                     B_holder.attention)
+                    A_holder.transformed_part = A_enhanced
+                    B_holder.transformed_part = B_enhanced
                     # Save images
                     generate_image(args, clf, A, B, A2B, B2A,
                                    execution_id, ep, batch_count,
