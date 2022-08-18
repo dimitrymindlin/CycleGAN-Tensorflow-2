@@ -5,6 +5,7 @@ from tf_keras_vis.utils.scores import CategoricalScore
 
 from imlib import scale_to_zero_one, scale_to_minus_one_one, plot_any_img
 
+
 def shift_values_above_intensity(cam, attention_intensity: float):
     """
     makes sure all values are above attention_intensity value.
@@ -12,6 +13,15 @@ def shift_values_above_intensity(cam, attention_intensity: float):
     cam += attention_intensity
     cam = tf.math.divide(cam, tf.reduce_max(cam))
     return cam
+
+
+def apply_attention_on_img(img, cam):
+    # Convert img to same pixel values [0, 1]
+    img = scale_to_zero_one(img)
+    # Interpolate by multiplication and normalise
+    img = tf.math.multiply(cam, img)
+    img = tf.math.divide(img, tf.reduce_max(img))
+    return scale_to_minus_one_one(img)
 
 
 def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity=1, attention_source="clf"):
@@ -33,15 +43,11 @@ def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity
     cam = tf.image.grayscale_to_rgb(tf.convert_to_tensor(cam))
     if img.get_shape()[-2] == 256 and attention_source != "discriminator":
         cam = tf.image.resize(cam, [256, 256], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-    # Convert img to same pixel values [0, 1]
-    img = scale_to_zero_one(img)
 
     if attention_type == "spa-gan":
         cam = shift_values_above_intensity(cam, attention_intensity)
     if attention_intensity == 0:  # for testing purposes when you want to apply attention everywhere.
         cam = tf.ones(shape=cam.shape)
 
-    # Interpolate by multiplication and normalise
-    img = tf.math.multiply(cam, img)
-    img = tf.math.divide(img, tf.reduce_max(img))
-    return scale_to_minus_one_one(img), scale_to_minus_one_one(cam)  # [-1,1]
+    img = apply_attention_on_img(img, cam)
+    return img, scale_to_minus_one_one(cam)  # [-1,1]
