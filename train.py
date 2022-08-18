@@ -1,24 +1,32 @@
-from datetime import datetime, time
+from datetime import datetime
+import time
 
 import numpy as np
-import tensorflow_datasets as tfds
+from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
+
+import attention_strategies.no_attention
 import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
+
+import standard_datasets_loading
 import tf2lib as tl
 import tf2gan as gan
 import tqdm
-
-from attention_strategies import attention_strategies
-from imlib import generate_image
-import standard_datasets_loading
 import module
+from attention_strategies import attention_strategies_train
+from attention_strategies.attention_gan import attention_gan_step
+from imlib import generate_image
+from imlib.image_holder import get_img_holders, multiply_images, add_images
+from tf2lib.data.item_pool import ItemPool
 
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-from tf2lib.data.item_pool import ItemPool
 
+# For MURA change dataset name and include Body Type if needed
+# py.arg('--dataset', default='mura')
+# py.arg('--body_parts', default=["XR_WRIST"])
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=286)  # load image to this size
@@ -32,12 +40,18 @@ py.arg('--adversarial_loss_mode', default='gan', choices=['gan', 'hinge_v1', 'hi
 py.arg('--discriminator_loss_weight', type=float, default=1)
 py.arg('--cycle_loss_weight', type=float, default=10)
 py.arg('--counterfactual_loss_weight', type=float, default=0)
-py.arg('--identity_loss_weight', type=float, default=5)
+py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
+py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
+py.arg('--clf_name', type=str, default="inception")
+py.arg('--attention_type', type=str, default="attention-gan-original",
+       choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
+py.arg('--current_attention_type', type=str, default="none")
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 py.arg('--discriminator', type=str, default="patch-gan", choices=['classic', 'patch-gan'])
 py.arg('--load_checkpoint', type=str, default=None)
-py.arg('--current_attention_type', type=str, default="none")
+py.arg('--start_attention_epoch', type=int, default=2)
+
 args = py.args()
 
 # output_dir
@@ -54,25 +68,29 @@ if not args.load_checkpoint:
         py.mkdir(output_dir)
 else:
     # For loading checkpoint
+    print(f"Setting {args.load_checkpoint} as checkpoint.")
     execution_id = args.load_checkpoint
     output_dir = py.join(f'output_{args.dataset}/{execution_id}')
-
-TF_LOG_DIR = f"logs/{args.dataset}/"
-
 py.mkdir(output_dir)
+TF_LOG_DIR = f"logs/{args.dataset}/"
+if len(tf.config.list_physical_devices('GPU')) == 0:
+    TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
+else:
+    TFDS_PATH = "../tensorflow_datasets"
 
 # save settings
 py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
+SAMPLE_INTERVAL = 5
 
 # ==============================================================================
 # =                                    data                                    =
 # ==============================================================================
-
 A2B_pool = ItemPool(args.pool_size)
 B2A_pool = ItemPool(args.pool_size)
 
 A_B_dataset, A_B_dataset_test, len_dataset_train = standard_datasets_loading.load_tfds_dataset(args.dataset,
                                                                                                args.crop_size)
+
 # ==============================================================================
 # =                                   models                                   =
 # ==============================================================================
@@ -99,7 +117,7 @@ D_optimizer = keras.optimizers.Adam(learning_rate=D_lr_scheduler, beta_1=args.be
 train_D_A_acc = tf.keras.metrics.BinaryAccuracy()
 train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 
-if args.counterfactual_loss_weight > 0:
+if args.counterfactual_loss_weight > 0 or args.attention_type == "attention-gan-original":
     clf = tf.keras.models.load_model(f"checkpoints/inception_{args.dataset}_512/model", compile=False)
 else:
     clf = None
@@ -109,13 +127,13 @@ else:
 # =                                 train step                                 =
 # ==============================================================================
 @tf.function
-def train_G(A, B):
+def train_G_no_attention(A_img, B_img):
+    training = True
     with tf.GradientTape() as t:
-        A2B, B2A, A2B2A, B2A2B, A2A, B2B = attention_strategies.no_attention(A, B, G_A2B, G_B2A)
-        # G_loss, G_loss_dict = calc_G_loss(A2B, B2A, A2B2A, B2A2B, A2A, B2B)
+        A2B, B2A, A2B2A, B2A2B, A2A, B2B = attention_strategies.no_attention.no_attention(A_img, B_img, G_A2B, G_B2A)
         # Calculate Losses
-        A2B_d_logits = D_B(A2B, training=True)
-        B2A_d_logits = D_A(B2A, training=True)
+        A2B_d_logits = D_B(A2B, training=training)
+        B2A_d_logits = D_A(B2A, training=training)
 
         if args.counterfactual_loss_weight > 0:
             A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
@@ -131,10 +149,10 @@ def train_G(A, B):
 
         A2B_g_loss = g_loss_fn(A2B_d_logits)
         B2A_g_loss = g_loss_fn(B2A_d_logits)
-        A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
-        B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
-        A2A_id_loss = identity_loss_fn(A, A2A)
-        B2B_id_loss = identity_loss_fn(B, B2B)
+        A2B2A_cycle_loss = cycle_loss_fn(A_img, A2B2A)
+        B2A2B_cycle_loss = cycle_loss_fn(B_img, B2A2B)
+        A2A_id_loss = identity_loss_fn(A_img, A2A)
+        B2B_id_loss = identity_loss_fn(B_img, B2B)
 
         G_loss = (A2B_g_loss + B2A_g_loss) + \
                  (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
@@ -156,12 +174,62 @@ def train_G(A, B):
 
 
 @tf.function
-def train_D(A, B, A2B, B2A):
+def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, B_background):
+    training = True
     with tf.GradientTape() as t:
-        A_d_logits = D_A(A, training=True)
-        B2A_d_logits = D_A(B2A, training=True)
-        B_d_logits = D_B(B, training=True)
-        A2B_d_logits = D_B(A2B, training=True)
+        # Generate Images based on attention-gan strategy
+        A2B, B2A, A2B2A, B2A2B, A2A, B2B = attention_gan_step(A_img, B_img, G_A2B, G_B2A, A_attention, B_attention,
+                                                              A_background, B_background, training)
+        # Calculate Losses
+        A2B_d_logits = D_B(A2B, training=training)
+        B2A_d_logits = D_A(B2A, training=training)
+
+        if args.counterfactual_loss_weight > 0:
+            A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
+                                                             clf(tf.image.resize(A2B, [512, 512],
+                                                                                 method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
+            B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth,
+                                                             clf(tf.image.resize(B2A, [512, 512],
+                                                                                 method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
+        else:
+            A2B_counterfactual_loss = tf.zeros(())
+            B2A_counterfactual_loss = tf.zeros(())
+
+        A2B_g_loss = g_loss_fn(A2B_d_logits)
+        B2A_g_loss = g_loss_fn(B2A_d_logits)
+        A2B2A_cycle_loss = cycle_loss_fn(A, A2B2A)
+        B2A2B_cycle_loss = cycle_loss_fn(B, B2A2B)
+        A2A_id_loss = identity_loss_fn(A, A2A)
+        B2B_id_loss = identity_loss_fn(B, B2B)
+
+        # Weighted Generator Loss
+        G_loss = (A2B_g_loss + B2A_g_loss) + \
+                 (A2B2A_cycle_loss + B2A2B_cycle_loss) * args.cycle_loss_weight \
+                 + (A2A_id_loss + B2B_id_loss) * args.identity_loss_weight + \
+                 (A2B_counterfactual_loss + B2A_counterfactual_loss) * args.counterfactual_loss_weight
+
+        G_loss_dict = {'A2B_g_loss': A2B_g_loss,
+                       'B2A_g_loss': B2A_g_loss,
+                       'A2B2A_cycle_loss': A2B2A_cycle_loss,
+                       'B2A2B_cycle_loss': B2A2B_cycle_loss,
+                       'A2A_id_loss': A2A_id_loss,
+                       'B2B_id_loss': B2B_id_loss,
+                       'A2B_counterfactual_loss': A2B_counterfactual_loss,
+                       'B2A_counterfactual_loss': B2A_counterfactual_loss}
+
+    G_grad = t.gradient(G_loss, G_A2B.trainable_variables + G_B2A.trainable_variables)
+    G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
+    return A2B, B2A, G_loss_dict
+
+
+@tf.function
+def train_D(A, B, A2B, B2A):
+    training = True
+    with tf.GradientTape() as t:
+        A_d_logits = D_A(A, training=training)
+        B2A_d_logits = D_A(B2A, training=training)
+        B_d_logits = D_B(B, training=training)
+        A2B_d_logits = D_B(A2B, training=training)
 
         A_d_loss, B2A_d_loss = d_loss_fn(A_d_logits, B2A_d_logits)
         B_d_loss, A2B_d_loss = d_loss_fn(B_d_logits, A2B_d_logits)
@@ -183,14 +251,19 @@ def train_D(A, B, A2B, B2A):
             'D_B_acc': train_D_B_acc.result()}
 
 
-def train_step(A, B):
-    A2B, B2A, G_loss_dict = train_G(A, B)
+def train_step(A_holder, B_holder):
+    if args.current_attention_type == "none":
+        A2B, B2A, G_loss_dict = train_G_no_attention(A_holder.img, B_holder.img)
+    else:
+        A2B, B2A, G_loss_dict = train_G_attention_gan(A_holder.img, B_holder.img,
+                                                      A_holder.attention, B_holder.attention,
+                                                      A_holder.background, B_holder.background)
 
     # cannot autograph `A2B_pool`
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
     B2A = B2A_pool(B2A)  # because of the communication between CPU and GPU
 
-    D_loss_dict = train_D(A, B, A2B, B2A)
+    D_loss_dict = train_D(A_holder.img, B_holder.img, A2B, B2A)
     train_D_A_acc.reset_states()
     train_D_B_acc.reset_states()
 
@@ -198,10 +271,20 @@ def train_step(A, B):
 
 
 @tf.function
-def sample(A, B):
-    A2B, B2A, A2B2A, B2A2B = attention_strategies.no_attention(A, B, G_A2B, G_B2A,
-                                                               training=False)
+def sample_no_attention(A_img, B_img):
+    training = False
+    A2B, B2A, A2B2A, B2A2B = attention_strategies.no_attention.no_attention(A_img, B_img, G_A2B, G_B2A,
+                                                                            training=training)
     return A2B, B2A, A2B2A, B2A2B
+
+
+@tf.function
+def sample_attention_gan(A_img, B_img, A_attention, B_attention, A_background, B_background):
+    training = False
+    # Generate Images based on attention-gan strategy
+    A2B, B2A, A2B_transformed, B2A_transformed = attention_gan_step(A_img, B_img, G_A2B, G_B2A, A_attention,
+                                                                    B_attention, A_background, B_background, training)
+    return A2B, B2A, A2B_transformed, B2A_transformed
 
 
 # ==============================================================================
@@ -222,7 +305,7 @@ checkpoint = tl.Checkpoint(dict(G_A2B=G_A2B,
                            py.join(output_dir, 'checkpoints'))
 try:  # restore checkpoint including the epoch counter
     checkpoint.restore().assert_existing_objects_matched()
-    print("restored checkpoint :)")
+    print("restored checkpoint...")
     print(f"continuing with epoch {ep_cnt.numpy()}")
 except Exception as e:
     print(e)
@@ -235,6 +318,12 @@ test_iter = iter(A_B_dataset_test)
 sample_dir = py.join(output_dir, 'images')
 py.mkdir(sample_dir)
 
+# Create GradCAM object
+if args.attention == "gradcam-plus-plus":
+    gradcam = GradcamPlusPlus(clf, clone=True)
+else:
+    gradcam = None
+
 # main loop
 with train_summary_writer.as_default():
     for ep in tqdm.trange(args.epochs, desc='Epoch Loop'):
@@ -246,7 +335,16 @@ with train_summary_writer.as_default():
 
         # train for an epoch
         for batch_count, (A, B) in enumerate(tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset_train)):
-            G_loss_dict, D_loss_dict = train_step(A, B)
+            # Select attention type
+            if ep < args.start_attention_epoch:
+                args.current_attention_type = "none"
+            else:
+                args.current_attention_type = args.attention_type
+
+            A_holder, B_holder = get_img_holders(A, B, args.current_attention_type, args.attention,
+                                                 gradcam=gradcam)
+
+            G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
 
             # # summary
             tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
@@ -255,8 +353,8 @@ with train_summary_writer.as_default():
                        name='learning rate')
 
             # sample
-            if ep == 0 or ep > 15 or ep % 3 == 0:
-                if G_optimizer.iterations.numpy() % 300 == 0 or G_optimizer.iterations.numpy() == 1:
+            if ep == 0 or ep % 5 == 0:
+                if G_optimizer.iterations.numpy() % 400 == 0 or G_optimizer.iterations.numpy() == 1:
                     try:
                         A, B = next(test_iter)
                     except StopIteration:  # When all elements finished
@@ -264,16 +362,39 @@ with train_summary_writer.as_default():
                         test_iter = iter(A_B_dataset_test)
                         A, B = next(test_iter)
 
-                    A2B, B2A, A2B2A, B2A2B = sample(A, B)
+                    A_holder, B_holder = get_img_holders(A, B, args.current_attention_type, args.attention,
+                                                         gradcam=gradcam)
 
-                    # Save images
-                    generate_image(args, None, A, B, A2B, B2A,
+                    if args.current_attention_type == "none":
+                        A2B, B2A, A2B2A, B2A2B = sample_no_attention(A_holder.img, B_holder.img)
+
+                    else:
+                        A2B, B2A, A2B_transformed, B2A_transformed = sample_attention_gan(A_holder.img, B_holder.img,
+                                                                                          A_holder.attention,
+                                                                                          B_holder.attention,
+                                                                                          A_holder.background,
+                                                                                          B_holder.background)
+                        A_holder.transformed_part = A2B_transformed
+                        B_holder.transformed_part = B2A_transformed
+                        A2B2A = None
+                        B2A2B = None
+
+                    generate_image(args, clf, A, B, A2B, B2A,
                                    execution_id, ep, batch_count,
+                                   A_holder=A_holder,
+                                   B_holder=B_holder,
                                    A2B2A=A2B2A,
                                    B2A2B=B2A2B)
 
-            batch_count += 1
-
-        # save checkpoint
-        if ep > 90 and ep % 20 == 0:
+        if (ep > (args.epochs / 2) and ep % SAMPLE_INTERVAL == 0) or ep == args.epochs:
             checkpoint.save(ep)
+            """kid_A2B_mean, kid_A2B_std = calc_KID_for_model(A2B_pool.items, "A2B", args.crop_size, train_horses,
+                                                           train_zebras)
+            kid_B2A_mean, kid_B2A_std = calc_KID_for_model(B2A_pool.items, "B2A", args.crop_size, train_horses,
+                                                           train_zebras)
+            tl.summary({'kid_A2B_mean': tf.Variable(kid_A2B_mean)}, step=kid_count, name='kid_A2B_mean')
+            tl.summary({'kid_A2B_std': tf.Variable(kid_A2B_std)}, step=kid_count, name='kid_A2B_std')
+            tl.summary({'kid_B2A_mean': tf.Variable(kid_A2B_mean)}, step=kid_count, name='kid_B2A_mean')
+            tl.summary({'kid_B2A_std': tf.Variable(kid_A2B_mean)}, step=kid_count, name='kid_B2A_std')
+
+            kid_count += 1"""
