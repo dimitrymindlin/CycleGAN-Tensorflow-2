@@ -12,7 +12,8 @@ import tf2gan as gan
 import tqdm
 import module
 from attention_strategies.attention_gan import attention_gan_step
-from attention_strategies import no_attention
+from attention_strategies.spa_gan import spa_gan_step, spa_gan_step_fm
+from attention_strategies.no_attention import no_attention_step
 from imlib import generate_image
 from imlib.image_holder import get_img_holders, multiply_images, add_images
 from tf2lib.data.item_pool import ItemPool
@@ -220,8 +221,8 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     @tf.function
     def sample_no_attention(A_img, B_img):
         training = False
-        A2B, B2A, A2B2A, B2A2B = no_attention.no_attention_step(A_img, B_img, G_A2B, G_B2A,
-                                                                training=training)
+        A2B, B2A, A2B2A, B2A2B = no_attention_step(A_img, B_img, G_A2B, G_B2A,
+                                                   training=training)
         return A2B, B2A, A2B2A, B2A2B
 
     @tf.function
