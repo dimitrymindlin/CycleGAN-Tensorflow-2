@@ -10,5 +10,6 @@ python3 -m experiment \
   --counterfactual_loss_weight 1 \
   --identity_loss_weight 0 \
   --generator resnet \
+  --clf_ckp_name 2022-06-04--00.05 \
   --start_attention_epoch 10 \
 
