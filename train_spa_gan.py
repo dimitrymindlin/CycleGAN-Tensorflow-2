@@ -37,7 +37,7 @@ py.arg('--counterfactual_loss_weight', type=float, default=1)
 py.arg('--feature_map_loss_weight', type=float, default=0)
 py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
-py.arg('--attention', type=str, default="discriminator", choices=['discriminator', 'clf'])
+py.arg('--attention', type=str, default="clf", choices=['discriminator', 'clf'])
 py.arg('--clf_name', type=str, default="inception")
 py.arg('--attention_intensity', type=float, default=1)
 py.arg('--attention_type', type=str, default="spa-gan")
@@ -68,9 +68,10 @@ TF_LOG_DIR = f"logs/{args.dataset}/"
 
 py.mkdir(output_dir)
 
-# Correct settings
+# Correct settings for SPA-GAN
 if args.feature_map_loss_weight > 0:
     args.generator = "resnet-attention"
+args.current_attention_type = args.attention_type
 
 # save settings
 py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
@@ -88,6 +89,7 @@ A_B_dataset, A_B_dataset_test, len_dataset_train = standard_datasets_loading.loa
 # ==============================================================================
 # =                                   models                                   =
 # ==============================================================================
+
 
 if args.generator == "resnet-attention":
     G_A2B = module.ResnetAttentionGenerator(input_shape=(args.crop_size, args.crop_size, 3))
