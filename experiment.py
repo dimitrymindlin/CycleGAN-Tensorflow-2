@@ -2,7 +2,7 @@ from datetime import datetime
 import time
 import pylib as py
 import tensorflow as tf
-from train_attention_gan_mura import run_experiment
+from train import run_training
 
 ### Define Experiment Settings
 py.arg('--dataset', default='horse2zebra', choices=['horse2zebra', 'mura'])
@@ -23,6 +23,7 @@ py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
 py.arg('--clf_name', type=str, default="inception")
+py.arg('--clf_ckp_name', type=str, default="2022-06-04--00.00")  # Mura: 2022-06-04--00.05, H2Z: 2022-06-04--00.00
 py.arg('--attention_type', type=str, default="attention-gan-original",
        choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
 py.arg('--current_attention_type', type=str, default="none")
@@ -68,4 +69,4 @@ else:
 py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 
 ### Start Experiment
-run_experiment(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id)
+run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id)

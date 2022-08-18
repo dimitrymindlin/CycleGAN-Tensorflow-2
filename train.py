@@ -20,8 +20,8 @@ from imlib import generate_image
 from imlib.image_holder import get_img_holders, multiply_images, add_images
 from tf2lib.data.item_pool import ItemPool
 
-def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
 
+def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     # save settings
     py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 
@@ -72,10 +72,10 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 
     if args.counterfactual_loss_weight > 0 or args.attention_type == "attention-gan-original":
-        clf = tf.keras.models.load_model(f"checkpoints/{args.model_name}_{args.dataset}/{args.clf_ckp_name}/model", compile=False)
+        clf = tf.keras.models.load_model(f"checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
+                                         compile=False)
     else:
         clf = None
-
 
     # ==============================================================================
     # =                                 train step                                 =
@@ -220,7 +220,6 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
 
         return G_loss_dict, D_loss_dict
 
-
     @tf.function
     def sample_no_attention(A_img, B_img):
         training = False
@@ -228,15 +227,14 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                                                                 training=training)
         return A2B, B2A, A2B2A, B2A2B
 
-
     @tf.function
     def sample_attention_gan(A_img, B_img, A_attention, B_attention, A_background, B_background):
         training = False
         # Generate Images based on attention-gan strategy
         A2B, B2A, A2B_transformed, B2A_transformed = attention_gan_step(A_img, B_img, G_A2B, G_B2A, A_attention,
-                                                                        B_attention, A_background, B_background, training)
+                                                                        B_attention, A_background, B_background,
+                                                                        training)
         return A2B, B2A, A2B_transformed, B2A_transformed
-
 
     # ==============================================================================
     # =                                    run                                     =
@@ -321,7 +319,8 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                             A2B, B2A, A2B2A, B2A2B = sample_no_attention(A_holder.img, B_holder.img)
 
                         else:
-                            A2B, B2A, A2B_transformed, B2A_transformed = sample_attention_gan(A_holder.img, B_holder.img,
+                            A2B, B2A, A2B_transformed, B2A_transformed = sample_attention_gan(A_holder.img,
+                                                                                              B_holder.img,
                                                                                               A_holder.attention,
                                                                                               B_holder.attention,
                                                                                               A_holder.background,
