@@ -3,15 +3,14 @@ from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
-
 from mura import get_mura_ds_by_body_part_split_class
-
 import standard_datasets_loading
 import tf2lib as tl
 import tf2gan as gan
 import tqdm
 import module
 from attention_strategies.attention_gan import attention_gan_step
+from attention_strategies.no_attention import no_attention_step
 from attention_strategies.spa_gan import spa_gan_step, spa_gan_step_fm
 from attention_strategies.no_attention import no_attention_step
 from imlib import generate_image
@@ -82,7 +81,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     def train_G_no_attention(A_img, B_img):
         training = True
         with tf.GradientTape() as t:
-            A2B, B2A, A2B2A, B2A2B, A2A, B2B = no_attention.no_attention_step(A_img, B_img, G_A2B, G_B2A)
+            A2B, B2A, A2B2A, B2A2B, A2A, B2B = no_attention_step(A_img, B_img, G_A2B, G_B2A)
             # Calculate Losses
             A2B_d_logits = D_B(A2B, training=training)
             B2A_d_logits = D_A(B2A, training=training)
