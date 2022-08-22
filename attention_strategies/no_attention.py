@@ -1,3 +1,15 @@
+def no_attention_single(img, G, G_cycle, training):
+    forward_mapping = G(img, training=training)
+    # Cycle
+    cycled = G_cycle(forward_mapping, training=training)
+    if training:
+        # ID
+        id_mapping = G_cycle(img, training)
+        return forward_mapping, cycled, id_mapping
+    else:
+        return forward_mapping, cycled
+
+
 def no_attention_step(A_img, B_img, G_A2B, G_B2A, training=True):
     """
     This function doesn't use any of the attention mechanisms and translates the images as the original cycle-gan.
@@ -11,17 +23,12 @@ def no_attention_step(A_img, B_img, G_A2B, G_B2A, training=True):
 
     Returns
     -------
-
     """
-    A2B = G_A2B(A_img, training=training)
-    B2A = G_B2A(B_img, training=training)
-    # Cycle
-    A2B2A = G_B2A(A2B, training=training)
-    B2A2B = G_A2B(B2A, training=training)
     if training:
-        # ID
-        A2A = G_B2A(A_img, training=training)
-        B2B = G_A2B(B_img, training=training)
+        A2B, A2B2A, A2A = no_attention_single(A_img, G_A2B, G_B2A, training)
+        B2A, B2A2B, B2B = no_attention_single(B_img, G_B2A, G_A2B, training)
         return A2B, B2A, A2B2A, B2A2B, A2A, B2B
     else:
+        A2B, A2B2A = no_attention_single(A_img, G_A2B, G_B2A, training)
+        B2A, B2A2B = no_attention_single(B_img, G_B2A, G_A2B, training)
         return A2B, B2A, A2B2A, B2A2B
