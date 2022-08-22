@@ -9,5 +9,6 @@ python3 -m experiment \
   --cycle_loss_weight 5 \
   --counterfactual_loss_weight 1 \
   --identity_loss_weight 1 \
+  --clf_ckp_name 2022-06-04--00.05 \ \
   --generator resnet
 
