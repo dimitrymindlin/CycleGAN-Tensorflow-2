@@ -28,7 +28,7 @@ py.arg('--epoch_decay', type=int, default=100)  # epoch to start decaying learni
 py.arg('--lr', type=float, default=0.0002)
 py.arg('--beta_1', type=float, default=0.5)
 py.arg('--adversarial_loss_mode', default='gan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
-py.arg('--discriminator_loss_weight', type=float, default=1)
+py.arg('--adversarial_loss_weight', type=float, default=1)
 py.arg('--cycle_loss_weight', type=float, default=10)
 py.arg('--counterfactual_loss_weight', type=float, default=1)
 py.arg('--feature_map_loss_weight', type=float, default=0)
