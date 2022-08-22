@@ -5,7 +5,7 @@ import tensorflow as tf
 from train import run_training
 
 ### Define Experiment Settings
-py.arg('--dataset', default='horse2zebra', choices=['horse2zebra', 'mura'])
+py.arg('--dataset', default='horse2zebra', choices=['horse2zebra', 'mura', 'apple2orange'])
 py.arg('--body_parts', default=["XR_WRIST"])  # Only used in Mura dataset. Body part of x-ray images
 py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=286)  # load image to this size
