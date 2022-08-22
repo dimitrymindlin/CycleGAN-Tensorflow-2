@@ -1,13 +1,16 @@
 def no_attention_single(img, G, G_cycle, training):
     forward_mapping = G(img, training=training)
     # Cycle
-    cycled = G_cycle(forward_mapping, training=training)
+    if G_cycle:
+        cycled = G_cycle(forward_mapping, training=training)
     if training:
         # ID
         id_mapping = G_cycle(img, training)
         return forward_mapping, cycled, id_mapping
     else:
-        return forward_mapping, cycled
+        if G_cycle:
+            return forward_mapping, cycled  # used for sample phase during training
+        return forward_mapping  # Used for testing counterfactuals
 
 
 def no_attention_step(A_img, B_img, G_A2B, G_B2A, training=True):
