@@ -2,9 +2,7 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 
 
-# data
-
-def load_test_data():
+def load_h2z_test_data():
     AUTOTUNE = tf.data.AUTOTUNE
     dataset, metadata = tfds.load('cycle_gan/horse2zebra',
                                   with_info=True, as_supervised=True)
