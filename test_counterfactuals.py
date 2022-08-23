@@ -143,7 +143,7 @@ def evaluate_current_model(G_A2B, G_B2A):
                                              B_dataset)
 
 
-with open('attention_gan_run.txt', 'w') as f:
+with open('test_scripts/attention_gan_run.txt', 'w') as f:
     # sys.stdout = f  # Change the standard output to the file we created.
     # Loop over all models and checkpoints
     for name, ep in zip(checkpoint_ts_list, checkpoint_ep_list):
