@@ -101,8 +101,8 @@ done_h2z = ["2022-05-31--14.02", "2022-05-31--13.04", "2022-06-01--13.06", "2022
 done_ep_h2z = ["180", "180", "180", "180"]
 checkpoint_ts_list = ["2022-05-31--13.04", "2022-05-31--14.02", "2022-06-01--13.06", "2022-06-02--12.45",
                       "2022-06-03--14.07", "2022-06-03--19.10"]
-checkpoint_ts_list_mura = ["2022-08-18--17.48", "2022-08-19--08.32"]
-checkpoint_ep_list_mura = ["20", "20"]
+checkpoint_ts_list_mura = ["2022-08-18--17.48", "2022-08-19--08.32", "2022-08-22--14.00"]
+checkpoint_ep_list_mura = ["20", "20", "15"]
 
 checkpoint_ts_list_h2z = ["2022-06-06--23.46", "2022-06-06--23.56"]
 checkpoint_ep_list_h2z = ["26", "27"]
@@ -128,9 +128,9 @@ def evaluate_current_model(G_A2B, G_B2A):
     print(f"Starting {name}")
     for translation_name, target_dataset in zip(["A2B", "B2A"], [A_dataset, B_dataset]):
         print(f"-> {translation_name}")
-        save_dir = py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}", 'generated_imgs',
+        """save_dir = py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}", 'generated_imgs',
                            "{translation_name}")
-        py.mkdir(save_dir)
+        py.mkdir(save_dir)"""
         tcv, os, translated_images = calculate_tcv_os(clf, oracle, G_A2B, G_B2A, A_dataset_test,
                                                       translation_name, gradcam, args.attention_type,
                                                       return_images=True)
