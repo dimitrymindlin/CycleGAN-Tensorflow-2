@@ -31,7 +31,7 @@ py.arg('--crop_size', type=int, default=256)  # Mura: 512 H2Z: 256
 py.arg('--gan_model_ts', type=str, default="2022-05-26--15.51")
 py.arg('--counterfactuals', type=str, default="ganterfactual", choices=["abc-gan", "ganterfactual"])
 args = py.args()
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) + "/.."  # This is your Project Root
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
 if len(tf.config.list_physical_devices('GPU')) == 0:
     TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
 else:
