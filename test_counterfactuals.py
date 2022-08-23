@@ -1,5 +1,4 @@
 import os
-import sys
 
 from mura.tfds_from_disc import get_mura_test_ds_by_body_part_split_class
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
