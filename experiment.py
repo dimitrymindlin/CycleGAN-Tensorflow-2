@@ -37,7 +37,7 @@ args = py.args()
 if args.dataset == "mura":
     args.load_size = 512
     args.crop_size = 512
-    args.epochs = 18
+    args.epochs = 17
     args.epoch_decay = 15
     args.sample_interval = 2
 
