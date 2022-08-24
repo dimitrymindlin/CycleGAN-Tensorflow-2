@@ -124,7 +124,6 @@ else:
 
 
 def evaluate_current_model(G_A2B, G_B2A):
-    print(f"Starting {name}")
     for translation_name, target_dataset in zip(["A2B", "B2A"], [A_dataset, B_dataset]):
         print(f"-> {translation_name}")
         """save_dir = py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}", 'generated_imgs',
@@ -146,5 +145,6 @@ with open(f'{args.counterfactuals}_{args.dataset}.txt', 'w') as f:
     sys.stdout = f  # Change the standard output to the file we created.
     # Loop over all models and checkpoints
     for name, ep in zip(checkpoint_ts_list, checkpoint_ep_list):
+        print(f"Starting {name}_{ep}")
         G_A2B, G_B2A = load_generators(name, ep)
         evaluate_current_model(G_A2B, G_B2A)
