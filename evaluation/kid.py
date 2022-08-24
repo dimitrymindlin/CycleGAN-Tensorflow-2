@@ -83,7 +83,7 @@ def calc_KID_for_model_target_source(translated_images, translation_name, crop_s
 
     target_sample_size = int(images_length / 2)
     all_target_samples = list(target_domain.take(target_sample_size * 5))
-    source_sample_size = images_length - int(images_length / 2)
+    source_sample_size = images_length - target_sample_size
     all_source_samples = list(source_domain.take(source_sample_size * 5))
 
     # Calc KID in splits of 5 different samples
@@ -116,17 +116,25 @@ def calc_KID_for_model(translated_images, crop_size, dataset):
     kid = KID(image_size=crop_size)
     kid_value_list = []
     images_length = len(translated_images)
+    sample_length = 91 # 4 x 91 = images_length
     all_samples_list = list(dataset.take(images_length * 5))
-    # Calc KID in splits of 5 different samples
+    # Calc KID in splits of 5 different target samples
     for i in range(5):
         if i == 4:
             tmp_samples = all_samples_list[i * images_length:]
         else:
             tmp_samples = all_samples_list[i * images_length:(i + 1) * images_length]
+            # Calc KID in 10 runs
+        for j in range(10):
+            if i == 9:
+                current_samples = tmp_samples[i * sample_length:]
+                current_translated_images = translated_images[i * sample_length:]
+            else:
+                current_samples = tmp_samples[i * sample_length:(i + 1) * sample_length]
+                current_translated_images = translated_images[i * sample_length:(i + 1) * sample_length]
 
-        tmp_samples_tensor = tf.squeeze(tf.convert_to_tensor([sample[0] for sample in tmp_samples]))
-        kid.update_state(tmp_samples_tensor,
-                         tf.convert_to_tensor(translated_images))
+            tmp_sample_tensor = tf.squeeze(tf.convert_to_tensor([sample[0] for sample in current_samples]))
+            kid.update_state(tmp_sample_tensor, tf.convert_to_tensor(current_translated_images))
         kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
         kid.reset_state()
 
