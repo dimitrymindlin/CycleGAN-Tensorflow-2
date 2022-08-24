@@ -47,7 +47,7 @@ class ImageHolder():
     def __init__(self, img, class_label=None, gradcam=None, attention_type=None, use_attention=True,
                  attention_intensity=1, attention_source="clf"):
         self.img = img  # original image
-        self.attention = None  # heatmap
+        self.attention = None  # heatmap [-1, 1]
         self.foreground = None  # original image + heatmap
         self.background = None  # original image - heatmap
         self.enhanced_img = None  # original image * (heatmap + intensity)
