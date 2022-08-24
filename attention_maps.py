@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from tf_keras_vis.utils.scores import CategoricalScore
 
-from imlib import scale_to_zero_one, scale_to_minus_one_one, plot_any_img
+from imlib import scale_between_zero_one, scale_between_minus_one_one, plot_any_img
 
 
 def shift_values_above_intensity(cam, attention_intensity: float):
@@ -15,13 +15,14 @@ def shift_values_above_intensity(cam, attention_intensity: float):
     return cam
 
 
-def apply_attention_on_img(img, cam):
+def apply_attention_on_img(img, attention_map):
     # Convert img to same pixel values [0, 1]
-    img = scale_to_zero_one(img)
+    img = scale_between_zero_one(img)
+    attention_map_scaled = scale_between_zero_one(attention_map)
     # Interpolate by multiplication and normalise
-    img = tf.math.multiply(cam, img)
+    img = tf.math.multiply(img, attention_map_scaled)
     img = tf.math.divide(img, tf.reduce_max(img))
-    return scale_to_minus_one_one(img)
+    return scale_between_minus_one_one(img)
 
 
 def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity=1, attention_source="clf"):
@@ -48,6 +49,6 @@ def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity
         cam = shift_values_above_intensity(cam, attention_intensity)
     if attention_intensity == 0:  # for testing purposes when you want to apply attention everywhere.
         cam = tf.ones(shape=cam.shape)
-
+    cam = scale_between_minus_one_one(cam)
     img = apply_attention_on_img(img, cam)
-    return img, scale_to_minus_one_one(cam)  # [-1,1]
+    return img, cam  # [-1,1]
