@@ -1,5 +1,5 @@
 import os
-
+import sys
 from mura.tfds_from_disc import get_mura_test_ds_by_body_part_split_class
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 import pylib as py
@@ -142,8 +142,8 @@ def evaluate_current_model(G_A2B, G_B2A):
                                              B_dataset)
 
 
-with open('test_scripts/attention_gan_run.txt', 'w') as f:
-    # sys.stdout = f  # Change the standard output to the file we created.
+with open(f'{args.counterfactuals}_{args.dataset}.txt', 'w') as f:
+    sys.stdout = f  # Change the standard output to the file we created.
     # Loop over all models and checkpoints
     for name, ep in zip(checkpoint_ts_list, checkpoint_ep_list):
         G_A2B, G_B2A = load_generators(name, ep)
