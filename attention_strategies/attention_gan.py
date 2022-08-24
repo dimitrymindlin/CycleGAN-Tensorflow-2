@@ -1,6 +1,6 @@
 ### Attention Gan Original
 # From "Attention-GAN for Object Transfiguration in Wild Images"
-from imlib import scale_to_minus_one_one
+from imlib import scale_between_minus_one_one
 from imlib.image_holder import add_images, multiply_images
 
 
