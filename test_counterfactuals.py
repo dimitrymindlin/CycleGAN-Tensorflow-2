@@ -39,7 +39,7 @@ if len(tf.config.list_physical_devices('GPU')) == 0:
 else:
     TFDS_PATH = "../tensorflow_datasets"
 
-TFDS_PATH = "../tensorflow_datasets"
+# TFDS_PATH = "../tensorflow_datasets"
 
 if args.dataset == "mura":
     args.crop_size = 512
@@ -129,16 +129,18 @@ else:
 
 
 def evaluate_current_model(G_A2B, G_B2A, save_img=False):
-    for translation_name, target_dataset in zip(["B2A", "A2B"], [B_dataset, A_dataset]):
+    for translation_name in zip(["A2B", "B2A"]):
         print(f"-> {translation_name}")
         if translation_name == "A2B":
             generator = G_A2B
             class_label = 0
             source_dataset = A_dataset_test
+            target_dataset = B_dataset
         else:
             generator = G_B2A
             class_label = 1
             source_dataset = B_dataset_test
+            target_dataset = A_dataset
 
         y_pred_translated, y_pred_oracle, len_dataset, translated_images = translate_images_clf_oracle(
             source_dataset, clf, oracle, generator, gradcam, class_label, True, args.attention_type,
