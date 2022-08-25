@@ -29,7 +29,7 @@ py.arg('--oracle_ckp_name', type=str, default="2022-08-21--00.00")  # Mura: 2022
 py.arg('--print_images', type=bool, default=True)
 py.arg('--crop_size', type=int, default=256)  # Mura: 512 H2Z: 256
 py.arg('--gan_model_ts', type=str, default="2022-05-26--15.51")
-py.arg('--counterfactuals', type=str, default="ganterfactual", choices=["abc-gan", "ganterfactual"])
+py.arg('--counterfactuals', type=str, default="abc-gan", choices=["abc-gan", "ganterfactual"])
 args = py.args()
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
 if len(tf.config.list_physical_devices('GPU')) == 0:
@@ -100,11 +100,12 @@ done_h2z = ["2022-05-31--14.02", "2022-05-31--13.04", "2022-06-01--13.06", "2022
 done_ep_h2z = ["180", "180", "180", "180"]
 checkpoint_ts_list = ["2022-05-31--13.04", "2022-05-31--14.02", "2022-06-01--13.06", "2022-06-02--12.45",
                       "2022-06-03--14.07", "2022-06-03--19.10"]
-checkpoint_ts_list_mura = ["2022-08-18--17.48", "2022-08-19--08.32", "2022-08-22--14.00"]
-checkpoint_ep_list_mura = ["20", "20", "15"]
+checkpoint_ts_list_mura = ["2022-08-18--17.48", "2022-08-19--08.32","2022-08-19--08.32", "2022-08-22--14.00",
+                           "2022-08-22--14.00"]
+checkpoint_ep_list_mura = ["20", "20", "24", "14", "16"]
 
-checkpoint_ts_list_h2z = ["2022-06-06--23.46", "2022-06-06--23.56"]
-checkpoint_ep_list_h2z = ["26", "27"]
+checkpoint_ts_list_h2z = ["2022-08-13--15.48"]  # "2022-08-17--03.54"
+checkpoint_ep_list_h2z = ["195"]  # "180"
 
 checkpoint_ts_list_ganterfactual = ["GANterfactual_2022-08-22--09.39"]
 checkpoint_ep_list_ganterfactual = ["ep_12"]
