@@ -129,7 +129,7 @@ else:
 
 
 def evaluate_current_model(G_A2B, G_B2A, save_img=False):
-    for translation_name in zip(["A2B", "B2A"]):
+    for translation_name in ["A2B", "B2A"]:
         print(f"-> {translation_name}")
         if translation_name == "A2B":
             generator = G_A2B
