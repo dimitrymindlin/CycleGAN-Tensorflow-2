@@ -1,5 +1,7 @@
 import os
 import sys
+
+import numpy as np
 from mura.tfds_from_disc import get_mura_test_ds_by_body_part_split_class
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 import pylib as py
@@ -14,7 +16,7 @@ from tensorflow_addons.layers import InstanceNormalization
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-
+from imlib import save_mura_images, immerge, imwrite
 
 py.arg('--dataset', default='mura', choices=['horse2zebra', 'mura', 'apple2orange'])
 py.arg('--body_parts', default=["XR_WRIST"])  # Only used in Mura dataset. Body part of x-ray images
@@ -102,9 +104,9 @@ done_h2z = ["2022-05-31--14.02", "2022-05-31--13.04", "2022-06-01--13.06", "2022
 done_ep_h2z = ["180", "180", "180", "180"]
 checkpoint_ts_list = ["2022-05-31--13.04", "2022-05-31--14.02", "2022-06-01--13.06", "2022-06-02--12.45",
                       "2022-06-03--14.07", "2022-06-03--19.10"]
-checkpoint_ts_list_mura = ["2022-08-18--17.48", "2022-08-19--08.32","2022-08-19--08.32", "2022-08-22--14.00",
-                           "2022-08-22--14.00"]
-checkpoint_ep_list_mura = ["20", "20", "24", "14", "16"]
+checkpoint_ts_list_mura = ["2022-08-19--08.32", "2022-08-19--08.32", "2022-08-22--14.00",
+                           "2022-08-22--14.00"]  # "2022-08-18--17.48",
+checkpoint_ep_list_mura = ["20", "24", "14", "16"]  # "20",
 
 checkpoint_ts_list_h2z = ["2022-08-13--15.48"]  # "2022-08-17--03.54"
 checkpoint_ep_list_h2z = ["195"]  # "180"
@@ -126,15 +128,21 @@ else:
     checkpoint_ep_list = checkpoint_ep_list_ganterfactual
 
 
-def evaluate_current_model(G_A2B, G_B2A):
-    for translation_name, target_dataset in zip(["A2B", "B2A"], [A_dataset, B_dataset]):
+def evaluate_current_model(G_A2B, G_B2A, save_img=False):
+    for translation_name, target_dataset in zip(["B2A", "A2B"], [B_dataset, A_dataset]):
         print(f"-> {translation_name}")
         """save_dir = py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}", 'generated_imgs',
                            "{translation_name}")
         py.mkdir(save_dir)"""
-        tcv, os, translated_images = calculate_tcv_os(clf, oracle, G_A2B, G_B2A, A_dataset_test,
-                                                      translation_name, gradcam, args.attention_type,
-                                                      return_images=True)
+        if translation_name == "A2B":
+            tcv, os, translated_images = calculate_tcv_os(clf, oracle, G_A2B, G_B2A, A_dataset_test,
+                                                          translation_name, gradcam, args.attention_type,
+                                                          return_images=True, save_img=save_img)
+        else:
+            tcv, os, translated_images = calculate_tcv_os(clf, oracle, G_A2B, G_B2A, B_dataset_test,
+                                                          translation_name, gradcam, args.attention_type,
+                                                          return_images=True, save_img=save_img)
+
         print(tcv)
         print(os)
         if args.dataset == "mura":
@@ -150,4 +158,5 @@ with open(f'{args.counterfactuals}_{args.dataset}.txt', 'w') as f:
     for name, ep in zip(checkpoint_ts_list, checkpoint_ep_list):
         print(f"Starting {name}_{ep}")
         G_A2B, G_B2A = load_generators(name, ep)
-        evaluate_current_model(G_A2B, G_B2A)
+        save_img = name + "_" + ep
+        evaluate_current_model(G_A2B, G_B2A, save_img)
