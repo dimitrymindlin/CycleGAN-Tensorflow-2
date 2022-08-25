@@ -113,11 +113,10 @@ def calc_KID_for_model_target_source(translated_images, translation_name, crop_s
 
 def calc_KID_for_model(translated_images, crop_size, dataset):
     # Standard KID calculation of translated images with target domain.
-
+    #max_samples = 100
     kid = KID(image_size=crop_size)
     kid_value_list = []
     images_length = len(translated_images)
-    sample_length = 91 # 4 x 91 = images_length
     all_samples_list = list(dataset.take(images_length * 5))
     # Calc KID in splits of 5 different target samples
     for i in tqdm.trange(5, desc='KID outer splits'):
@@ -125,17 +124,18 @@ def calc_KID_for_model(translated_images, crop_size, dataset):
             tmp_samples = all_samples_list[i * images_length:]
         else:
             tmp_samples = all_samples_list[i * images_length:(i + 1) * images_length]
-            # Calc KID in 4 runs
-        for j in tqdm.trange(1, desc='KID inner splits'):
-            if j == 0:
-                current_samples = tmp_samples[j * sample_length:]
-                current_translated_images = translated_images[j * sample_length:]
+            # Calc KID in splits because all samples don't fit in memory
+        """for j in tqdm.trange(3, desc='KID inner splits'):
+            if j == 2:
+                current_samples = tmp_samples[j * max_samples:]
+                current_translated_images = translated_images[j * max_samples:]
             else:
-                current_samples = tmp_samples[j * sample_length:(j + 1) * sample_length]
-                current_translated_images = translated_images[j * sample_length:(j + 1) * sample_length]
-
-            tmp_sample_tensor = tf.squeeze(tf.convert_to_tensor([sample[0] for sample in current_samples]))
-            kid.update_state(tmp_sample_tensor, tf.convert_to_tensor(current_translated_images))
+                current_samples = tmp_samples[j * max_samples:(j + 1) * max_samples]
+                current_translated_images = translated_images[j * max_samples:(j + 1) * max_samples]
+            if current_translated_images < 100:
+                break"""
+        tmp_sample_tensor = tf.squeeze(tf.convert_to_tensor([sample[0] for sample in tmp_samples]))
+        kid.update_state(tmp_sample_tensor, tf.convert_to_tensor(translated_images))
         kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
         kid.reset_state()
 
