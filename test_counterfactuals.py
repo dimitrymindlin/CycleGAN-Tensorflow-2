@@ -10,7 +10,7 @@ import tf2lib as tl
 import module
 from evaluation.kid import calc_KID_for_model_target_source, calc_KID_for_model
 from evaluation.load_test_data import load_h2z_test_data
-from evaluation.tcv_os import calculate_tcv_os
+from evaluation.tcv_os import calculate_tcv_os, translate_images_clf_oracle
 from tensorflow_addons.layers import InstanceNormalization
 
 # ==============================================================================
@@ -104,9 +104,9 @@ done_h2z = ["2022-05-31--14.02", "2022-05-31--13.04", "2022-06-01--13.06", "2022
 done_ep_h2z = ["180", "180", "180", "180"]
 checkpoint_ts_list = ["2022-05-31--13.04", "2022-05-31--14.02", "2022-06-01--13.06", "2022-06-02--12.45",
                       "2022-06-03--14.07", "2022-06-03--19.10"]
-checkpoint_ts_list_mura = ["2022-08-19--08.32", "2022-08-19--08.32", "2022-08-22--14.00",
+checkpoint_ts_list_mura = ["2022-08-18--17.48", "2022-08-19--08.32", "2022-08-19--08.32", "2022-08-22--14.00",
                            "2022-08-22--14.00"]  # "2022-08-18--17.48",
-checkpoint_ep_list_mura = ["20", "24", "14", "16"]  # "20",
+checkpoint_ep_list_mura = ["20", "20", "24", "14", "16"]  # "20",
 
 checkpoint_ts_list_h2z = ["2022-08-13--15.48"]  # "2022-08-17--03.54"
 checkpoint_ep_list_h2z = ["195"]  # "180"
@@ -131,18 +131,19 @@ else:
 def evaluate_current_model(G_A2B, G_B2A, save_img=False):
     for translation_name, target_dataset in zip(["B2A", "A2B"], [B_dataset, A_dataset]):
         print(f"-> {translation_name}")
-        """save_dir = py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}", 'generated_imgs',
-                           "{translation_name}")
-        py.mkdir(save_dir)"""
         if translation_name == "A2B":
-            tcv, os, translated_images = calculate_tcv_os(clf, oracle, G_A2B, G_B2A, A_dataset_test,
-                                                          translation_name, gradcam, args.attention_type,
-                                                          return_images=True, save_img=save_img)
+            generator = G_A2B
+            class_label = 0
+            source_dataset = A_dataset_test
         else:
-            tcv, os, translated_images = calculate_tcv_os(clf, oracle, G_A2B, G_B2A, B_dataset_test,
-                                                          translation_name, gradcam, args.attention_type,
-                                                          return_images=True, save_img=save_img)
+            generator = G_B2A
+            class_label = 1
+            source_dataset = B_dataset_test
 
+        y_pred_translated, y_pred_oracle, len_dataset, translated_images = translate_images_clf_oracle(
+            source_dataset, clf, oracle, generator, gradcam, class_label, True, args.attention_type,
+            training=False, save_img=save_img)
+        tcv, os = calculate_tcv_os(y_pred_translated, y_pred_oracle, len_dataset, translation_name)
         print(tcv)
         print(os)
         if args.dataset == "mura":

@@ -24,12 +24,12 @@ def translate_images_clf_oracle(dataset, clf, oracle, generator, gradcam, class_
         img_holder = ImageHolder(img_batch, class_label, gradcam=gradcam, attention_type=attention_type)
         class_label_name = "Normal" if class_label == 0 else "Abnormal"
         target_class_name = "Abnormal" if class_label == 0 else "Normal"
-        if attention_type == "attention-gan":
+        if attention_type == "attention-gan-original":
             translated_img, _ = attention_gan_single(img_holder.img, generator, None, img_holder.attention,
                                                      img_holder.background, training)
         else:
             translated_img = no_attention_single(img_holder.img, generator, None, training)
-        #
+        # Predict images with CLF and Oracle
         for img_i, translated_i in zip(img_batch, translated_img):
             if return_images:
                 translated_images.append(tf.squeeze(translated_i))
@@ -75,22 +75,7 @@ def translate_images_clf_oracle(dataset, clf, oracle, generator, gradcam, class_
     return y_pred_translated, y_pred_oracle, len_dataset, translated_images
 
 
-def calculate_tcv_os(clf, oracle, G_A2B, G_B2A, dataset, translation_name, gradcam, attention_type,
-                     return_images=False, save_img=False):
-    if translation_name == "A2B":
-        generator = G_A2B
-        class_label = 0
-    else:
-        generator = G_B2A
-        class_label = 1
-
-    # Get translated images
-    y_pred_translated, y_pred_oracle, len_dataset, translated_images = translate_images_clf_oracle(dataset, clf, oracle,
-                                                                                                   generator,
-                                                                                                   gradcam, class_label,
-                                                                                                   attention_type,
-                                                                                                   return_images,
-                                                                                                   save_img=save_img)
+def calculate_tcv_os(y_pred_translated, y_pred_oracle, len_dataset, translation_name):
     # Calculate tcv and os
     if translation_name == "A2B":
         tcv = sum(y_pred_translated) / len_dataset
@@ -101,7 +86,4 @@ def calculate_tcv_os(clf, oracle, G_A2B, G_B2A, dataset, translation_name, gradc
         similar_predictions_count = sum(x == y == 0 for x, y in zip(y_pred_translated, y_pred_oracle))
         os = (1 / len(y_pred_translated)) * similar_predictions_count
 
-    if return_images:
-        return tcv, os, translated_images
-    else:
-        return tcv, os
+    return tcv, os
