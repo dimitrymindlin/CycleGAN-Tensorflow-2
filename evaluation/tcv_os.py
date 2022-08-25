@@ -14,7 +14,7 @@ def translate_images_clf_oracle(dataset, clf, oracle, generator, gradcam, class_
     y_pred_oracle = []
     len_dataset = 0
 
-    for img_batch in tqdm.tqdm(dataset):
+    for img_batch in tqdm.tqdm(dataset, desc='Translating images'):
         img_holder = ImageHolder(img_batch, class_label, gradcam=gradcam, attention_type=attention_type)
         if attention_type == "attention-gan":
             translated_img, _ = attention_gan_single(img_holder.img, generator, None, img_holder.attention,
@@ -30,7 +30,7 @@ def translate_images_clf_oracle(dataset, clf, oracle, generator, gradcam, class_
             y_pred_oracle.append(
                 int(np.argmax(oracle(tf.expand_dims(translated_i, axis=0)))))
 
-            len_dataset += 1
+        len_dataset += 1
     return y_pred_translated, y_pred_oracle, len_dataset, translated_images
 
 
