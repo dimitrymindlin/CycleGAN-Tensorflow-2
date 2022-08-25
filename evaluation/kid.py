@@ -2,6 +2,7 @@ import tensorflow as tf
 import tensorflow.keras as keras
 import tensorflow.keras.layers as layers
 import numpy as np
+import tqdm
 
 from imlib import plot_any_img
 
@@ -119,19 +120,19 @@ def calc_KID_for_model(translated_images, crop_size, dataset):
     sample_length = 91 # 4 x 91 = images_length
     all_samples_list = list(dataset.take(images_length * 5))
     # Calc KID in splits of 5 different target samples
-    for i in range(5):
+    for i in tqdm.trange(5, desc='KID outer splits'):
         if i == 4:
             tmp_samples = all_samples_list[i * images_length:]
         else:
             tmp_samples = all_samples_list[i * images_length:(i + 1) * images_length]
-            # Calc KID in 10 runs
-        for j in range(10):
-            if i == 9:
-                current_samples = tmp_samples[i * sample_length:]
-                current_translated_images = translated_images[i * sample_length:]
+            # Calc KID in 4 runs
+        for j in tqdm.trange(1, desc='KID inner splits'):
+            if j == 0:
+                current_samples = tmp_samples[j * sample_length:]
+                current_translated_images = translated_images[j * sample_length:]
             else:
-                current_samples = tmp_samples[i * sample_length:(i + 1) * sample_length]
-                current_translated_images = translated_images[i * sample_length:(i + 1) * sample_length]
+                current_samples = tmp_samples[j * sample_length:(j + 1) * sample_length]
+                current_translated_images = translated_images[j * sample_length:(j + 1) * sample_length]
 
             tmp_sample_tensor = tf.squeeze(tf.convert_to_tensor([sample[0] for sample in current_samples]))
             kid.update_state(tmp_sample_tensor, tf.convert_to_tensor(current_translated_images))
