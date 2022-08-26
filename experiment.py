@@ -40,6 +40,7 @@ if args.dataset == "mura":
     args.epochs = 17
     args.epoch_decay = 15
     args.sample_interval = 2
+    args.clf_ckp_name = "2022-06-04--00.05"
 
 # Create new output dir if new experiment
 if not args.load_checkpoint:
