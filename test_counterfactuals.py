@@ -31,8 +31,9 @@ py.arg('--print_images', type=bool, default=True)
 py.arg('--crop_size', type=int, default=256)  # Mura: 512 H2Z: 256
 py.arg('--gan_model_ts', type=str, default="2022-05-26--15.51")
 py.arg('--counterfactuals', type=str, default="abc-gan", choices=["abc-gan", "ganterfactual"])
+py.arg('--save_img', type=bool, default=False)
 py.arg('--tcv_os', type=bool, default=False)
-py.arg('--ssim_psnr', type=bool, default=True)
+py.arg('--ssim_psnr', type=bool, default=False)
 py.arg('--kid', type=bool, default=False)
 args = py.args()
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
@@ -173,5 +174,8 @@ with open(f'{args.counterfactuals}_{args.dataset}.txt', 'w') as f:
     for name, ep in zip(checkpoint_ts_list, checkpoint_ep_list):
         print(f"Starting {name}_{ep}")
         G_A2B, G_B2A = load_generators(name, ep)
-        save_img = name + "_" + ep
+        if args.save_img:
+            save_img = name + "_" + ep
+        else:
+            save_img = False
         evaluate_current_model(G_A2B, G_B2A, save_img)
