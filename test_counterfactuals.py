@@ -9,8 +9,7 @@ import tf2lib as tl
 import module
 from evaluation.kid import calc_KID_for_model_target_source, calc_KID_for_model
 from evaluation.load_test_data import load_h2z_test_data
-from evaluation.tcv_os import calculate_tcv_os, translate_images_clf_oracle, calculate_ssim_psnr, calculate_tcv, \
-    translate_images_clf
+from evaluation.tcv_os import calculate_ssim_psnr, calculate_tcv, translate_images_clf
 from tensorflow_addons.layers import InstanceNormalization
 
 # ==============================================================================
@@ -150,7 +149,7 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
             target_dataset = A_dataset
 
         # Get counterfactuals (translated images)
-        y_pred_translated, y_pred_oracle, len_dataset, translated_images = translate_images_clf(
+        y_pred_translated, len_dataset, translated_images = translate_images_clf(
             source_dataset, clf, generator, gradcam, class_label, True, args.attention_type,
             training=False, save_img=save_img)
 
