@@ -5,7 +5,7 @@ import tensorflow as tf
 from train import run_training
 
 ### Define Experiment Settings
-py.arg('--dataset', default='horse2zebra', choices=['horse2zebra', 'mura', 'apple2orange'])
+py.arg('--dataset', default='mura', choices=['horse2zebra', 'mura', 'apple2orange'])
 py.arg('--body_parts', default=["XR_WRIST"])  # Only used in Mura dataset. Body part of x-ray images
 py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=286)  # load image to this size
@@ -34,6 +34,7 @@ py.arg('--start_attention_epoch', type=int, default=0)
 py.arg('--sample_interval', type=int, default=5)
 args = py.args()
 
+print(f"Using {args.dataset} dataset.")
 if args.dataset == "mura":
     args.load_size = 512
     args.crop_size = 512
