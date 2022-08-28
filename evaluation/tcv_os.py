@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 from matplotlib import pyplot as plt
+from skimage.metrics import structural_similarity, peak_signal_noise_ratio
 
 import pylib as py
 import tqdm
@@ -72,18 +73,41 @@ def translate_images_clf_oracle(dataset, clf, oracle, generator, gradcam, class_
                 fig.savefig(f"{img_folder}/%d.png" % (batch_i))
                 plt.close()
         len_dataset += 1
+        if len_dataset >= 20:
+            break
     return y_pred_translated, y_pred_oracle, len_dataset, translated_images
 
 
-def calculate_tcv_os(y_pred_translated, y_pred_oracle, len_dataset, translation_name):
+def calculate_tcv_os(y_pred_translated, y_pred_oracle, len_dataset, translation_name, calc_os=False):
     # Calculate tcv and os
     if translation_name == "A2B":
         tcv = sum(y_pred_translated) / len_dataset
         similar_predictions_count = sum(x == y == 1 for x, y in zip(y_pred_translated, y_pred_oracle))
-        os = (1 / len_dataset) * similar_predictions_count
+        if calc_os:
+            os = (1 / len_dataset) * similar_predictions_count
     else:
         tcv = (len_dataset - sum(y_pred_translated)) / len_dataset
         similar_predictions_count = sum(x == y == 0 for x, y in zip(y_pred_translated, y_pred_oracle))
-        os = (1 / len(y_pred_translated)) * similar_predictions_count
+        if calc_os:
+            os = (1 / len(y_pred_translated)) * similar_predictions_count
+    print("TCV: ", tcv)
+    if calc_os:
+        print("OS: ", os)
+        return tcv, os
+    return tcv
 
-    return tcv, os
+
+def calculate_ssim_psnr(images, translated_images):
+    ssim_count = 0
+    psnr_count = 0
+    for img_i, translated_i in zip(images, translated_images):
+        img_i = tf.squeeze(img_i).numpy()
+        translated_i = translated_i.numpy()
+        ssim_count += structural_similarity(img_i, translated_i, channel_axis=2)
+        psnr_count += peak_signal_noise_ratio(img_i, translated_i)
+
+    ssim = ssim_count / len(images)
+    psnr = psnr_count / len(images)
+    print("SSIM: ", ssim)
+    print("PSNR: ", psnr)
+    return ssim, psnr
