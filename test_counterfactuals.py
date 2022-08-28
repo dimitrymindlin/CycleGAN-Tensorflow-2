@@ -96,8 +96,8 @@ G_B2A = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
 
 clf = tf.keras.models.load_model(
     f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model", compile=False)
-oracle = tf.keras.models.load_model(
-    f"{ROOT_DIR}/checkpoints/{args.oracle_name}_{args.dataset}/{args.oracle_ckp_name}/model", compile=False)
+"""oracle = tf.keras.models.load_model(
+    f"{ROOT_DIR}/checkpoints/{args.oracle_name}_{args.dataset}/{args.oracle_ckp_name}/model", compile=False)"""
 
 gradcam = GradcamPlusPlus(clf, clone=True)
 
