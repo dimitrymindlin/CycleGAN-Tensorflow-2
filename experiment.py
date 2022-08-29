@@ -38,8 +38,8 @@ print(f"Using {args.dataset} dataset.")
 if args.dataset == "mura":
     args.load_size = 512
     args.crop_size = 512
-    args.epochs = 17
-    args.epoch_decay = 15
+    args.epochs = 19
+    args.epoch_decay = 16
     args.sample_interval = 2
     args.clf_ckp_name = "2022-06-04--00.05"
 
