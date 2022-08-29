@@ -134,8 +134,6 @@ def translate_images_clf(dataset, clf, generator, gradcam, class_label, return_i
                 fig.savefig(f"{img_folder}/%d.png" % (batch_i))
                 plt.close()
         len_dataset += 1
-        if len_dataset >= 20:
-            break
     return y_pred_translated, len_dataset, translated_images
 
 
