@@ -7,9 +7,9 @@ python3 -m experiment \
   --dataset mura \
   --adversarial_loss_weight 1 \
   --cycle_loss_weight 5 \
-  --counterfactual_loss_weight 1 \
+  --counterfactual_loss_weight 0 \
   --identity_loss_weight 1 \
   --clf_ckp_name 2022-06-04--00.05 \
   --generator resnet \
-  --start_attention_epoch 5 \
+  --start_attention_epoch 10 \
 

@@ -10,5 +10,5 @@ python3 -m experiment \
   --counterfactual_loss_weight 0 \
   --identity_loss_weight 5 \
   --generator resnet \
-  --start_attention_epoch 20 \
+  --start_attention_epoch 0 \
 
