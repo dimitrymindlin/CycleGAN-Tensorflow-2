@@ -117,8 +117,8 @@ checkpoint_ep_list_mura = ["14", "16", "14", "16"]"""
 checkpoint_ts_list_h2z = ["2022-08-13--15.48"]  # "2022-08-17--03.54"
 checkpoint_ep_list_h2z = ["195"]  # "180"
 
-checkpoint_ts_list_ganterfactual = ["GANterfactual_2022-08-22--09.39", "2022-08-23--14.50"]
-checkpoint_ep_list_ganterfactual = ["ep_12", "..."]
+checkpoint_ts_list_ganterfactual = ["GANterfactual_2022-08-22--09.39", "GANterfactual_2022-08-22--09.39"]
+checkpoint_ep_list_ganterfactual = ["ep_16, ep_18"]
 
 if args.counterfactuals == "abc-gan":
     load_generators = get_abc_gan_generators
