@@ -120,6 +120,10 @@ checkpoint_ep_list_h2z = ["195"]  # "180"
 checkpoint_ts_list_ganterfactual = ["GANterfactual_2022-08-22--09.39", "GANterfactual_2022-08-22--09.39"]
 checkpoint_ep_list_ganterfactual = ["ep_16", "ep_18"]
 
+checkpoint_ts_list_cyclegan = ["2022-08-29--12.05", "2022-08-29--12.05", ]
+checkpoint_ep_list_cyclegan = ["14", "16"]
+
+# TODO: Generalise for H2Z, Currently only Mura
 if args.counterfactuals == "abc-gan":
     load_generators = get_abc_gan_generators
     if args.dataset == "mura":
@@ -128,10 +132,14 @@ if args.counterfactuals == "abc-gan":
     else:
         checkpoint_ts_list = checkpoint_ts_list_h2z
         checkpoint_ep_list = checkpoint_ep_list_h2z
-else:
+elif args.counterfactuals == "ganterfactual":
     load_generators = get_ganterfactual_generators
     checkpoint_ts_list = checkpoint_ts_list_ganterfactual
     checkpoint_ep_list = checkpoint_ep_list_ganterfactual
+else: # CycleGAN
+    load_generators = get_abc_gan_generators
+    checkpoint_ts_list = checkpoint_ts_list_cyclegan
+    checkpoint_ep_list = checkpoint_ep_list_cyclegan
 
 
 def evaluate_current_model(G_A2B, G_B2A, save_img=False):
