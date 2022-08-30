@@ -30,7 +30,7 @@ py.arg('--oracle_ckp_name', type=str, default="2022-08-21--00.00")  # Mura: 2022
 py.arg('--print_images', type=bool, default=True)
 py.arg('--crop_size', type=int, default=256)  # Mura: 512 H2Z: 256
 py.arg('--gan_model_ts', type=str, default="2022-05-26--15.51")
-py.arg('--counterfactuals', type=str, default="abc-gan", choices=["abc-gan", "ganterfactual"])
+py.arg('--counterfactuals', type=str, default="abc-gan", choices=["abc-gan", "ganterfactual", "none"])
 py.arg('--save_img', type=bool, default=False)
 py.arg('--tcv_os', type=bool, default=False)
 py.arg('--ssim_psnr', type=bool, default=False)
@@ -119,7 +119,7 @@ checkpoint_ep_list_h2z = ["195"]  # "180"
 
 checkpoint_ts_list_ganterfactual = ["GANterfactual_2022-08-22--09.39", "GANterfactual_2022-08-22--09.39"]
 checkpoint_ep_list_ganterfactual = ["ep_16", "ep_18"]
-s
+
 if args.counterfactuals == "abc-gan":
     load_generators = get_abc_gan_generators
     if args.dataset == "mura":
