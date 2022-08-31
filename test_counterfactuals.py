@@ -17,7 +17,7 @@ from tensorflow_addons.layers import InstanceNormalization
 # ==============================================================================
 from imlib import save_mura_images, immerge, imwrite
 
-py.arg('--dataset', default='horse2zebra', choices=['horse2zebra', 'mura', 'apple2orange'])
+py.arg('--dataset', default='mura', choices=['horse2zebra', 'mura', 'apple2orange'])
 py.arg('--body_parts', default=["XR_WRIST"])  # Only used in Mura dataset. Body part of x-ray images
 py.arg('--batch_size', type=int, default=1)
 py.arg('--datasets_dir', default='datasets')
@@ -42,7 +42,7 @@ if len(tf.config.list_physical_devices('GPU')) == 0:
 else:
     TFDS_PATH = "../tensorflow_datasets"
 
-TFDS_PATH = "../tensorflow_datasets"
+# TFDS_PATH = "../tensorflow_datasets"
 
 if args.dataset == "mura":
     args.crop_size = 512
@@ -111,14 +111,14 @@ checkpoint_ts_list_mura = ["2022-08-18--17.48", "2022-08-19--08.32", "2022-08-19
                            "2022-08-22--14.00"]  # "2022-08-18--17.48",
 checkpoint_ep_list_mura = ["20", "20", "24", "14", "16"]  # "20",
 
-"""checkpoint_ts_list_mura = ["2022-08-27--17.54", "2022-08-27--17.54", "2022-08-27--18.00", "2022-08-27--18.00"]
-checkpoint_ep_list_mura = ["14", "16", "14", "16"]"""
+checkpoint_ts_list_mura = ["2022-08-27--18.00"]  # "2022-08-27--17.54", "2022-08-27--17.54",
+checkpoint_ep_list_mura = ["16"]  # "14", "16",
 
 checkpoint_ts_list_h2z = ["2022-08-13--15.48"]  # "2022-08-17--03.54"
 checkpoint_ep_list_h2z = ["195"]  # "180"
 
-checkpoint_ts_list_ganterfactual = ["GANterfactual_2022-08-22--09.39", "GANterfactual_2022-08-22--09.39"]
-checkpoint_ep_list_ganterfactual = ["ep_16", "ep_18"]
+checkpoint_ts_list_ganterfactual = ["GANterfactual_2022-08-30--13.36"]#["GANterfactual_2022-08-22--09.39", "GANterfactual_2022-08-22--09.39"]
+checkpoint_ep_list_ganterfactual = ["ep_16"]
 
 checkpoint_ts_list_cyclegan = ["2022-08-29--12.05", "2022-08-29--12.05", ]
 checkpoint_ep_list_cyclegan = ["14", "16"]
@@ -136,7 +136,7 @@ elif args.counterfactuals == "ganterfactual":
     load_generators = get_ganterfactual_generators
     checkpoint_ts_list = checkpoint_ts_list_ganterfactual
     checkpoint_ep_list = checkpoint_ep_list_ganterfactual
-else: # CycleGAN
+else:  # CycleGAN
     load_generators = get_abc_gan_generators
     checkpoint_ts_list = checkpoint_ts_list_cyclegan
     checkpoint_ep_list = checkpoint_ep_list_cyclegan
