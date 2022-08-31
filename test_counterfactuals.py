@@ -120,8 +120,8 @@ checkpoint_ep_list_h2z = ["195"]  # "180"
 checkpoint_ts_list_ganterfactual = ["GANterfactual_2022-08-30--13.36"]#["GANterfactual_2022-08-22--09.39", "GANterfactual_2022-08-22--09.39"]
 checkpoint_ep_list_ganterfactual = ["ep_16"]
 
-checkpoint_ts_list_cyclegan = ["2022-08-29--12.05", "2022-08-29--12.05", ]
-checkpoint_ep_list_cyclegan = ["14", "16"]
+checkpoint_ts_list_cyclegan = ["2022-08-29--12.05"]
+checkpoint_ep_list_cyclegan = ["14"]
 
 # TODO: Generalise for H2Z, Currently only Mura
 if args.counterfactuals == "abc-gan":
