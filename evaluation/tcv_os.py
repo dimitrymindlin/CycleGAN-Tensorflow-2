@@ -4,12 +4,10 @@ import numpy as np
 from matplotlib import pyplot as plt
 from skimage.metrics import structural_similarity, peak_signal_noise_ratio
 
-import pylib as py
 import tqdm
 
 from attention_strategies.attention_gan import attention_gan_single
 from attention_strategies.no_attention import no_attention_single
-from imlib import immerge, imwrite, plot_any_img
 from imlib.image_holder import ImageHolder
 import tensorflow as tf
 
@@ -94,12 +92,6 @@ def translate_images_clf(dataset, clf, generator, gradcam, class_label, return_i
         else:
             translated_img = no_attention_single(img_holder.img, generator, None, training)
         # Predict images with CLF and Oracle
-        plot_any_img(img_holder.img)
-        plot_any_img(img_holder.background)
-        plot_any_img(img_holder.attention)
-        plot_any_img(translated_img)
-        continue
-        print()
         for img_i, translated_i in zip(img_batch, translated_img):
             if return_images:
                 translated_images.append(tf.squeeze(translated_i))
