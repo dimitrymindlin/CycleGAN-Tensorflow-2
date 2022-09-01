@@ -9,7 +9,7 @@ import tqdm
 
 from attention_strategies.attention_gan import attention_gan_single
 from attention_strategies.no_attention import no_attention_single
-from imlib import immerge, imwrite
+from imlib import immerge, imwrite, plot_any_img
 from imlib.image_holder import ImageHolder
 import tensorflow as tf
 
@@ -94,6 +94,12 @@ def translate_images_clf(dataset, clf, generator, gradcam, class_label, return_i
         else:
             translated_img = no_attention_single(img_holder.img, generator, None, training)
         # Predict images with CLF and Oracle
+        plot_any_img(img_holder.img)
+        plot_any_img(img_holder.background)
+        plot_any_img(img_holder.attention)
+        plot_any_img(translated_img)
+        continue
+        print()
         for img_i, translated_i in zip(img_batch, translated_img):
             if return_images:
                 translated_images.append(tf.squeeze(translated_i))
@@ -160,7 +166,7 @@ def calculate_tcv(y_pred_translated, len_dataset, translation_name, calc_os=Fals
         tcv = sum(y_pred_translated) / len_dataset
     else:
         tcv = (len_dataset - sum(y_pred_translated)) / len_dataset
-    print("TCV: ", tcv)
+    print("TCV: ", float("{0:.3f}".format(np.mean(tcv))))
     return tcv
 
 
@@ -175,6 +181,6 @@ def calculate_ssim_psnr(images, translated_images):
 
     ssim = ssim_count / len(images)
     psnr = psnr_count / len(images)
-    print("SSIM: ", ssim)
-    print("PSNR: ", psnr)
+    print("SSIM: ", float("{0:.3f}".format(np.mean(ssim))))
+    print("PSNR: ", float("{0:.3f}".format(np.mean(psnr))))
     return ssim, psnr
