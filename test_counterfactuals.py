@@ -175,17 +175,19 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
     print()
 
 
-with open(f'{args.counterfactuals}_{args.dataset}.txt', 'w') as f:
-    sys.stdout = f  # Change the standard output to the file we created.
-    # Loop over all models and checkpoints
-    counterfactuals_to_test = ["abc-gan", "ganterfactual", "none"]
-    for counterfactuals_type in counterfactuals_to_test:
-        load_generators, checkpoint_ts_list, checkpoint_ep_list = load_generators_and_ckp_lists(counterfactuals_type)
-        for name, ep in zip(checkpoint_ts_list, checkpoint_ep_list):
-            print(f"Starting {name}_{ep}")
-            G_A2B, G_B2A = load_generators(name, ep)
-            if args.save_img:
-                save_img = name + "_" + ep
-            else:
-                save_img = False
-            evaluate_current_model(G_A2B, G_B2A, save_img)
+counterfactuals_to_test = ["abc-gan", "ganterfactual", "none"]
+for counterfactuals_type in counterfactuals_to_test:
+    with open(f'{counterfactuals_type}_{args.dataset}.txt', 'w') as f:
+        sys.stdout = f  # Change the standard output to the file we created.
+        # Loop over all models and checkpoints
+        counterfactuals_to_test = ["abc-gan", "ganterfactual", "none"]
+        for counterfactuals_type in counterfactuals_to_test:
+            load_generators, checkpoint_ts_list, checkpoint_ep_list = load_generators_and_ckp_lists(counterfactuals_type)
+            for name, ep in zip(checkpoint_ts_list, checkpoint_ep_list):
+                print(f"Starting {name}_{ep}")
+                G_A2B, G_B2A = load_generators(name, ep)
+                if args.save_img:
+                    save_img = name + "_" + ep
+                else:
+                    save_img = False
+                evaluate_current_model(G_A2B, G_B2A, save_img)
