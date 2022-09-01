@@ -1,6 +1,7 @@
 import os
 import sys
 
+import tqdm
 from mura.tfds_from_disc import get_mura_test_ds_by_body_part_split_class
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 import pylib as py
@@ -175,19 +176,18 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
     print()
 
 
-counterfactuals_to_test = ["abc-gan", "ganterfactual", "none"]
-for counterfactuals_type in counterfactuals_to_test:
+counterfactuals_to_test = ["none", "abc-gan", "ganterfactual"]
+for counterfactuals_type in tqdm.tqdm(counterfactuals_to_test, desc='Counterfactual Type Loop'):
     with open(f'{counterfactuals_type}_{args.dataset}.txt', 'w') as f:
         sys.stdout = f  # Change the standard output to the file we created.
         # Loop over all models and checkpoints
         counterfactuals_to_test = ["abc-gan", "ganterfactual", "none"]
-        for counterfactuals_type in counterfactuals_to_test:
-            load_generators, checkpoint_ts_list, checkpoint_ep_list = load_generators_and_ckp_lists(counterfactuals_type)
-            for name, ep in zip(checkpoint_ts_list, checkpoint_ep_list):
-                print(f"Starting {name}_{ep}")
-                G_A2B, G_B2A = load_generators(name, ep)
-                if args.save_img:
-                    save_img = name + "_" + ep
-                else:
-                    save_img = False
-                evaluate_current_model(G_A2B, G_B2A, save_img)
+        load_generators, checkpoint_ts_list, checkpoint_ep_list = load_generators_and_ckp_lists(counterfactuals_type)
+        for name, ep in zip(checkpoint_ts_list, checkpoint_ep_list):
+            print(f"Starting {name}_{ep}")
+            G_A2B, G_B2A = load_generators(name, ep)
+            if args.save_img:
+                save_img = name + "_" + ep
+            else:
+                save_img = False
+            evaluate_current_model(G_A2B, G_B2A, save_img)
