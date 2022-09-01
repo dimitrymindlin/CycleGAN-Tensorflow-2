@@ -40,7 +40,7 @@ if len(tf.config.list_physical_devices('GPU')) == 0:
 else:
     TFDS_PATH = "../tensorflow_datasets"
 
-TFDS_PATH = "../tensorflow_datasets"
+#TFDS_PATH = "../tensorflow_datasets"
 
 if args.dataset == "mura":
     args.crop_size = 512
@@ -118,7 +118,7 @@ checkpoint_ep_list_mura = ["16", "16", "18", "16", "18"]
 
 checkpoint_ts_list_ganterfactual = ["GANterfactual_2022-08-22--09.39", "GANterfactual_2022-08-31--08.19",
                                     "GANterfactual_2022-08-31--08.19"]
-checkpoint_ep_list_ganterfactual = ["16", "14", "17"]
+checkpoint_ep_list_ganterfactual = ["ep_16", "ep_14", "ep_17"]
 
 checkpoint_ts_list_cyclegan = ["2022-08-29--12.05"]
 checkpoint_ep_list_cyclegan = ["14"]
