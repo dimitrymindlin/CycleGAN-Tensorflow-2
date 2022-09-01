@@ -60,6 +60,7 @@ def get_abc_gan_generators(name, ep):
             save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}/ckpt-{ep}')
     return G_A2B, G_B2A
 
+
 def get_ganterfactual_generators(name, ep):
     cyclegan_folder = f"{ROOT_DIR}/checkpoints/gans/mura/{name}/{ep}"
     custom_objects = {"InstanceNormalization": InstanceNormalization}
@@ -110,13 +111,13 @@ checkpoint_ts_list_h2z = ["2022-08-13--15.48"]  # "2022-08-17--03.54"
 checkpoint_ep_list_h2z = ["195"]  # 180"""
 
 # Before paper Submission
-checkpoint_ts_list_mura = ["2022-08-18--17.48", "2022-08-19--08.32", "2022-08-22--14.00",
-                           "2022-08-22--14.00", "2022-08-27--17.54", "2022-08-27--18.00",
-                           "2022-08-30--14.37", "2022-08-30--14.37", "2022-08-30--14.47",
-                           "2022-08-30--14.47"]
-checkpoint_ep_list_mura = ["20", "20", "14", "16", "16", "16", "16", "18", "16", "18"]
+checkpoint_ts_list_mura = ["2022-08-27--18.00",
+                           "2022-08-30--14.37", "2022-08-30--14.37",
+                           "2022-08-30--14.47", "2022-08-30--14.47"]
+checkpoint_ep_list_mura = ["16", "16", "18", "16", "18"]
 
-checkpoint_ts_list_ganterfactual = ["GANterfactual_2022-08-22--09.39", "2022-08-31--08.19", "2022-08-31--08.19"]
+checkpoint_ts_list_ganterfactual = ["GANterfactual_2022-08-22--09.39", "GANterfactual_2022-08-31--08.19",
+                                    "GANterfactual_2022-08-31--08.19"]
 checkpoint_ep_list_ganterfactual = ["16", "14", "17"]
 
 checkpoint_ts_list_cyclegan = ["2022-08-29--12.05"]
