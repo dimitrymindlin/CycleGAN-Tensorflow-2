@@ -15,8 +15,6 @@ from tensorflow_addons.layers import InstanceNormalization
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-from imlib import save_mura_images, immerge, imwrite
-
 py.arg('--dataset', default='mura', choices=['horse2zebra', 'mura', 'apple2orange'])
 py.arg('--body_parts', default=["XR_WRIST"])  # Only used in Mura dataset. Body part of x-ray images
 py.arg('--batch_size', type=int, default=1)
@@ -61,7 +59,6 @@ def get_abc_gan_generators(name, ep):
                       py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}")).restore(
             save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}/ckpt-{ep}')
     return G_A2B, G_B2A
-
 
 def get_ganterfactual_generators(name, ep):
     cyclegan_folder = f"{ROOT_DIR}/checkpoints/gans/mura/{name}/{ep}"
@@ -127,7 +124,7 @@ checkpoint_ep_list_cyclegan = ["14"]
 
 
 # TODO: Generalise for H2Z, Currently only Mura
-def load_generators(counterfactuals_type):
+def load_generators_and_ckp_lists(counterfactuals_type):
     if counterfactuals_type == "abc-gan":
         load_generators = get_abc_gan_generators
         checkpoint_ts_list = checkpoint_ts_list_mura
@@ -182,7 +179,7 @@ with open(f'{args.counterfactuals}_{args.dataset}.txt', 'w') as f:
     # Loop over all models and checkpoints
     counterfactuals_to_test = ["abc-gan", "ganterfactual", "none"]
     for counterfactuals_type in counterfactuals_to_test:
-        load_generators, checkpoint_ts_list, checkpoint_ep_list = load_generators(counterfactuals_type)
+        load_generators, checkpoint_ts_list, checkpoint_ep_list = load_generators_and_ckp_lists(counterfactuals_type)
         for name, ep in zip(checkpoint_ts_list, checkpoint_ep_list):
             print(f"Starting {name}_{ep}")
             G_A2B, G_B2A = load_generators(name, ep)
