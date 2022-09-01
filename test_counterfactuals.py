@@ -103,43 +103,44 @@ gradcam = GradcamPlusPlus(clf, clone=True)
 save_dir = py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{args.gan_model_ts}", 'generated_imgs')
 py.mkdir(save_dir)
 
-done_h2z = ["2022-05-31--14.02", "2022-05-31--13.04", "2022-06-01--13.06", "2022-06-02--12.45"]
+"""done_h2z = ["2022-05-31--14.02", "2022-05-31--13.04", "2022-06-01--13.06", "2022-06-02--12.45"]
 done_ep_h2z = ["180", "180", "180", "180"]
 checkpoint_ts_list = ["2022-05-31--13.04", "2022-05-31--14.02", "2022-06-01--13.06", "2022-06-02--12.45",
                       "2022-06-03--14.07", "2022-06-03--19.10"]
-checkpoint_ts_list_mura = ["2022-08-18--17.48", "2022-08-19--08.32", "2022-08-19--08.32", "2022-08-22--14.00",
-                           "2022-08-22--14.00"]  # "2022-08-18--17.48",
-checkpoint_ep_list_mura = ["20", "20", "24", "14", "16"]  # "20",
 
-checkpoint_ts_list_mura = ["2022-08-27--18.00"]  # "2022-08-27--17.54", "2022-08-27--17.54",
-checkpoint_ep_list_mura = ["16"]  # "14", "16",
 
 checkpoint_ts_list_h2z = ["2022-08-13--15.48"]  # "2022-08-17--03.54"
-checkpoint_ep_list_h2z = ["195"]  # "180"
+checkpoint_ep_list_h2z = ["195"]  # 180"""
 
-checkpoint_ts_list_ganterfactual = ["GANterfactual_2022-08-30--13.36"]#["GANterfactual_2022-08-22--09.39", "GANterfactual_2022-08-22--09.39"]
-checkpoint_ep_list_ganterfactual = ["ep_16"]
+# Before paper Submission
+checkpoint_ts_list_mura = ["2022-08-18--17.48", "2022-08-19--08.32", "2022-08-22--14.00",
+                           "2022-08-22--14.00", "2022-08-27--17.54", "2022-08-27--18.00",
+                           "2022-08-30--14.37", "2022-08-30--14.37", "2022-08-30--14.47",
+                           "2022-08-30--14.47"]
+checkpoint_ep_list_mura = ["20", "20", "14", "16", "16", "16", "16", "18", "16", "18"]
+
+checkpoint_ts_list_ganterfactual = ["GANterfactual_2022-08-22--09.39", "2022-08-31--08.19", "2022-08-31--08.19"]
+checkpoint_ep_list_ganterfactual = ["16", "14", "17"]
 
 checkpoint_ts_list_cyclegan = ["2022-08-29--12.05"]
 checkpoint_ep_list_cyclegan = ["14"]
 
+
 # TODO: Generalise for H2Z, Currently only Mura
-if args.counterfactuals == "abc-gan":
-    load_generators = get_abc_gan_generators
-    if args.dataset == "mura":
+def load_generators(counterfactuals_type):
+    if counterfactuals_type == "abc-gan":
+        load_generators = get_abc_gan_generators
         checkpoint_ts_list = checkpoint_ts_list_mura
         checkpoint_ep_list = checkpoint_ep_list_mura
-    else:
-        checkpoint_ts_list = checkpoint_ts_list_h2z
-        checkpoint_ep_list = checkpoint_ep_list_h2z
-elif args.counterfactuals == "ganterfactual":
-    load_generators = get_ganterfactual_generators
-    checkpoint_ts_list = checkpoint_ts_list_ganterfactual
-    checkpoint_ep_list = checkpoint_ep_list_ganterfactual
-else:  # CycleGAN
-    load_generators = get_abc_gan_generators
-    checkpoint_ts_list = checkpoint_ts_list_cyclegan
-    checkpoint_ep_list = checkpoint_ep_list_cyclegan
+    elif counterfactuals_type == "ganterfactual":
+        load_generators = get_ganterfactual_generators
+        checkpoint_ts_list = checkpoint_ts_list_ganterfactual
+        checkpoint_ep_list = checkpoint_ep_list_ganterfactual
+    else:  # CycleGAN
+        load_generators = get_abc_gan_generators
+        checkpoint_ts_list = checkpoint_ts_list_cyclegan
+        checkpoint_ep_list = checkpoint_ep_list_cyclegan
+    return load_generators, checkpoint_ts_list, checkpoint_ep_list
 
 
 def evaluate_current_model(G_A2B, G_B2A, save_img=False):
@@ -179,11 +180,14 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
 with open(f'{args.counterfactuals}_{args.dataset}.txt', 'w') as f:
     sys.stdout = f  # Change the standard output to the file we created.
     # Loop over all models and checkpoints
-    for name, ep in zip(checkpoint_ts_list, checkpoint_ep_list):
-        print(f"Starting {name}_{ep}")
-        G_A2B, G_B2A = load_generators(name, ep)
-        if args.save_img:
-            save_img = name + "_" + ep
-        else:
-            save_img = False
-        evaluate_current_model(G_A2B, G_B2A, save_img)
+    counterfactuals_to_test = ["abc-gan", "ganterfactual", "none"]
+    for counterfactuals_type in counterfactuals_to_test:
+        load_generators, checkpoint_ts_list, checkpoint_ep_list = load_generators(counterfactuals_type)
+        for name, ep in zip(checkpoint_ts_list, checkpoint_ep_list):
+            print(f"Starting {name}_{ep}")
+            G_A2B, G_B2A = load_generators(name, ep)
+            if args.save_img:
+                save_img = name + "_" + ep
+            else:
+                save_img = False
+            evaluate_current_model(G_A2B, G_B2A, save_img)
