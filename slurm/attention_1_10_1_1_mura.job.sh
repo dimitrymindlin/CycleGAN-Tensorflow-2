@@ -7,8 +7,9 @@ python3 -m experiment \
   --dataset mura \
   --adversarial_loss_weight 1 \
   --cycle_loss_weight 10 \
-  --counterfactual_loss_weight 0 \
-  --identity_loss_weight 5 \
+  --counterfactual_loss_weight 1 \
+  --identity_loss_weight 1 \
   --generator resnet \
+  --discriminator patch_gan_attention \
   --start_attention_epoch 0 \
 
