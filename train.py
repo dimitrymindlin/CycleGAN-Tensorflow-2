@@ -1,5 +1,9 @@
+import os
+
 import numpy as np
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
+from tf_keras_vis.gradcam import Gradcam
+from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
 import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
@@ -9,16 +13,29 @@ import tf2lib as tl
 import tf2gan as gan
 import tqdm
 import module
-from attention_strategies.attention_gan import attention_gan_step
-from attention_strategies.no_attention import no_attention_step
-from attention_strategies.spa_gan import spa_gan_step, spa_gan_step_fm
+from attention_strategies.attention_gan import attention_gan_step, attention_gan_discriminator_step
 from attention_strategies.no_attention import no_attention_step
 from imlib import generate_image
-from imlib.image_holder import get_img_holders, multiply_images, add_images
+from imlib.image_holder import get_img_holders
 from tf2lib.data.item_pool import ItemPool
+
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
 
 
 def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
+    try:
+        # Correct necessary settings for SPA-GAN
+        if args.feature_map_loss_weight > 0:
+            args.generator = "resnet-attention"
+            args.current_attention_type = args.attention_type
+        if args.attention_type == "spa-gan":
+            feature_map_loss_fn = gan.get_feature_map_loss_fn()
+            gradcam = None
+            gradcam_D_A = None
+            gradcam_D_B = None
+    except AttributeError:
+        pass  # Spa-GAN not implemented yet
+
     # save settings
     py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 
@@ -31,6 +48,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     special_normalisation = tf.keras.applications.inception_v3.preprocess_input
 
     if args.dataset == "mura":
+        # A = Normal, B = Abnormal
         A_B_dataset, A_B_dataset_valid, A_B_dataset_test, len_dataset_train = get_mura_ds_by_body_part_split_class(
             args.body_parts,
             TFDS_PATH,
@@ -46,20 +64,27 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     # =                                   models                                   =
     # ==============================================================================
 
-    G_A2B = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
-    G_B2A = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
+    if args.generator == "resnet-attention":
+        G_A2B = module.ResnetAttentionGenerator(input_shape=(args.crop_size, args.crop_size, 3))
+        G_B2A = module.ResnetAttentionGenerator(input_shape=(args.crop_size, args.crop_size, 3))
+    else:
+        G_A2B = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
+        G_B2A = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
 
-    D_A = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
-    D_B = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3))
+    D_A = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3), norm=args.dics_norm)
+    D_B = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3), norm=args.disc_norm)
 
+    # Losses
     d_loss_fn, g_loss_fn = gan.get_adversarial_losses_fn(args.adversarial_loss_mode)
     cycle_loss_fn = tf.losses.MeanAbsoluteError()
     identity_loss_fn = tf.losses.MeanAbsoluteError()
     counterfactual_loss_fn = tf.losses.MeanSquaredError()
 
+    # Ground truth for counterfactual loss
     class_A_ground_truth = np.stack([np.ones(args.batch_size), np.zeros(args.batch_size)]).T
     class_B_ground_truth = np.stack([np.zeros(args.batch_size), np.ones(args.batch_size)]).T
 
+    # Optimizers
     G_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset_train, args.epoch_decay * len_dataset_train)
     D_lr_scheduler = module.LinearDecay(args.lr, args.epochs * len_dataset_train, args.epoch_decay * len_dataset_train)
     G_optimizer = keras.optimizers.Adam(learning_rate=G_lr_scheduler, beta_1=args.beta_1)
@@ -68,9 +93,21 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     train_D_A_acc = tf.keras.metrics.BinaryAccuracy()
     train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 
-    if args.counterfactual_loss_weight > 0 or args.attention_type == "attention-gan-original":
-        clf = tf.keras.models.load_model(f"checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
-                                         compile=False)
+    if args.attention_type == "attention-gan-original":
+        clf = tf.keras.models.load_model(
+            f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
+            compile=False)
+        gradcam = GradcamPlusPlus(clf, clone=True)
+    elif args.attention_type == "spa-gan":
+        if args.attention == "clf":
+            clf = tf.keras.models.load_model(
+                f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
+                compile=False)
+            gradcam = GradcamPlusPlus(clf, clone=True)
+        else:  # discriminator attention
+            args.counterfactual_loss_weight = 0
+            gradcam_D_A = Gradcam(D_A, model_modifier=ReplaceToLinear(), clone=True)
+            gradcam_D_B = Gradcam(D_B, model_modifier=ReplaceToLinear(), clone=True)
     else:
         clf = None
 
@@ -211,7 +248,13 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
         A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
         B2A = B2A_pool(B2A)  # because of the communication between CPU and GPU
 
-        D_loss_dict = train_D(A_holder.img, B_holder.img, A2B, B2A)
+        if args.discriminator == "patch_gan_attention":
+            A, A2B = attention_gan_discriminator_step(A_holder.img, A2B, A_holder.attention)
+            B, B2A = attention_gan_discriminator_step(B_holder.img, B2A, B_holder.attention)
+        else:
+            A = A_holder.img
+            B = B_holder.img
+        D_loss_dict = train_D(A, B, A2B, B2A)
         train_D_A_acc.reset_states()
         train_D_B_acc.reset_states()
 
@@ -263,12 +306,6 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     test_iter = iter(A_B_dataset_test)
     sample_dir = py.join(output_dir, 'images')
     py.mkdir(sample_dir)
-
-    # Create GradCAM object
-    if args.attention == "gradcam-plus-plus":
-        gradcam = GradcamPlusPlus(clf, clone=True)
-    else:
-        gradcam = None
 
     # main loop
     with train_summary_writer.as_default():
@@ -332,6 +369,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                                        B_holder=B_holder,
                                        A2B2A=A2B2A,
                                        B2A2B=B2A2B)
+                        quit()
 
             if (ep > (args.epochs / 2) and ep % args.sample_interval == 0) or ep == (args.epochs - 1):
                 checkpoint.save(ep)

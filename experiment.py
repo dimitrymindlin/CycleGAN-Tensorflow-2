@@ -28,7 +28,8 @@ py.arg('--attention_type', type=str, default="attention-gan-original",
        choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
 py.arg('--current_attention_type', type=str, default="none")
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
-py.arg('--discriminator', type=str, default="patch-gan", choices=['classic', 'patch-gan'])
+py.arg('--discriminator', type=str, default="patch-gan", choices=['classic', 'patch-gan', 'patch_gan_attention'])
+py.arg('--disc_norm', type=str, default="instance_norm", choices=['instance_norm', 'none', 'batch_norm', 'layer_norm'])
 py.arg('--load_checkpoint', type=str, default=None)
 py.arg('--start_attention_epoch', type=int, default=0)
 py.arg('--sample_interval', type=int, default=5)
@@ -61,6 +62,12 @@ else:
     execution_id = args.load_checkpoint
     output_dir = py.join(f'output_{args.dataset}/{execution_id}')
 py.mkdir(output_dir)
+
+# Make sure settings fit
+if args.dicriminator == "patch_gan_attention":
+    # Remove instance norm as suggested in 'Unsupervised Attention-guided Image-to-Image Translation'
+    args.disc_norm = "none" 
+
 TF_LOG_DIR = f"logs/{args.dataset}/"
 if len(tf.config.list_physical_devices('GPU')) == 0:
     TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
