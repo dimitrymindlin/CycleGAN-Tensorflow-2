@@ -71,7 +71,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
         G_A2B = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
         G_B2A = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
 
-    D_A = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3), norm=args.dics_norm)
+    D_A = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3), norm=args.disc_norm)
     D_B = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3), norm=args.disc_norm)
 
     # Losses
@@ -369,7 +369,6 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                                        B_holder=B_holder,
                                        A2B2A=A2B2A,
                                        B2A2B=B2A2B)
-                        quit()
 
             if (ep > (args.epochs / 2) and ep % args.sample_interval == 0) or ep == (args.epochs - 1):
                 checkpoint.save(ep)

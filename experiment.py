@@ -64,9 +64,9 @@ else:
 py.mkdir(output_dir)
 
 # Make sure settings fit
-if args.dicriminator == "patch_gan_attention":
+if args.discriminator == "patch_gan_attention":
     # Remove instance norm as suggested in 'Unsupervised Attention-guided Image-to-Image Translation'
-    args.disc_norm = "none" 
+    args.disc_norm = "none"
 
 TF_LOG_DIR = f"logs/{args.dataset}/"
 if len(tf.config.list_physical_devices('GPU')) == 0:
