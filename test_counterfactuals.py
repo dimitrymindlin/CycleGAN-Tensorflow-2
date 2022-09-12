@@ -124,7 +124,8 @@ checkpoint_ep_list_ganterfactual = ["ep_16", "ep_14", "ep_17"]
 checkpoint_ts_list_cyclegan = ["2022-08-29--12.05"]
 checkpoint_ep_list_cyclegan = ["14"]
 
-
+checkpoint_ts_list_mura = ["2022-09-10--04.15", "2022-09-10--04.15"]
+checkpoint_ep_list_mura = ["16", "18"]
 # TODO: Generalise for H2Z, Currently only Mura
 def load_generators_and_ckp_lists(counterfactuals_type):
     if counterfactuals_type == "abc-gan":
@@ -176,12 +177,10 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
     print()
 
 
-counterfactuals_to_test = ["none", "abc-gan", "ganterfactual"]
+counterfactuals_to_test = ["abc-gan"]
 for counterfactuals_type in tqdm.tqdm(counterfactuals_to_test, desc='Counterfactual Type Loop'):
     with open(f'{counterfactuals_type}_{args.dataset}.txt', 'w') as f:
         sys.stdout = f  # Change the standard output to the file we created.
-        # Loop over all models and checkpoints
-        counterfactuals_to_test = ["abc-gan", "ganterfactual", "none"]
         load_generators, checkpoint_ts_list, checkpoint_ep_list = load_generators_and_ckp_lists(counterfactuals_type)
         for name, ep in zip(checkpoint_ts_list, checkpoint_ep_list):
             print(f"Starting {name}_{ep}")
