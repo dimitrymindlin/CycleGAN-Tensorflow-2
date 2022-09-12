@@ -41,7 +41,7 @@ if len(tf.config.list_physical_devices('GPU')) == 0:
 else:
     TFDS_PATH = "../tensorflow_datasets"
 
-#TFDS_PATH = "../tensorflow_datasets"
+TFDS_PATH = "../tensorflow_datasets"
 
 if args.dataset == "mura":
     args.crop_size = 512
