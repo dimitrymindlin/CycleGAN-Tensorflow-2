@@ -248,7 +248,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
         A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
         B2A = B2A_pool(B2A)  # because of the communication between CPU and GPU
 
-        if args.discriminator == "patch_gan_attention":
+        if args.discriminator == "patch_gan_attention" and args.current_attention_type == "attention-gan-original":
             A, A2B = attention_gan_discriminator_step(A_holder.img, A2B, A_holder.attention)
             B, B2A = attention_gan_discriminator_step(B_holder.img, B2A, B_holder.attention)
         else:
