@@ -124,7 +124,7 @@ checkpoint_ep_list_ganterfactual = ["ep_16", "ep_14", "ep_17"]
 checkpoint_ts_list_cyclegan = ["2022-08-29--12.05"]
 checkpoint_ep_list_cyclegan = ["14"]
 
-checkpoint_ts_list_mura = ["2022-09-10--04.15", "2022-09-10--04.15"]
+checkpoint_ts_list_mura = ["2022-09-14--13.30", "2022-09-14--13.30"]
 checkpoint_ep_list_mura = ["16", "18"]
 # TODO: Generalise for H2Z, Currently only Mura
 def load_generators_and_ckp_lists(counterfactuals_type):
