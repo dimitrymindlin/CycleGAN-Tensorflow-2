@@ -30,7 +30,7 @@ py.arg('--print_images', type=bool, default=True)
 py.arg('--crop_size', type=int, default=256)  # Mura: 512 H2Z: 256
 py.arg('--gan_model_ts', type=str, default="2022-05-26--15.51")
 py.arg('--counterfactuals', type=str, default="abc-gan", choices=["abc-gan", "ganterfactual", "none"])
-py.arg('--save_img', type=bool, default=False)
+py.arg('--save_img', type=bool, default=True)
 py.arg('--tcv_os', type=bool, default=False)
 py.arg('--ssim_psnr', type=bool, default=False)
 py.arg('--kid', type=bool, default=False)
@@ -41,7 +41,7 @@ if len(tf.config.list_physical_devices('GPU')) == 0:
 else:
     TFDS_PATH = "../tensorflow_datasets"
 
-TFDS_PATH = "../tensorflow_datasets"
+#TFDS_PATH = "../tensorflow_datasets"
 
 if args.dataset == "mura":
     args.crop_size = 512
@@ -124,8 +124,8 @@ checkpoint_ep_list_ganterfactual = ["ep_16", "ep_14", "ep_17"]
 checkpoint_ts_list_cyclegan = ["2022-08-29--12.05"]
 checkpoint_ep_list_cyclegan = ["14"]
 
-checkpoint_ts_list_mura = ["2022-09-14--13.30", "2022-09-14--13.30"]
-checkpoint_ep_list_mura = ["16", "18"]
+checkpoint_ts_list_mura = ["2022-08-27--18.00", "2022-08-19--08.32"]
+checkpoint_ep_list_mura = ["16", "20"]
 # TODO: Generalise for H2Z, Currently only Mura
 def load_generators_and_ckp_lists(counterfactuals_type):
     if counterfactuals_type == "abc-gan":
@@ -160,7 +160,7 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
         # Get counterfactuals (translated images)
         y_pred_translated, len_dataset, translated_images = translate_images_clf(
             source_dataset, clf, generator, gradcam, class_label, True, args.attention_type,
-            training=False, save_img=save_img)
+            training=False, save_img=save_img, save_only_translated_img=True)
 
         if args.tcv_os:
             calculate_tcv(y_pred_translated, len_dataset, translation_name)
