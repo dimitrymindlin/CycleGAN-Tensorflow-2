@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+from PIL import Image
 from matplotlib import pyplot as plt
 from skimage.metrics import structural_similarity, peak_signal_noise_ratio
 
@@ -77,7 +78,7 @@ def translate_images_clf_oracle(dataset, clf, oracle, generator, gradcam, class_
 
 
 def translate_images_clf(dataset, clf, generator, gradcam, class_label, return_images, attention_type,
-                         training=False, save_img=False):
+                         training=False, save_img=False, save_only_translated_img=False):
     translated_images = []
     y_pred_translated = []
     len_dataset = 0
@@ -97,7 +98,7 @@ def translate_images_clf(dataset, clf, generator, gradcam, class_label, return_i
                 translated_images.append(tf.squeeze(translated_i))
             clf_prediction = int(np.argmax(clf(tf.expand_dims(tf.image.resize(translated_i, [512, 512]), axis=0))))
             y_pred_translated.append(clf_prediction)
-            if save_img:
+            if not save_only_translated_img and save_img:
                 """img = immerge(np.concatenate([img_holder.img, img_holder.attention, translated_img], axis=0), n_rows=1)
                 class_label_name = "Normal" if class_label == 0 else "Abnormal"
                 img_folder = f'output_mura/{class_label_name}'
@@ -131,7 +132,16 @@ def translate_images_clf(dataset, clf, generator, gradcam, class_label, return_i
                 os.makedirs(img_folder, exist_ok=True)
                 fig.savefig(f"{img_folder}/%d.png" % (batch_i))
                 plt.close()
+
+            if save_only_translated_img:
+                #im = Image.fromarray(np.squeeze(np.array(0.5 * translated_img + 0.5)))
+                im = Image.fromarray(np.uint8(np.squeeze(np.array(0.5 * translated_img + 0.5)) * 255))
+                img_folder = f'{save_img}/{class_label_name}'
+                os.makedirs(img_folder, exist_ok=True)
+                im.save(f"{img_folder}/%d.png" % (batch_i))
         len_dataset += 1
+        if len_dataset > 4:
+            break
     return y_pred_translated, len_dataset, translated_images
 
 
