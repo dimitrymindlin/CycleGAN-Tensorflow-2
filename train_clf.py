@@ -6,7 +6,7 @@ import tensorflow.keras as keras
 import standard_datasets_loading
 from classifiers.domain_to_domain_model import Domain2DomainModel
 
-dataset = "horse2zebra"
+dataset = "apple2orange"
 img_size = 512
 TF_LOG_DIR = f"logs/{dataset}_clf_{img_size}"
 checkpoint_path_name = f"checkpoints/inception_{dataset}_{img_size}/"
@@ -96,13 +96,13 @@ model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.0001),
                   loss='categorical_crossentropy',
                   metrics=["accuracy", metric_auc])
 
-# Model Training
+"""# Model Training
 history = model.fit(A_B_dataset,
                     epochs=40,
                     verbose=1,
                     class_weight=None,
                     validation_data=A_B_dataset_valid,
-                    callbacks=my_callbacks)
+                    callbacks=my_callbacks)"""
 
 print("Train History")
 result = model.evaluate(A_B_dataset_test)
@@ -115,4 +115,4 @@ print("Result Matrix")
 print(result_matrix)
 print("Result")
 print(result)
-model.save(checkpoint_path_name + 'model')
+#model.save(checkpoint_path_name + 'model')
