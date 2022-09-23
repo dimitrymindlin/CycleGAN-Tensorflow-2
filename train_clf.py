@@ -96,13 +96,13 @@ model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.0001),
                   loss='categorical_crossentropy',
                   metrics=["accuracy", metric_auc])
 
-"""# Model Training
+# Model Training
 history = model.fit(A_B_dataset,
                     epochs=40,
                     verbose=1,
                     class_weight=None,
                     validation_data=A_B_dataset_valid,
-                    callbacks=my_callbacks)"""
+                    callbacks=my_callbacks)
 
 print("Train History")
 result = model.evaluate(A_B_dataset_test)
@@ -115,4 +115,4 @@ print("Result Matrix")
 print(result_matrix)
 print("Result")
 print(result)
-#model.save(checkpoint_path_name + 'model')
+model.save(checkpoint_path_name + 'model')
