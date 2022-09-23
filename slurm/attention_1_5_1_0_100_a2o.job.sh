@@ -11,7 +11,7 @@ python3 -m experiment \
   --identity_loss_weight 0 \
   --generator resnet \
   --clf_ckp_name 2022-09-23--15.18 \
-  --discriminator patch_gan \
+  --discriminator patch-gan \
   --epoch_decay 150 \
   --start_attention_epoch 100 \
 
