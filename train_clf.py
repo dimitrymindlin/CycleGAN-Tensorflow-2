@@ -1,3 +1,4 @@
+from datetime import datetime
 
 import pylib as py
 import tensorflow as tf
@@ -6,27 +7,18 @@ import tensorflow.keras as keras
 import standard_datasets_loading
 from classifiers.domain_to_domain_model import Domain2DomainModel
 
+execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
 dataset = "apple2orange"
 img_size = 512
-TF_LOG_DIR = f"logs/{dataset}_clf_{img_size}"
-checkpoint_path_name = f"checkpoints/inception_{dataset}_{img_size}/"
+TF_LOG_DIR = f"logs/{dataset}_clf_{img_size}/{execution_id}"
+checkpoint_path_name = f"checkpoints/inception_{dataset}_{img_size}/{execution_id}/"
 
 py.arg('--dataset', default=dataset)
 py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=img_size+30)  # load image to this size
 py.arg('--crop_size', type=int, default=img_size)  # then crop to this size
 py.arg('--batch_size', type=int, default=32)
-py.arg('--epochs', type=int, default=20)
-py.arg('--epoch_decay', type=int, default=100)  # epoch to start decaying learning rate
-py.arg('--lr', type=float, default=0.0002)
-py.arg('--beta_1', type=float, default=0.5)
-py.arg('--adversarial_loss_mode', default='lsgan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
-py.arg('--gradient_penalty_mode', default='none', choices=['none', 'dragan', 'wgan-gp'])
-py.arg('--gradient_penalty_weight', type=float, default=10.0)
-py.arg('--cycle_loss_weight', type=float, default=10.0)
-py.arg('--counterfactual_loss_weight', type=float, default=5.0)
-py.arg('--identity_loss_weight', type=float, default=0.0)
-py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
+py.arg('--epochs', type=int, default=40)
 args = py.args()
 
 # ==============================================================================
@@ -98,7 +90,7 @@ model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.0001),
 
 # Model Training
 history = model.fit(A_B_dataset,
-                    epochs=40,
+                    epochs=args.epochs,
                     verbose=1,
                     class_weight=None,
                     validation_data=A_B_dataset_valid,
