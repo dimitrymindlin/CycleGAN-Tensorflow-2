@@ -56,7 +56,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
             args.crop_size,
             args.load_size,
             special_normalisation)
-    else:  # Load Horse2Zebra
+    else:  # Load Horse2Zebra / Apple2Orange
         A_B_dataset, A_B_dataset_test, len_dataset_train = standard_datasets_loading.load_tfds_dataset(args.dataset,
                                                                                                        args.crop_size)
 
@@ -108,6 +108,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
             args.counterfactual_loss_weight = 0
             gradcam_D_A = Gradcam(D_A, model_modifier=ReplaceToLinear(), clone=True)
             gradcam_D_B = Gradcam(D_B, model_modifier=ReplaceToLinear(), clone=True)
+            # ... Implement SPA-GAN completely?
     else:
         clf = None
 
