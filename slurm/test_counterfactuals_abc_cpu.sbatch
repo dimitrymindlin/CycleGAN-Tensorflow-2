@@ -8,4 +8,4 @@
 #SBATCH --ntasks=1
 #SBATCH --ntasks-per-core=1
 
-srun test_counterfactuals_abc.job.sh
+srun test_counterfactuals_abc_cpu.job.sh
