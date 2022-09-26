@@ -28,12 +28,13 @@ py.arg('--oracle_name', type=str, default="resnet50")  # Mura: inception H2Z: re
 py.arg('--oracle_ckp_name', type=str, default="2022-08-21--00.00")  # Mura: 2022-03-24--12.42 H2Z: 2022-08-21--00.00
 py.arg('--print_images', type=bool, default=True)
 py.arg('--crop_size', type=int, default=256)  # Mura: 512 H2Z: 256
-py.arg('--gan_model_ts', type=str, default="2022-05-26--15.51")
 py.arg('--counterfactuals_type', type=str, default="abc-gan", choices=["abc-gan", "ganterfactual", "none"])
 py.arg('--save_img', type=bool, default=True)
-py.arg('--tcv_os', type=bool, default=False)
-py.arg('--ssim_psnr', type=bool, default=False)
-py.arg('--kid', type=bool, default=False)
+py.arg('--save_only_translated_img', type=bool, default=False)
+py.arg('--tcv_os', type=bool, default=True)
+py.arg('--ssim_psnr', type=bool, default=True)
+py.arg('--kid', type=bool, default=True)
+
 args = py.args()
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
 if len(tf.config.list_physical_devices('GPU')) == 0:
@@ -41,7 +42,7 @@ if len(tf.config.list_physical_devices('GPU')) == 0:
 else:
     TFDS_PATH = "../tensorflow_datasets"
 
-#TFDS_PATH = "../tensorflow_datasets"
+# TFDS_PATH = "../tensorflow_datasets"
 
 if args.dataset == "mura":
     args.crop_size = 512
@@ -100,9 +101,6 @@ clf = tf.keras.models.load_model(
 
 gradcam = GradcamPlusPlus(clf, clone=True)
 
-save_dir = py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{args.gan_model_ts}", 'generated_imgs')
-py.mkdir(save_dir)
-
 """done_h2z = ["2022-05-31--14.02", "2022-05-31--13.04", "2022-06-01--13.06", "2022-06-02--12.45"]
 done_ep_h2z = ["180", "180", "180", "180"]
 checkpoint_ts_list = ["2022-05-31--13.04", "2022-05-31--14.02", "2022-06-01--13.06", "2022-06-02--12.45",
@@ -121,6 +119,7 @@ checkpoint_ep_list_ganterfactual = ["ep_16", "ep_14", "ep_17"]
 
 checkpoint_ts_list_cyclegan = ["2022-08-29--12.05"]
 checkpoint_ep_list_cyclegan = ["14"]
+
 
 def load_generators_and_ckp_lists(counterfactuals_type):
     if counterfactuals_type == "abc-gan":
@@ -155,7 +154,7 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
         # Get counterfactuals (translated images)
         y_pred_translated, len_dataset, translated_images = translate_images_clf(
             source_dataset, clf, generator, gradcam, class_label, True, args.attention_type,
-            training=False, save_img=save_img, save_only_translated_img=True)
+            training=False, save_img=save_img, save_only_translated_img=args.save_only_translated_img)
 
         if args.tcv_os:
             calculate_tcv(y_pred_translated, len_dataset, translation_name)
