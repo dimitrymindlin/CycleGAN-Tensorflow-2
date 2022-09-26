@@ -110,8 +110,12 @@ checkpoint_ts_list = ["2022-05-31--13.04", "2022-05-31--14.02", "2022-06-01--13.
 checkpoint_ts_list_h2z = ["2022-08-13--15.48"]  # "2022-08-17--03.54"
 checkpoint_ep_list_h2z = ["195"]  # 180"""
 
-checkpoint_ts_list_abc = ["2022-09-23--16.36"]
-checkpoint_ep_list_abc = ["180", "195"]
+if args.dataset == "horse2zebra":
+    checkpoint_ts_list_abc = ["2022-09-23--16.36", "2022-09-23--16.36"]
+    checkpoint_ep_list_abc = ["180", "195"]
+else:
+    checkpoint_ts_list_abc = ["2022-09-23--16.25", "2022-09-23--16.25"]
+    checkpoint_ep_list_abc = ["180", "195"]
 
 checkpoint_ts_list_ganterfactual = ["GANterfactual_2022-08-22--09.39", "GANterfactual_2022-08-31--08.19",
                                     "GANterfactual_2022-08-31--08.19"]
