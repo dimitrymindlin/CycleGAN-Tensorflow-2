@@ -23,7 +23,7 @@ py.arg('--datasets_dir', default='datasets')
 py.arg('--attention_type', type=str, default="attention-gan-original",
        choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
 py.arg('--clf_name', type=str, default="inception")
-py.arg('--clf_ckp_name', type=str, default="2022-06-04--00.00")  # Mura: 2022-06-04--00.05, H2Z: 2022-06-04--00.00
+py.arg('--clf_ckp_name', type=str, default="2022-06-04--00.00")  # Mura: 2022-06-04--00.05, H2Z: 2022-06-04--00.00 # A2O: 2022-09-23--15.18
 py.arg('--oracle_name', type=str, default="resnet50")  # Mura: inception H2Z: resnet50
 py.arg('--oracle_ckp_name', type=str, default="2022-08-21--00.00")  # Mura: 2022-03-24--12.42 H2Z: 2022-08-21--00.00
 py.arg('--print_images', type=bool, default=True)
