@@ -9,7 +9,7 @@ import tensorflow as tf
 import tf2lib as tl
 import module
 from evaluation.kid import calc_KID_for_model_target_source, calc_KID_for_model
-from evaluation.load_test_data import load_h2z_test_data
+from evaluation.load_test_data import load_tfds_test_data
 from evaluation.tcv_os import calculate_ssim_psnr, calculate_tcv, translate_images_clf
 from tensorflow_addons.layers import InstanceNormalization
 
@@ -29,7 +29,7 @@ py.arg('--oracle_ckp_name', type=str, default="2022-08-21--00.00")  # Mura: 2022
 py.arg('--print_images', type=bool, default=True)
 py.arg('--crop_size', type=int, default=256)  # Mura: 512 H2Z: 256
 py.arg('--gan_model_ts', type=str, default="2022-05-26--15.51")
-py.arg('--counterfactuals', type=str, default="abc-gan", choices=["abc-gan", "ganterfactual", "none"])
+py.arg('--counterfactuals_type', type=str, default="abc-gan", choices=["abc-gan", "ganterfactual", "none"])
 py.arg('--save_img', type=bool, default=True)
 py.arg('--tcv_os', type=bool, default=False)
 py.arg('--ssim_psnr', type=bool, default=False)
@@ -51,7 +51,7 @@ if args.dataset == "mura":
 
 
 def get_abc_gan_generators(name, ep):
-    if name == "2022-05-23--18.32":  # normal gan without attention
+    if name == "2022-05-23--18.32":  # normal MURA gan without attention
         tl.Checkpoint(dict(generator_g=G_A2B, generator_f=G_B2A),
                       py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}")).restore(
             save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}/ckpt-{ep}')
@@ -83,8 +83,8 @@ if args.dataset == "mura":
                                                                                                      args.crop_size,
                                                                                                      special_normalisation=None)
 
-else:  # Horse2Zebra
-    A_dataset, A_dataset_test, B_dataset, B_dataset_test = load_h2z_test_data()
+else:  # Horse2Zebra / Apple2Orange
+    A_dataset, A_dataset_test, B_dataset, B_dataset_test = load_tfds_test_data(args.dataset)
 
 # ==============================================================================
 # =                                    models                                  =
@@ -94,6 +94,7 @@ G_B2A = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
 
 clf = tf.keras.models.load_model(
     f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model", compile=False)
+
 """oracle = tf.keras.models.load_model(
     f"{ROOT_DIR}/checkpoints/{args.oracle_name}_{args.dataset}/{args.oracle_ckp_name}/model", compile=False)"""
 
@@ -111,11 +112,8 @@ checkpoint_ts_list = ["2022-05-31--13.04", "2022-05-31--14.02", "2022-06-01--13.
 checkpoint_ts_list_h2z = ["2022-08-13--15.48"]  # "2022-08-17--03.54"
 checkpoint_ep_list_h2z = ["195"]  # 180"""
 
-# Before paper Submission
-checkpoint_ts_list_mura = ["2022-08-27--18.00",
-                           "2022-08-30--14.37", "2022-08-30--14.37",
-                           "2022-08-30--14.47", "2022-08-30--14.47"]
-checkpoint_ep_list_mura = ["16", "16", "18", "16", "18"]
+checkpoint_ts_list_abc = ["2022-09-23--16.36"]
+checkpoint_ep_list_abc = ["180", "195"]
 
 checkpoint_ts_list_ganterfactual = ["GANterfactual_2022-08-22--09.39", "GANterfactual_2022-08-31--08.19",
                                     "GANterfactual_2022-08-31--08.19"]
@@ -124,14 +122,11 @@ checkpoint_ep_list_ganterfactual = ["ep_16", "ep_14", "ep_17"]
 checkpoint_ts_list_cyclegan = ["2022-08-29--12.05"]
 checkpoint_ep_list_cyclegan = ["14"]
 
-checkpoint_ts_list_mura = ["2022-08-27--18.00", "2022-08-19--08.32"]
-checkpoint_ep_list_mura = ["16", "20"]
-# TODO: Generalise for H2Z, Currently only Mura
 def load_generators_and_ckp_lists(counterfactuals_type):
     if counterfactuals_type == "abc-gan":
         load_generators = get_abc_gan_generators
-        checkpoint_ts_list = checkpoint_ts_list_mura
-        checkpoint_ep_list = checkpoint_ep_list_mura
+        checkpoint_ts_list = checkpoint_ts_list_abc
+        checkpoint_ep_list = checkpoint_ep_list_abc
     elif counterfactuals_type == "ganterfactual":
         load_generators = get_ganterfactual_generators
         checkpoint_ts_list = checkpoint_ts_list_ganterfactual
