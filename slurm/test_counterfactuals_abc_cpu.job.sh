@@ -10,5 +10,5 @@ python3 -m test_counterfactuals \
 --ssim_psnr True \
 --kid True \
 --save_img True \
---clf_ckp_name 2022-09-23--15.18
+--clf_ckp_name 2022-09-23--15.18 \
 
