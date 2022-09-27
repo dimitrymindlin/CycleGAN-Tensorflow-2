@@ -12,6 +12,6 @@ python3 -m experiment \
   --generator resnet \
   --clf_ckp_name 2022-06-04--00.00 \
   --discriminator patch-gan \
-  --epoch_decay 150 \
-  --start_attention_epoch 100 \
+  --epoch_decay 100 \
+  --start_attention_epoch 50 \
 
