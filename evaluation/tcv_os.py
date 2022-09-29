@@ -92,7 +92,7 @@ def translate_images_clf(dataset, clf, generator, gradcam, class_label, return_i
                                                      img_holder.background, training)
         else:
             translated_img = no_attention_single(img_holder.img, generator, None, training)
-        # Predict images with CLF and Oracle
+        # Predict images with CLF
         for img_i, translated_i in zip(img_batch, translated_img):
             if return_images:
                 translated_images.append(tf.squeeze(translated_i))
@@ -115,8 +115,9 @@ def translate_images_clf(dataset, clf, generator, gradcam, class_label, return_i
                 fig, axs = plt.subplots(r, c, figsize=(30, 20))
                 cnt = 0
 
+                cmap = 'gray' if dataset == "mura" else 'viridis'
                 for j in range(c):
-                    axs[j].imshow(gen_imgs[cnt][:, :, 0], cmap='gray')
+                    axs[j].imshow(gen_imgs[cnt][:, :, 0], cmap=cmap)
                     if j == 2:
                         axs[j].set_title(
                             f'{titles[j]} (T: {correct_classification[cnt]} | P: {classification[cnt]})')
