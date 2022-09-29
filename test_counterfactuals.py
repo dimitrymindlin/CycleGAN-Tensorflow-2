@@ -23,7 +23,8 @@ py.arg('--datasets_dir', default='datasets')
 py.arg('--attention_type', type=str, default="attention-gan-original",
        choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
 py.arg('--clf_name', type=str, default="inception")
-py.arg('--clf_ckp_name', type=str, default="2022-06-04--00.00")  # Mura: 2022-06-04--00.05, H2Z: 2022-06-04--00.00 # A2O: 2022-09-23--15.18
+py.arg('--clf_ckp_name', type=str,
+       default="2022-06-04--00.00")  # Mura: 2022-06-04--00.05, H2Z: 2022-06-04--00.00 # A2O: 2022-09-23--15.18
 py.arg('--oracle_name', type=str, default="resnet50")  # Mura: inception H2Z: resnet50
 py.arg('--oracle_ckp_name', type=str, default="2022-08-21--00.00")  # Mura: 2022-03-24--12.42 H2Z: 2022-08-21--00.00
 py.arg('--print_images', type=bool, default=True)
@@ -111,10 +112,10 @@ checkpoint_ts_list_h2z = ["2022-08-13--15.48"]  # "2022-08-17--03.54"
 checkpoint_ep_list_h2z = ["195"]  # 180"""
 
 if args.dataset == "horse2zebra":
-    checkpoint_ts_list_abc = ["2022-09-23--16.36", "2022-09-23--16.36"]
+    checkpoint_ts_list_abc = ["2022-09-27--10.26", "2022-09-27--10.26"]
     checkpoint_ep_list_abc = ["180", "195"]
-else:
-    checkpoint_ts_list_abc = ["2022-09-23--16.25", "2022-09-23--16.25"]
+else:  # a2o
+    checkpoint_ts_list_abc = ["2022-09-27--10.17", "2022-09-27--10.17"]
     checkpoint_ep_list_abc = ["180", "195"]
 
 checkpoint_ts_list_ganterfactual = ["GANterfactual_2022-08-22--09.39", "GANterfactual_2022-08-31--08.19",
