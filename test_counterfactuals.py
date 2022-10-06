@@ -112,10 +112,10 @@ checkpoint_ts_list_h2z = ["2022-08-13--15.48"]  # "2022-08-17--03.54"
 checkpoint_ep_list_h2z = ["195"]  # 180"""
 
 if args.dataset == "horse2zebra":
-    checkpoint_ts_list_abc = ["2022-09-29--16.23", "2022-09-29--16.23"]
+    checkpoint_ts_list_abc = ["2022-10-04--11.12", "2022-10-04--11.12"]
     checkpoint_ep_list_abc = ["180", "195"]
 else:  # a2o
-    checkpoint_ts_list_abc = ["2022-09-29--16.20", "2022-09-29--16.20"]
+    checkpoint_ts_list_abc = ["2022-10-04--11.09", "2022-10-04--11.09"]
     checkpoint_ep_list_abc = ["180", "195"]
 
 checkpoint_ts_list_ganterfactual = ["GANterfactual_2022-08-22--09.39", "GANterfactual_2022-08-31--08.19",
@@ -124,7 +124,6 @@ checkpoint_ep_list_ganterfactual = ["ep_16", "ep_14", "ep_17"]
 
 checkpoint_ts_list_cyclegan = ["2022-08-29--12.05"]
 checkpoint_ep_list_cyclegan = ["14"]
-
 
 def load_generators_and_ckp_lists(counterfactuals_type):
     if counterfactuals_type == "abc-gan":
