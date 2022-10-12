@@ -37,9 +37,6 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     except AttributeError:
         pass  # Spa-GAN not implemented yet"""
 
-    # save settings
-    py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
-
     # ==============================================================================
     # =                                    data                                    =
     # ==============================================================================
