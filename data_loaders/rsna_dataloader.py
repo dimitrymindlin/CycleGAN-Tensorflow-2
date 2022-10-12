@@ -92,12 +92,12 @@ def get_rsna_ds_split_class(tfds_path, batch_size, crop_size, load_size, special
     load_size: The image will be loaded with this size.
     special_normalisation: Can be any normalisation from keras preprocessing (e.g. inception_preprocessing)
     """
-    A_train = glob.glob(tfds_path + "/rsna_data/train/normal/normal/*")
-    B_train = glob.glob(tfds_path + "/rsna_data/train/abnormal/abnormal/*")
-    A_valid = glob.glob(tfds_path + "/rsna_data/validation/normal/normal/*")
-    B_valid = glob.glob(tfds_path + "/rsna_data/validation/abnormal/abnormal/*")
-    A_test = glob.glob(tfds_path + "/rsna_data/test/normal/normal/*")
-    B_test = glob.glob(tfds_path + "/rsna_data/test/abnormal/abnormal/*")
+    A_train = glob.glob(tfds_path + "/rsna_data/train/normal/*")
+    B_train = glob.glob(tfds_path + "/rsna_data/train/abnormal/*")
+    A_valid = glob.glob(tfds_path + "/rsna_data/validation/normal/*")
+    B_valid = glob.glob(tfds_path + "/rsna_data/validation/abnormal/*")
+    A_test = glob.glob(tfds_path + "/rsna_data/test/normal/*")
+    B_test = glob.glob(tfds_path + "/rsna_data/test/abnormal/*")
 
 
     A_B_dataset, len_dataset_train = make_zip_dataset(A_train, B_train, batch_size, load_size,
