@@ -15,6 +15,7 @@ import tqdm
 import module
 from attention_strategies.attention_gan import attention_gan_step, attention_gan_discriminator_step
 from attention_strategies.no_attention import no_attention_step
+from data_loaders.rsna_dataloader import get_rsna_ds_split_class
 from imlib import generate_image
 from imlib.image_holder import get_img_holders
 from tf2lib.data.item_pool import ItemPool
@@ -23,7 +24,7 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Ro
 
 
 def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
-    try:
+    """try:
         # Correct necessary settings for SPA-GAN
         if args.feature_map_loss_weight > 0:
             args.generator = "resnet-attention"
@@ -34,7 +35,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
             gradcam_D_A = None
             gradcam_D_B = None
     except AttributeError:
-        pass  # Spa-GAN not implemented yet
+        pass  # Spa-GAN not implemented yet"""
 
     # save settings
     py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
@@ -56,6 +57,12 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
             args.crop_size,
             args.load_size,
             special_normalisation)
+    elif args.dataset == "rsna":
+        A_B_dataset, A_B_dataset_valid, A_B_dataset_test, len_dataset_train = get_rsna_ds_split_class(TFDS_PATH,
+                                                                                                      args.batch_size,
+                                                                                                      args.crop_size,
+                                                                                                      args.load_size,
+                                                                                                      special_normalisation)
     else:  # Load Horse2Zebra / Apple2Orange
         A_B_dataset, A_B_dataset_test, len_dataset_train = standard_datasets_loading.load_tfds_dataset(args.dataset,
                                                                                                        args.crop_size)

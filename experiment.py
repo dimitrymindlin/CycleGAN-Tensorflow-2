@@ -5,7 +5,7 @@ import tensorflow as tf
 from train import run_training
 
 ### Define Experiment Settings
-py.arg('--dataset', default='mura', choices=['horse2zebra', 'mura', 'apple2orange'])
+py.arg('--dataset', default='rsna', choices=['horse2zebra', 'mura', 'apple2orange', "rsna"])
 py.arg('--body_parts', default=["XR_WRIST"])  # Only used in Mura dataset. Body part of x-ray images
 py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=286)  # load image to this size
@@ -44,6 +44,14 @@ if args.dataset == "mura":
     args.sample_interval = 2
     args.clf_ckp_name = "2022-06-04--00.05"
 
+if args.dataset == "rsna":
+    args.load_size = 512
+    args.crop_size = 512
+    args.epochs = 19
+    args.epoch_decay = 16
+    args.sample_interval = 2
+    args.clf_ckp_name = "2022-10-12--10.37"
+
 # Create new output dir if new experiment
 if not args.load_checkpoint:
     execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
@@ -73,6 +81,7 @@ if len(tf.config.list_physical_devices('GPU')) == 0:
     TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
 else:
     TFDS_PATH = "../tensorflow_datasets"
+    TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
 
 # save settings
 py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
