@@ -81,7 +81,7 @@ if len(tf.config.list_physical_devices('GPU')) == 0:
     TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
 else:
     TFDS_PATH = "../tensorflow_datasets"
-    TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
+    #TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
 
 # save settings
 py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
