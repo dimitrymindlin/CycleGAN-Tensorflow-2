@@ -50,7 +50,8 @@ if args.dataset == "rsna":
     args.epochs = 19
     args.epoch_decay = 16
     args.sample_interval = 2
-    args.clf_ckp_name = "2022-10-12--10.37"
+    # args.clf_ckp_name = "2022-10-12--10.37" # Inception
+    args.clf_ckp_name = "2022-10-13--13.03"  # alexnet
 
 # Create new output dir if new experiment
 if not args.load_checkpoint:
@@ -80,7 +81,7 @@ if len(tf.config.list_physical_devices('GPU')) == 0:
     TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
 else:
     TFDS_PATH = "../tensorflow_datasets"
-    #TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
+    # TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
 
 # save settings
 py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
