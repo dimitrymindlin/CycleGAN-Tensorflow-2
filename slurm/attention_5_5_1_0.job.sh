@@ -11,4 +11,5 @@ python3 -m experiment \
   --identity_loss_weight 0 \
   --generator resnet \
   --start_attention_epoch 0 \
+  --load_checkpoint 2022-10-12--16.23 \
 
