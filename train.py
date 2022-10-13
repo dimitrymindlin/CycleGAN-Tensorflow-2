@@ -342,8 +342,8 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                            name='learning rate')
 
                 # sample
-                if ep == 0 or ep % 5 == 0:
-                    if G_optimizer.iterations.numpy() % 400 == 0 or G_optimizer.iterations.numpy() == 1:
+                if ep == 0 or ep % args.sample_interval == 0:
+                    if G_optimizer.iterations.numpy() % 1000 == 0 or G_optimizer.iterations.numpy() == 1:
                         try:
                             A, B = next(test_iter)
                         except StopIteration:  # When all elements finished
