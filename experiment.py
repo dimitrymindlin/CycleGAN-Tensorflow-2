@@ -69,7 +69,6 @@ else:
     print(f"Setting {args.load_checkpoint} as checkpoint.")
     execution_id = args.load_checkpoint
     output_dir = py.join(f'output_{args.dataset}/{execution_id}')
-py.mkdir(output_dir)
 
 # Make sure settings fit
 if args.discriminator == "patch_gan_attention":
