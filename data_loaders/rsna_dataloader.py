@@ -1,10 +1,9 @@
 from __future__ import print_function, division
 
-import os
 import tensorflow as tf
-import tensorflow.keras as keras
 import tf2lib as tl
 import glob
+
 
 def normalize_img(img, special_normalisation):
     if not special_normalisation or special_normalisation == tf.keras.applications.inception_v3.preprocess_input:
@@ -30,6 +29,7 @@ def make_dataset(img_paths, batch_size, load_size, crop_size, training, drop_rem
             img = tf.image.resize_with_pad(img, load_size, load_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
             img = tf.image.random_crop(img, [crop_size, crop_size, tf.shape(img)[-1]])
             img = normalize_img(img, special_normalisation)
+            img = tf.image.rgb_to_grayscale(img)
             if label is not None:
                 return img, label
             return img
@@ -40,6 +40,7 @@ def make_dataset(img_paths, batch_size, load_size, crop_size, training, drop_rem
             img = tf.image.resize_with_pad(img, crop_size, crop_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
             img = tf.image.random_crop(img, [crop_size, crop_size, tf.shape(img)[-1]])
             img = normalize_img(img, special_normalisation)
+            img = tf.image.rgb_to_grayscale(img)
             if label is not None:
                 return img, label
             return img
@@ -99,7 +100,6 @@ def get_rsna_ds_split_class(tfds_path, batch_size, crop_size, load_size, special
     A_test = glob.glob(tfds_path + "/rsna_data/test/normal/normal/*")
     B_test = glob.glob(tfds_path + "/rsna_data/test/abnormal/abnormal/*")
 
-
     A_B_dataset, len_dataset_train = make_zip_dataset(A_train, B_train, batch_size, load_size,
                                                       crop_size, training=True, repeat=False,
                                                       special_normalisation=special_normalisation)
@@ -111,4 +111,5 @@ def get_rsna_ds_split_class(tfds_path, batch_size, crop_size, load_size, special
     A_B_dataset_test, _ = make_zip_dataset(A_test, B_test, batch_size, load_size,
                                            crop_size, training=False, repeat=True,
                                            special_normalisation=special_normalisation)
+
     return A_B_dataset, A_B_dataset_valid, A_B_dataset_test, len_dataset_train
