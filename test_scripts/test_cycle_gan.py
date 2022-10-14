@@ -8,7 +8,7 @@ import tensorflow as tf
 import tf2lib as tl
 import module
 from evaluation.kid import calc_KID_for_model_target_source
-from evaluation.load_test_data import load_h2z_test_data
+from evaluation.load_test_data import load_tfds_test_data
 #from evaluation.tcv_os import calculate_tcv_os
 
 # ==============================================================================
@@ -18,17 +18,19 @@ from evaluation.load_test_data import load_h2z_test_data
 gan_model_ts = "2022-05-26--15.51"
 py.arg('--print_images', type=bool, default=False)
 py.arg('--crop_size', type=int, default=256)
+py.arg('--img_channels', type=int, default=256)
 py.arg('--gan_model_ts', type=str, default=None)
 args = py.args()
+args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) + "/.."  # This is your Project Root
 
 # ==============================================================================
 # =                                    test                                    =
 # ==============================================================================
-train_horses, test_horses, train_zebras, test_zebras = load_h2z_test_data()
+train_horses, test_horses, train_zebras, test_zebras = load_tfds_test_data()
 # model
-G_A2B = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
-G_B2A = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
+G_A2B = module.ResnetGenerator(input_shape=args.img_shape)
+G_B2A = module.ResnetGenerator(input_shape=args.img_shape)
 
 tl.Checkpoint(dict(generator_g=G_A2B, generator_f=G_B2A),
               py.join(f"{ROOT_DIR}/checkpoints/gans/horse2zebra/{gan_model_ts}", '../checkpoints')).restore()
@@ -117,11 +119,11 @@ with open('normal_run.txt', 'w') as f:
         save_dir = py.join(f"{ROOT_DIR}/checkpoints/gans/horse2zebra/{name}", 'generated_imgs', "A2B")
         py.mkdir(save_dir)
         _, _, translated_images_A2B = calculate_tcv_os(test_horses, "A2B")
-        calc_KID_for_model_target_source(translated_images_A2B, "A2B", args.crop_size, train_horses, train_zebras)
+        calc_KID_for_model_target_source(translated_images_A2B, "A2B", args.img_shape, train_horses, train_zebras)
 
         """print("-> B2A")
         save_dir = py.join(f"checkpoints/gans/horse2zebra/{name}", 'generated_imgs', "B2A")
         py.mkdir(save_dir)
         _, _, translated_images_B2A = calculate_tcv_os(test_zebras, "B2A")
-        calc_KID_for_model(translated_images_B2A, "B2A", args.crop_size, train_horses, train_zebras)
+        calc_KID_for_model(translated_images_B2A, "B2A", args.img_shape, train_horses, train_zebras)
         print("_______________________")"""

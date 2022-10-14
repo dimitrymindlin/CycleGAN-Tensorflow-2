@@ -40,6 +40,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     # ==============================================================================
     # =                                    data                                    =
     # ==============================================================================
+    args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
     A2B_pool = ItemPool(args.pool_size)
     B2A_pool = ItemPool(args.pool_size)
 
@@ -69,14 +70,14 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     # ==============================================================================
 
     if args.generator == "resnet-attention":
-        G_A2B = module.ResnetAttentionGenerator(input_shape=(args.crop_size, args.crop_size, 3))
-        G_B2A = module.ResnetAttentionGenerator(input_shape=(args.crop_size, args.crop_size, 3))
+        G_A2B = module.ResnetAttentionGenerator(input_shape=args.img_shape)
+        G_B2A = module.ResnetAttentionGenerator(input_shape=args.img_shape)
     else:
-        G_A2B = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
-        G_B2A = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
+        G_A2B = module.ResnetGenerator(input_shape=args.img_shape)
+        G_B2A = module.ResnetGenerator(input_shape=args.img_shape)
 
-    D_A = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3), norm=args.disc_norm)
-    D_B = module.ConvDiscriminator(input_shape=(args.crop_size, args.crop_size, 3), norm=args.disc_norm)
+    D_A = module.ConvDiscriminator(input_shape=args.img_shape, norm=args.disc_norm)
+    D_B = module.ConvDiscriminator(input_shape=args.img_shape, norm=args.disc_norm)
 
     # Losses
     d_loss_fn, g_loss_fn = gan.get_adversarial_losses_fn(args.adversarial_loss_mode)
@@ -377,9 +378,9 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
 
             if (ep > (args.epochs / 2) and ep % args.sample_interval == 0) or ep == (args.epochs - 1):
                 checkpoint.save(ep)
-                """kid_A2B_mean, kid_A2B_std = calc_KID_for_model(A2B_pool.items, "A2B", args.crop_size, train_horses,
+                """kid_A2B_mean, kid_A2B_std = calc_KID_for_model(A2B_pool.items, "A2B", args.img_shape, train_horses,
                                                                train_zebras)
-                kid_B2A_mean, kid_B2A_std = calc_KID_for_model(B2A_pool.items, "B2A", args.crop_size, train_horses,
+                kid_B2A_mean, kid_B2A_std = calc_KID_for_model(B2A_pool.items, "B2A", args.img_shape, train_horses,
                                                                train_zebras)
                 tl.summary({'kid_A2B_mean': tf.Variable(kid_A2B_mean)}, step=kid_count, name='kid_A2B_mean')
                 tl.summary({'kid_A2B_std': tf.Variable(kid_A2B_std)}, step=kid_count, name='kid_A2B_std')

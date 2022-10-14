@@ -35,8 +35,8 @@ py.arg('--save_only_translated_img', type=bool, default=False)
 py.arg('--tcv_os', type=bool, default=True)
 py.arg('--ssim_psnr', type=bool, default=True)
 py.arg('--kid', type=bool, default=True)
-
 args = py.args()
+
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
 if len(tf.config.list_physical_devices('GPU')) == 0:
     TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
@@ -50,6 +50,8 @@ if args.dataset == "mura":
     args.oracle_name = "densenet"
     args.oracle_ckp_name = "2022-08-15--17.42"
     args.clf_ckp_name = "2022-06-04--00.05"
+
+args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
 
 
 def get_abc_gan_generators(name, ep):
@@ -91,8 +93,8 @@ else:  # Horse2Zebra / Apple2Orange
 # ==============================================================================
 # =                                    models                                  =
 # ==============================================================================
-G_A2B = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
-G_B2A = module.ResnetGenerator(input_shape=(args.crop_size, args.crop_size, 3))
+G_A2B = module.ResnetGenerator(input_shape=args.img_shape)
+G_B2A = module.ResnetGenerator(input_shape=args.img_shape)
 
 clf = tf.keras.models.load_model(
     f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model", compile=False)
@@ -124,6 +126,7 @@ checkpoint_ep_list_ganterfactual = ["ep_16", "ep_14", "ep_17"]
 
 checkpoint_ts_list_cyclegan = ["2022-08-29--12.05"]
 checkpoint_ep_list_cyclegan = ["14"]
+
 
 def load_generators_and_ckp_lists(counterfactuals_type):
     if counterfactuals_type == "abc-gan":
@@ -168,9 +171,9 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
 
         if args.kid:
             if args.dataset == "mura":
-                calc_KID_for_model(translated_images, args.crop_size, target_dataset)
+                calc_KID_for_model(translated_images, args.img_shape, target_dataset)
             else:
-                calc_KID_for_model_target_source(translated_images, translation_name, args.crop_size, A_dataset,
+                calc_KID_for_model_target_source(translated_images, translation_name, args.img_shape, A_dataset,
                                                  B_dataset)
     print()
 

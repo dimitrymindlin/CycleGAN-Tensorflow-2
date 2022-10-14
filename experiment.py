@@ -10,6 +10,8 @@ py.arg('--body_parts', default=["XR_WRIST"])  # Only used in Mura dataset. Body 
 py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=286)  # load image to this size
 py.arg('--crop_size', type=int, default=256)  # then crop to this size
+py.arg('--img_channels', type=int, default=3)
+py.arg('--img_shape', type=tuple, default=(256, 256, 3))
 py.arg('--batch_size', type=int, default=1)
 py.arg('--epochs', type=int, default=200)
 py.arg('--epoch_decay', type=int, default=100)  # epoch to start decaying learning rate
@@ -52,6 +54,8 @@ if args.dataset == "rsna":
     args.sample_interval = 2
     # args.clf_ckp_name = "2022-10-12--10.37" # Inception
     args.clf_ckp_name = "2022-10-13--13.03"  # alexnet
+    args.clf_name = "alexnet"
+    args.img_channels = 1
 
 # Create new output dir if new experiment
 if not args.load_checkpoint:

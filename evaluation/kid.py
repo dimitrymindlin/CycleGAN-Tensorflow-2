@@ -8,7 +8,7 @@ from imlib import plot_any_img
 
 
 class KID(keras.metrics.Metric):
-    def __init__(self, image_size, name="kid", **kwargs):
+    def __init__(self, img_shape, name="kid", **kwargs):
         super().__init__(name=name, **kwargs)
 
         # KID is estimated per batch and is averaged across batches
@@ -19,10 +19,10 @@ class KID(keras.metrics.Metric):
         # preprocessing as during pretraining
         self.encoder = keras.Sequential(
             [
-                layers.InputLayer(input_shape=(image_size, image_size, 3)),
+                layers.InputLayer(input_shape=img_shape),
                 keras.applications.InceptionV3(
                     include_top=False,
-                    input_shape=(image_size, image_size, 3),
+                    input_shape=img_shape,
                     weights="imagenet",
                 ),
                 layers.GlobalAveragePooling2D(),
@@ -67,11 +67,11 @@ class KID(keras.metrics.Metric):
         self.kid_tracker.reset_state()
 
 
-def calc_KID_for_model_target_source(translated_images, translation_name, crop_size, A_dataset, B_dataset=None):
+def calc_KID_for_model_target_source(translated_images, translation_name, img_shape, A_dataset, B_dataset=None):
     # KID calculation with target and source domain. Used for object transformation since the background should stay
     # in the source domain and the foreground in the target domain.
 
-    kid = KID(image_size=crop_size)
+    kid = KID(img_shape=img_shape)
     kid_value_list = []
     images_length = len(translated_images)
     #
@@ -113,7 +113,7 @@ def calc_KID_for_model_target_source(translated_images, translation_name, crop_s
 
 def calc_KID_for_model(translated_images, crop_size, dataset):
     # Standard KID calculation of translated images with target domain.
-    #max_samples = 100
+    # max_samples = 100
     kid = KID(image_size=crop_size)
     kid_value_list = []
     images_length = len(translated_images)
