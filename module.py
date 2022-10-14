@@ -25,7 +25,7 @@ def ResnetGenerator(input_shape=(256, 256, 3),
                     norm='instance_norm'):
     Norm = _get_norm_layer(norm)
 
-    output_channels = tf.shape(input_shape)[-1]
+    output_channels = input_shape[-1]
 
     def _residual_block(x):
         dim = x.shape[-1]
@@ -97,7 +97,7 @@ def ResnetAttentionGenerator(input_shape=(256, 256, 3),
     -------
 
     """
-    output_channels = tf.shape(input_shape)[-1]
+    output_channels = input_shape[-1][-1]
     Norm = _get_norm_layer(norm)
 
     def _residual_block(x):
