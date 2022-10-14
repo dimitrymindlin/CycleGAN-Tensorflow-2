@@ -82,8 +82,10 @@ def im2cv(images):
 
 
 def scale_between_zero_one(img):
-    return tf.math.add(tf.math.multiply(0.5, img), 0.5)
+    shifted = tf.math.add(tf.math.multiply(0.5, img), 0.5)
+    return tf.clip_by_value(shifted, 0, 1)
 
 
 def scale_between_minus_one_one(img):
-    return tf.math.subtract(tf.math.multiply(2.0, img), 1)
+    shifted = tf.math.subtract(tf.math.multiply(2.0, img), 1)
+    return tf.clip_by_value(shifted, -1, 1)
