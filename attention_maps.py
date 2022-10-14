@@ -39,9 +39,10 @@ def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity
         print(f"Found image without attention...")
         cam = tf.ones(shape=cam.shape)
     cam = tf.math.divide(cam, tf.reduce_max(cam))
-    # Turn to batched 3-channel array
+    # Turn to batched channeled array
     cam = tf.expand_dims(cam, axis=-1)
-    cam = tf.image.grayscale_to_rgb(tf.convert_to_tensor(cam))
+    if img.get_shape()[-1] == 3:
+        cam = tf.image.grayscale_to_rgb(tf.convert_to_tensor(cam))
     if img.get_shape()[-2] == 256 and attention_source != "discriminator":
         cam = tf.image.resize(cam, [256, 256], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
