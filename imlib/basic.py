@@ -134,7 +134,10 @@ def save_images_with_attention(A_holder, A2B, B_holder, B2A, clf, dataset,
             print(np.min(A_holder.attention), np.max(A_holder.attention))
             print(np.min(A_holder.transformed_part), np.max(A_holder.transformed_part))
             print(np.min(A2B), np.max(A2B))
-            print(classification)
+            print(np.min(B_holder.img), np.max(B_holder.img))
+            print(np.min(B_holder.attention), np.max(B_holder.attention))
+            print(np.min(B_holder.transformed_part), np.max(B_holder.transformed_part))
+            print(np.min(B2A), np.max(B2A))
             print(e)
             imwrite(immerge(
                 np.concatenate([A_holder.img, A_holder.attention,
