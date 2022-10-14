@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+from rsna import get_rsna_ds_split_class
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 from tf_keras_vis.gradcam import Gradcam
 from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
@@ -15,7 +16,6 @@ import tqdm
 import module
 from attention_strategies.attention_gan import attention_gan_step, attention_gan_discriminator_step
 from attention_strategies.no_attention import no_attention_step
-from data_loaders.rsna_dataloader import get_rsna_ds_split_class
 from imlib import generate_image
 from imlib.image_holder import get_img_holders
 from tf2lib.data.item_pool import ItemPool
