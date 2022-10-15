@@ -1,8 +1,7 @@
 ### Attention Gan Original
 # From "Attention-GAN for Object Transfiguration in Wild Images"
-from imlib import scale_between_minus_one_one
 from imlib.image_holder import add_images, multiply_images
-
+import tensorflow as tf
 
 def attention_gan_image_fusion(transformed, attention, background):
     # Combine new transformed image with attention -> Crop important part from transformed img
@@ -13,6 +12,7 @@ def attention_gan_image_fusion(transformed, attention, background):
 
 
 def attention_gan_single(img, G, G_cycle, img_attention, img_background, training):
+    print(tf.shape(img))
     forward_mapping = G(img, training)
     transformed = attention_gan_image_fusion(forward_mapping, img_attention, img_background)
     if training:
