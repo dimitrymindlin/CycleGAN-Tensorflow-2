@@ -166,7 +166,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
         G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
         return A2B, B2A, G_loss_dict
 
-    @tf.function
+    #@tf.function
     def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, B_background):
         training = True
         with tf.GradientTape() as t:
