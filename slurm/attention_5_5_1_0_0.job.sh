@@ -12,5 +12,5 @@ python3 -m experiment \
   --generator resnet \
   --clf_ckp_name 2022-06-04--00.05 \
   --start_attention_epoch 10 \
-  --clf_name = inception
+  --clf_name inception
 
