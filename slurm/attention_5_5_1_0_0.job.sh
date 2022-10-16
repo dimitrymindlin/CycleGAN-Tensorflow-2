@@ -4,7 +4,7 @@ conda activate medical-decision-support-system
 cd /media/compute/homes/dmindlin/CycleGAN-Tensorflow-2
 
 python3 -m experiment \
-  --dataset mura \
+  --dataset rsna \
   --adversarial_loss_weight 5 \
   --cycle_loss_weight 5 \
   --counterfactual_loss_weight 1 \
@@ -12,4 +12,5 @@ python3 -m experiment \
   --generator resnet \
   --clf_ckp_name 2022-06-04--00.05 \
   --start_attention_epoch 10 \
+  --clf_name = inception
 
