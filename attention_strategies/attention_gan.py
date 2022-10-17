@@ -12,7 +12,6 @@ def attention_gan_image_fusion(transformed, attention, background):
 
 
 def attention_gan_single(img, G, G_cycle, img_attention, img_background, training):
-    print(tf.shape(img))
     forward_mapping = G(img, training)
     transformed = attention_gan_image_fusion(forward_mapping, img_attention, img_background)
     if training:
