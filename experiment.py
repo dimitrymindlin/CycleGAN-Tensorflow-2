@@ -54,9 +54,12 @@ if args.dataset == "rsna":
     args.epoch_decay = 16
     args.sample_interval = 2
     # args.clf_ckp_name = "2022-10-12--10.37" # Inception
-    args.clf_ckp_name = "2022-10-13--13.03"  # alexnet
-    args.clf_name = "alexnet"
-    args.img_channels = 1
+    if args.clf_name == "alexnet":
+        args.clf_ckp_name = "2022-10-13--13.03"  # alexnet
+        args.img_channels = 1
+    if args.clf_name == "inception":
+        args.clf_ckp_name = "2022-10-12--10.37" # inception
+        args.img_channels = 3
 
 # Create new output dir if new experiment
 if not args.load_checkpoint:
