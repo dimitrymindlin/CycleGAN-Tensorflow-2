@@ -211,3 +211,43 @@ class LinearDecay(keras.optimizers.schedules.LearningRateSchedule):
             false_fn=lambda: self._initial_learning_rate
         ))
         return self.current_learning_rate
+
+
+def UnetGenerator(input_shape, gf=32, channels=1):
+    """U-Net Generator"""
+
+    def conv2d(layer_input, filters, f_size=4):
+        """Layers used during downsampling"""
+        d = keras.layers.Conv2D(filters, kernel_size=f_size, strides=2, padding='same')(layer_input)
+        d = keras.layers.LeakyReLU(alpha=0.2)(d)
+        d = tfa.layers.InstanceNormalization()(d)
+        return d
+
+    def deconv2d(layer_input, skip_input, filters, f_size=4, dropout_rate=0):
+        """Layers used during upsampling"""
+        u = keras.layers.UpSampling2D(size=2)(layer_input)
+        u = keras.layers.Conv2D(filters, kernel_size=f_size, strides=1, padding='same', activation='relu')(u)
+        if dropout_rate:
+            u = keras.layers.Dropout(dropout_rate)(u)
+        u = tfa.layers.InstanceNormalization()(u)
+        u = keras.layers.Concatenate()([u, skip_input])
+        return u
+
+    # Image input
+    d0 = keras.layers.Input(shape=input_shape)
+
+    # Downsampling
+    d1 = conv2d(d0, gf)
+    d2 = conv2d(d1, gf * 2)
+    d3 = conv2d(d2, gf * 4)
+    d4 = conv2d(d3, gf * 8)
+
+    # Upsampling
+    u1 = deconv2d(d4, d3, gf * 4)
+    u2 = deconv2d(u1, d2, gf * 2)
+    u3 = deconv2d(u2, d1, gf)
+
+    u4 = keras.layers.UpSampling2D(size=2)(u3)
+    output_img = keras.layers.Conv2D(channels, kernel_size=4, strides=1, padding='same', activation='tanh')(u4)
+
+    return keras.models.Model(d0, output_img)
