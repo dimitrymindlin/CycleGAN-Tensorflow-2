@@ -11,5 +11,5 @@ python3 -m experiment \
   --identity_loss_weight 0 \
   --generator unet \
   --start_attention_epoch 0 \
-  --clf_name inception
+  --clf_name alexnet
 
