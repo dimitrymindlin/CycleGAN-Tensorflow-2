@@ -73,9 +73,12 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     if args.generator == "resnet-attention":
         G_A2B = module.ResnetAttentionGenerator(input_shape=args.img_shape)
         G_B2A = module.ResnetAttentionGenerator(input_shape=args.img_shape)
-    else:
+    elif args.generator == "resnet":
         G_A2B = module.ResnetGenerator(input_shape=args.img_shape)
         G_B2A = module.ResnetGenerator(input_shape=args.img_shape)
+    else: # Unet
+        G_A2B = module.UnetGenerator(input_shape=args.img_shape)
+        G_B2A = module.UnetGenerator(input_shape=args.img_shape)
 
     D_A = module.ConvDiscriminator(input_shape=args.img_shape, norm=args.disc_norm)
     D_B = module.ConvDiscriminator(input_shape=args.img_shape, norm=args.disc_norm)
