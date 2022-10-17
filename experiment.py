@@ -87,7 +87,7 @@ if len(tf.config.list_physical_devices('GPU')) == 0:
 else:
     TFDS_PATH = "../tensorflow_datasets"
     #TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
-    os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
+    #os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
 
 # save settings
 py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
