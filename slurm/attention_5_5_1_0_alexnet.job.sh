@@ -9,7 +9,7 @@ python3 -m experiment \
   --cycle_loss_weight 5 \
   --counterfactual_loss_weight 1 \
   --identity_loss_weight 0 \
-  --generator resnet \
+  --generator unet \
   --start_attention_epoch 0 \
   --clf_name inception
 
