@@ -3,6 +3,7 @@ import time
 import pylib as py
 import tensorflow as tf
 from train import run_training
+import os
 
 ### Define Experiment Settings
 py.arg('--dataset', default='rsna', choices=['horse2zebra', 'mura', 'apple2orange', "rsna"])
@@ -85,7 +86,8 @@ if len(tf.config.list_physical_devices('GPU')) == 0:
     TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
 else:
     TFDS_PATH = "../tensorflow_datasets"
-    # TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
+    #TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
+    os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
 
 # save settings
 py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
