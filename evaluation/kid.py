@@ -111,10 +111,18 @@ def calc_KID_for_model_target_source(translated_images, translation_name, img_sh
     return mean, std
 
 
-def calc_KID_for_model(translated_images, crop_size, dataset):
+def calc_KID_for_model(translated_images, img_shape, dataset):
     # Standard KID calculation of translated images with target domain.
     # max_samples = 100
-    kid = KID(image_size=crop_size)
+
+    # Check if one channel images and if so, turn to 3 channel images.
+    if img_shape[-1] == 1:
+        img_shape = (img_shape[0], img_shape[1], 3)
+        translated_images = tf.image.grayscale_to_rgb(tf.convert_to_tensor(translated_images))
+    else:
+        translated_images = tf.convert_to_tensor(translated_images)
+
+    kid = KID(img_shape=img_shape)
     kid_value_list = []
     images_length = len(translated_images)
     all_samples_list = list(dataset.take(images_length * 5))
@@ -134,8 +142,8 @@ def calc_KID_for_model(translated_images, crop_size, dataset):
                 current_translated_images = translated_images[j * max_samples:(j + 1) * max_samples]
             if current_translated_images < 100:
                 break"""
-        tmp_sample_tensor = tf.squeeze(tf.convert_to_tensor([sample[0] for sample in tmp_samples]))
-        kid.update_state(tmp_sample_tensor, tf.convert_to_tensor(translated_images))
+        tmp_samples_tensor = tf.squeeze(tf.image.grayscale_to_rgb(tf.convert_to_tensor(tmp_samples)))
+        kid.update_state(tmp_samples_tensor, translated_images)
         kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
         kid.reset_state()
 

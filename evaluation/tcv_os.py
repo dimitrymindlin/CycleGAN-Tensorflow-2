@@ -77,17 +77,17 @@ def translate_images_clf_oracle(dataset, clf, oracle, generator, gradcam, class_
     return y_pred_translated, y_pred_oracle, len_dataset, translated_images
 
 
-def translate_images_clf(dataset, clf, generator, gradcam, class_label, return_images, attention_type,
-                         training=False, save_img=False, save_only_translated_img=False):
+def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, return_images,
+                         training=False, save_img=False):
     translated_images = []
     y_pred_translated = []
     len_dataset = 0
 
     for batch_i, img_batch in enumerate(tqdm.tqdm(dataset, desc='Translating images')):
-        img_holder = ImageHolder(img_batch, class_label, gradcam=gradcam, attention_type=attention_type)
+        img_holder = ImageHolder(img_batch, class_label, gradcam=gradcam, attention_type=args.attention_type)
         class_label_name = "Normal" if class_label == 0 else "Abnormal"
         target_class_name = "Abnormal" if class_label == 0 else "Normal"
-        if attention_type == "attention-gan-original":
+        if args.attention_type == "attention-gan-original":
             translated_img, _ = attention_gan_single(img_holder.img, generator, None, img_holder.attention,
                                                      img_holder.background, training)
         else:
@@ -95,10 +95,13 @@ def translate_images_clf(dataset, clf, generator, gradcam, class_label, return_i
         # Predict images with CLF
         for img_i, translated_i in zip(img_batch, translated_img):
             if return_images:
-                translated_images.append(tf.squeeze(translated_i))
+                translated_i = tf.squeeze(translated_i)
+                if args.img_channels == 1:
+                    translated_i = tf.expand_dims(translated_i, axis=-1)
+                translated_images.append(translated_i)
             clf_prediction = int(np.argmax(clf(tf.expand_dims(tf.image.resize(translated_i, [512, 512]), axis=0))))
             y_pred_translated.append(clf_prediction)
-            if not save_only_translated_img and save_img:
+            if not args.save_only_translated_img and save_img:
                 """img = immerge(np.concatenate([img_holder.img, img_holder.attention, translated_img], axis=0), n_rows=1)
                 class_label_name = "Normal" if class_label == 0 else "Abnormal"
                 img_folder = f'output_mura/{class_label_name}'
@@ -134,8 +137,8 @@ def translate_images_clf(dataset, clf, generator, gradcam, class_label, return_i
                 fig.savefig(f"{img_folder}/%d.png" % (batch_i))
                 plt.close()
 
-            if save_only_translated_img:
-                #im = Image.fromarray(np.squeeze(np.array(0.5 * translated_img + 0.5)))
+            if args.save_only_translated_img:
+                # im = Image.fromarray(np.squeeze(np.array(0.5 * translated_img + 0.5)))
                 im = Image.fromarray(np.uint8(np.squeeze(np.array(0.5 * translated_img + 0.5)) * 255))
                 img_folder = f'{save_img}/{class_label_name}'
                 os.makedirs(img_folder, exist_ok=True)
@@ -177,7 +180,7 @@ def calculate_ssim_psnr(images, translated_images):
     ssim_count = 0
     psnr_count = 0
     for img_i, translated_i in zip(images, translated_images):
-        img_i = tf.squeeze(img_i).numpy()
+        img_i = tf.expand_dims(tf.squeeze(img_i), axis=-1).numpy()
         translated_i = translated_i.numpy()
         ssim_count += structural_similarity(img_i, translated_i, channel_axis=2)
         psnr_count += peak_signal_noise_ratio(img_i, translated_i)

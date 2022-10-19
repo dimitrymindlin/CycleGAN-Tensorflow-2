@@ -3,6 +3,7 @@ import sys
 
 import tqdm
 from mura.tfds_from_disc import get_mura_test_ds_by_body_part_split_class
+from rsna import get_rsna_TEST_ds_split_class
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 import pylib as py
 import tensorflow as tf
@@ -16,19 +17,20 @@ from tensorflow_addons.layers import InstanceNormalization
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-py.arg('--dataset', default='mura', choices=['horse2zebra', 'mura', 'apple2orange'])
+py.arg('--dataset', default='rsna', choices=['horse2zebra', 'mura', 'apple2orange', 'rsna'])
 py.arg('--body_parts', default=["XR_WRIST"])  # Only used in Mura dataset. Body part of x-ray images
 py.arg('--batch_size', type=int, default=1)
 py.arg('--datasets_dir', default='datasets')
 py.arg('--attention_type', type=str, default="attention-gan-original",
        choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
-py.arg('--clf_name', type=str, default="inception")
+py.arg('--clf_name', type=str, default="alexnet")
 py.arg('--clf_ckp_name', type=str,
        default="2022-06-04--00.00")  # Mura: 2022-06-04--00.05, H2Z: 2022-06-04--00.00 # A2O: 2022-09-23--15.18
 py.arg('--oracle_name', type=str, default="resnet50")  # Mura: inception H2Z: resnet50
 py.arg('--oracle_ckp_name', type=str, default="2022-08-21--00.00")  # Mura: 2022-03-24--12.42 H2Z: 2022-08-21--00.00
 py.arg('--print_images', type=bool, default=True)
 py.arg('--crop_size', type=int, default=256)  # Mura: 512 H2Z: 256
+py.arg('--img_channels', type=int, default=3)
 py.arg('--counterfactuals_type', type=str, default="abc-gan", choices=["abc-gan", "ganterfactual", "none"])
 py.arg('--save_img', type=bool, default=True)
 py.arg('--save_only_translated_img', type=bool, default=False)
@@ -50,6 +52,16 @@ if args.dataset == "mura":
     args.oracle_name = "densenet"
     args.oracle_ckp_name = "2022-08-15--17.42"
     args.clf_ckp_name = "2022-06-04--00.05"
+    args.img_channels = 3
+if args.dataset == "rsna":
+    args.load_size = 512
+    args.crop_size = 512
+    if args.clf_name == "alexnet":
+        args.clf_ckp_name = "2022-10-13--13.03"  # alexnet
+        args.img_channels = 1
+    if args.clf_name == "inception":
+        args.clf_ckp_name = "2022-10-12--10.37"  # inception
+        args.img_channels = 3
 
 args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
 
@@ -67,7 +79,7 @@ def get_abc_gan_generators(name, ep):
 
 
 def get_ganterfactual_generators(name, ep):
-    cyclegan_folder = f"{ROOT_DIR}/checkpoints/gans/mura/{name}/{ep}"
+    cyclegan_folder = f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}/{ep}"
     custom_objects = {"InstanceNormalization": InstanceNormalization}
     G_A2B = tf.keras.models.load_model(os.path.join(cyclegan_folder, 'generator_np.h5'),
                                        custom_objects=custom_objects)
@@ -79,6 +91,11 @@ def get_ganterfactual_generators(name, ep):
 # ==============================================================================
 # =                                    data                                    =
 # ==============================================================================
+if args.clf_name != "densenet":
+    special_normalisation = tf.keras.applications.inception_v3.preprocess_input
+else:
+    special_normalisation = tf.keras.applications.densenet.preprocess_input
+
 if args.dataset == "mura":
     A_dataset, B_dataset, A_dataset_test, B_dataset_test = get_mura_test_ds_by_body_part_split_class(args.body_parts,
                                                                                                      TFDS_PATH,
@@ -86,6 +103,13 @@ if args.dataset == "mura":
                                                                                                      args.crop_size,
                                                                                                      args.crop_size,
                                                                                                      special_normalisation=None)
+elif args.dataset == "rsna":
+    A_dataset, B_dataset, A_dataset_test, B_dataset_test = get_rsna_TEST_ds_split_class(TFDS_PATH,
+                                                                                        args.batch_size,
+                                                                                        args.crop_size,
+                                                                                        args.crop_size,
+                                                                                        special_normalisation=None,
+                                                                                        channels=1)
 
 else:  # Horse2Zebra / Apple2Orange
     A_dataset, A_dataset_test, B_dataset, B_dataset_test = load_tfds_test_data(args.dataset)
@@ -93,6 +117,7 @@ else:  # Horse2Zebra / Apple2Orange
 # ==============================================================================
 # =                                    models                                  =
 # ==============================================================================
+
 G_A2B = module.ResnetGenerator(input_shape=args.img_shape)
 G_B2A = module.ResnetGenerator(input_shape=args.img_shape)
 
@@ -113,16 +138,14 @@ checkpoint_ts_list = ["2022-05-31--13.04", "2022-05-31--14.02", "2022-06-01--13.
 checkpoint_ts_list_h2z = ["2022-08-13--15.48"]  # "2022-08-17--03.54"
 checkpoint_ep_list_h2z = ["195"]  # 180"""
 
-if args.dataset == "horse2zebra":
-    checkpoint_ts_list_abc = ["2022-10-04--11.12", "2022-10-04--11.12"]
-    checkpoint_ep_list_abc = ["180", "195"]
-else:  # a2o
-    checkpoint_ts_list_abc = ["2022-10-04--11.09", "2022-10-04--11.09"]
-    checkpoint_ep_list_abc = ["180", "195"]
+checkpoint_ts_list_abc = ["2022-10-17--12.45", "2022-10-17--12.45"]
+checkpoint_ep_list_abc = ["16", "18"]
 
-checkpoint_ts_list_ganterfactual = ["GANterfactual_2022-08-22--09.39", "GANterfactual_2022-08-31--08.19",
-                                    "GANterfactual_2022-08-31--08.19"]
-checkpoint_ep_list_ganterfactual = ["ep_16", "ep_14", "ep_17"]
+checkpoint_ts_list_abc = ["2022-08-17--03.54"]
+checkpoint_ep_list_abc = ["180"]
+
+checkpoint_ts_list_ganterfactual = ["2022-10-17--15.10"]
+checkpoint_ep_list_ganterfactual = ["ep_19"]
 
 checkpoint_ts_list_cyclegan = ["2022-08-29--12.05"]
 checkpoint_ep_list_cyclegan = ["14"]
@@ -159,9 +182,9 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
             target_dataset = A_dataset
 
         # Get counterfactuals (translated images)
-        y_pred_translated, len_dataset, translated_images = translate_images_clf(
-            source_dataset, clf, generator, gradcam, class_label, True, args.attention_type,
-            training=False, save_img=save_img, save_only_translated_img=args.save_only_translated_img)
+        y_pred_translated, len_dataset, translated_images = translate_images_clf(args,
+            source_dataset, clf, generator, gradcam, class_label, True,
+            training=False, save_img=save_img)
 
         if args.tcv_os:
             calculate_tcv(y_pred_translated, len_dataset, translation_name)
@@ -170,7 +193,7 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
             calculate_ssim_psnr(source_dataset, translated_images)
 
         if args.kid:
-            if args.dataset == "mura":
+            if args.dataset == "mura" or args.dataset == "rsna":
                 calc_KID_for_model(translated_images, args.img_shape, target_dataset)
             else:
                 calc_KID_for_model_target_source(translated_images, translation_name, args.img_shape, A_dataset,
@@ -178,7 +201,7 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
     print()
 
 
-counterfactuals_to_test = ["abc-gan"]
+counterfactuals_to_test = ["ganterfactual", "abc-gan"]
 for counterfactuals_type in tqdm.tqdm(counterfactuals_to_test, desc='Counterfactual Type Loop'):
     with open(f'{counterfactuals_type}_{args.dataset}.txt', 'w') as f:
         sys.stdout = f  # Change the standard output to the file we created.
