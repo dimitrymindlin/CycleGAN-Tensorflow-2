@@ -67,7 +67,7 @@ if args.dataset == "apple2orange":
     args.img_channels = 3
 if args.dataset == "horse2zebra":
     args.clf_name = "inception"
-    args.clf_ckp_name = "2022-06-04--00.008"
+    args.clf_ckp_name = "2022-06-04--00.00"
     args.img_channels = 3
 
 args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
@@ -218,7 +218,7 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
     print()
 
 
-counterfactuals_to_test = ["abc-gan"]
+counterfactuals_to_test = ["abc-gan"]  # ganterfactual
 for counterfactuals_type in tqdm.tqdm(counterfactuals_to_test, desc='Counterfactual Type Loop'):
     with open(f'{counterfactuals_type}_{args.dataset}.txt', 'w') as f:
         sys.stdout = f  # Change the standard output to the file we created.
