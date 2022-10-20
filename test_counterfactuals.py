@@ -65,6 +65,10 @@ if args.dataset == "apple2orange":
     args.clf_name = "inception"
     args.clf_ckp_name = "2022-09-23--15.18"
     args.img_channels = 3
+if args.dataset == "horse2zebra":
+    args.clf_name = "inception"
+    args.clf_ckp_name = "2022-06-04--00.008"
+    args.img_channels = 3
 
 args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
 
@@ -147,6 +151,10 @@ if args.dataset == "rsna":
 if args.dataset == "apple2orange":
     checkpoint_ts_list_abc = ["2022-09-23--16.25", "2022-09-23--16.25", "2022-09-27--10.17", "2022-09-27--10.17",
                               "2022-09-29--16.20", "2022-09-29--16.20", "2022-10-04--11.09", "2022-10-04--11.09"]
+    checkpoint_ep_list_abc = ["180", "195", "180", "195", "180", "195", "180", "195"]
+if args.dataset == "horse2zebra":
+    checkpoint_ts_list_abc = ["2022-09-23--16.36", "2022-09-23--16.36", "2022-09-27--10.26", "2022-09-27--10.26",
+                              "2022-09-29--16.23", "2022-09-29--16.23", "2022-10-04--11.12", "2022-10-04--11.12"]
     checkpoint_ep_list_abc = ["180", "195", "180", "195", "180", "195", "180", "195"]
 
 """checkpoint_ts_list_abc = ["2022-08-17--03.54"]
