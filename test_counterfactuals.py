@@ -140,8 +140,8 @@ checkpoint_ep_list_h2z = ["195"]  # 180"""
 checkpoint_ts_list_abc = ["2022-10-17--12.45", "2022-10-17--12.45"]
 checkpoint_ep_list_abc = ["16", "18"]
 
-checkpoint_ts_list_abc = ["2022-08-17--03.54"]
-checkpoint_ep_list_abc = ["180"]
+"""checkpoint_ts_list_abc = ["2022-08-17--03.54"]
+checkpoint_ep_list_abc = ["180"]"""
 
 checkpoint_ts_list_ganterfactual = ["2022-10-17--15.10"]
 checkpoint_ep_list_ganterfactual = ["ep_19"]
