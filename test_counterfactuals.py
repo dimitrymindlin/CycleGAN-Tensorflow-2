@@ -61,6 +61,10 @@ if args.dataset == "rsna":
     if args.clf_name == "inception":
         args.clf_ckp_name = "2022-10-12--10.37"  # inception
         args.img_channels = 3
+if args.dataset == "apple2orange":
+    args.clf_name = "inception"
+    args.clf_ckp_name = "2022-09-23--15.18"
+    args.img_channels = 3
 
 args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
 
@@ -137,8 +141,13 @@ checkpoint_ts_list = ["2022-05-31--13.04", "2022-05-31--14.02", "2022-06-01--13.
 checkpoint_ts_list_h2z = ["2022-08-13--15.48"]  # "2022-08-17--03.54"
 checkpoint_ep_list_h2z = ["195"]  # 180"""
 
-checkpoint_ts_list_abc = ["2022-10-17--12.45", "2022-10-17--12.45"]
-checkpoint_ep_list_abc = ["16", "18"]
+if args.dataset == "rsna":
+    checkpoint_ts_list_abc = ["2022-10-17--12.45", "2022-10-17--12.45"]
+    checkpoint_ep_list_abc = ["16", "18"]
+if args.dataset == "apple2orange":
+    checkpoint_ts_list_abc = ["2022-09-23--16.25", "2022-09-23--16.25", "2022-09-27--10.17", "2022-09-27--10.17",
+                              "2022-09-29--16.20", "2022-09-29--16.20", "2022-10-04--11.09", "2022-10-04--11.09"]
+    checkpoint_ep_list_abc = ["180", "195", "180", "195", "180", "195", "180", "195"]
 
 """checkpoint_ts_list_abc = ["2022-08-17--03.54"]
 checkpoint_ep_list_abc = ["180"]"""
@@ -182,8 +191,9 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
 
         # Get counterfactuals (translated images)
         y_pred_translated, len_dataset, translated_images = translate_images_clf(args,
-            source_dataset, clf, generator, gradcam, class_label, True,
-            training=False, save_img=save_img)
+                                                                                 source_dataset, clf, generator,
+                                                                                 gradcam, class_label, True,
+                                                                                 training=False, save_img=save_img)
 
         if args.tcv_os:
             calculate_tcv(y_pred_translated, len_dataset, translation_name)
@@ -200,7 +210,7 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
     print()
 
 
-counterfactuals_to_test = ["ganterfactual", "abc-gan"]
+counterfactuals_to_test = ["abc-gan"]
 for counterfactuals_type in tqdm.tqdm(counterfactuals_to_test, desc='Counterfactual Type Loop'):
     with open(f'{counterfactuals_type}_{args.dataset}.txt', 'w') as f:
         sys.stdout = f  # Change the standard output to the file we created.
