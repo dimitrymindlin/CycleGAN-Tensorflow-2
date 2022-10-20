@@ -113,14 +113,14 @@ def calc_KID_for_model_target_source(translated_images, translation_name, img_sh
 
 def calc_KID_for_model(translated_images, img_shape, dataset):
     # Standard KID calculation of translated images with target domain.
-    # max_samples = 100
+    max_samples = 100
 
     # Check if one channel images and if so, turn to 3 channel images.
     if img_shape[-1] == 1:
         img_shape = (img_shape[0], img_shape[1], 3)
-        translated_images = tf.image.grayscale_to_rgb(tf.convert_to_tensor(translated_images))
+        translated_images = tf.image.grayscale_to_rgb(tf.convert_to_tensor(translated_images[:max_samples]))
     else:
-        translated_images = tf.convert_to_tensor(translated_images)
+        translated_images = tf.convert_to_tensor(translated_images[:max_samples])
 
     kid = KID(img_shape=img_shape)
     kid_value_list = []
