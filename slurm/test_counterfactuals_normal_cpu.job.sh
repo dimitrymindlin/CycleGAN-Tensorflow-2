@@ -10,5 +10,5 @@ python3 -m test_counterfactuals \
 --kid True \
 --save_img False \
 --clf_name alexnet \
---generator unet
+--generator resnet
 
