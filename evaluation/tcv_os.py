@@ -178,9 +178,12 @@ def calculate_ssim_psnr(images, translated_images):
     ssim_count = 0
     psnr_count = 0
     for img_i, translated_i in zip(images, translated_images):
-        img_i = tf.expand_dims(tf.squeeze(img_i), axis=-1).numpy()
+        img_i = tf.squeeze(img_i)
+        if np.shape(translated_images)[-1] == 1:
+            img_i = tf.expand_dims(img_i, axis=-1).numpy()
+        else:
+            img_i = img_i.numpy()
         translated_i = translated_i.numpy()
-        print(np.shape(img_i), np.shape(translated_i))
         ssim_count += structural_similarity(img_i, translated_i, channel_axis=2)
         psnr_count += peak_signal_noise_ratio(img_i, translated_i)
 
