@@ -37,6 +37,8 @@ py.arg('--save_only_translated_img', type=bool, default=False)
 py.arg('--tcv_os', type=bool, default=True)
 py.arg('--ssim_psnr', type=bool, default=True)
 py.arg('--kid', type=bool, default=True)
+py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
+
 args = py.args()
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
@@ -53,7 +55,7 @@ if args.dataset == "mura":
     args.oracle_ckp_name = "2022-08-15--17.42"
     args.clf_ckp_name = "2022-06-04--00.05"
     args.img_channels = 3
-if args.dataset == "rsna":
+elif args.dataset == "rsna":
     args.load_size = 512
     args.crop_size = 512
     if args.clf_name == "alexnet":
@@ -62,11 +64,11 @@ if args.dataset == "rsna":
     if args.clf_name == "inception":
         args.clf_ckp_name = "2022-10-12--10.37"  # inception
         args.img_channels = 3
-if args.dataset == "apple2orange":
+elif args.dataset == "apple2orange":
     args.clf_name = "inception"
     args.clf_ckp_name = "2022-09-23--15.18"
     args.img_channels = 3
-if args.dataset == "horse2zebra":
+elif args.dataset == "horse2zebra":
     args.clf_name = "inception"
     args.clf_ckp_name = "2022-06-04--00.00"
     args.img_channels = 3
@@ -126,8 +128,13 @@ else:  # Horse2Zebra / Apple2Orange
 # =                                    models                                  =
 # ==============================================================================
 
-G_A2B = module.ResnetGenerator(input_shape=args.img_shape)
-G_B2A = module.ResnetGenerator(input_shape=args.img_shape)
+if args.generator == "resnet":
+    G_A2B = module.ResnetGenerator(input_shape=args.img_shape)
+    G_B2A = module.ResnetGenerator(input_shape=args.img_shape)
+else:
+    # Unet
+    G_A2B = module.UnetGenerator(input_shape=args.img_shape)
+    G_B2A = module.UnetGenerator(input_shape=args.img_shape)
 
 clf = tf.keras.models.load_model(
     f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model", compile=False)
