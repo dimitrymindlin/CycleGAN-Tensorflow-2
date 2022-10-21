@@ -1,6 +1,7 @@
 import os
 import sys
 
+import numpy as np
 import tqdm
 from mura.tfds_from_disc import get_mura_test_ds_by_body_part_split_class
 from rsna import get_rsna_TEST_ds_split_class
@@ -17,7 +18,7 @@ from tensorflow_addons.layers import InstanceNormalization
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-py.arg('--dataset', default='rsna', choices=['horse2zebra', 'mura', 'apple2orange', 'rsna'])
+py.arg('--dataset', default='apple2orange', choices=['horse2zebra', 'mura', 'apple2orange', 'rsna'])
 py.arg('--body_parts', default=["XR_WRIST"])  # Only used in Mura dataset. Body part of x-ray images
 py.arg('--batch_size', type=int, default=1)
 py.arg('--datasets_dir', default='datasets')
@@ -26,8 +27,8 @@ py.arg('--attention_type', type=str, default="attention-gan-original",
 py.arg('--clf_name', type=str, default="alexnet")
 py.arg('--clf_ckp_name', type=str,
        default="2022-06-04--00.00")  # Mura: 2022-06-04--00.05, H2Z: 2022-06-04--00.00 # A2O: 2022-09-23--15.18
-py.arg('--oracle_name', type=str, default="resnet50")  # Mura: inception H2Z: resnet50
-py.arg('--oracle_ckp_name', type=str, default="2022-08-21--00.00")  # Mura: 2022-03-24--12.42 H2Z: 2022-08-21--00.00
+"""py.arg('--oracle_name', type=str, default="resnet50")  # Mura: inception H2Z: resnet50
+py.arg('--oracle_ckp_name', type=str, default="2022-08-21--00.00")  # Mura: 2022-03-24--12.42 H2Z: 2022-08-21--00.00"""
 py.arg('--print_images', type=bool, default=True)
 py.arg('--crop_size', type=int, default=256)  # Mura: 512 H2Z: 256
 py.arg('--img_channels', type=int, default=3)
@@ -218,7 +219,7 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
     print()
 
 
-counterfactuals_to_test = ["abc-gan"]  # ganterfactual
+counterfactuals_to_test = ["abc-gan", "ganterfactual"]  # ganterfactual
 for counterfactuals_type in tqdm.tqdm(counterfactuals_to_test, desc='Counterfactual Type Loop'):
     with open(f'{counterfactuals_type}_{args.dataset}.txt', 'w') as f:
         sys.stdout = f  # Change the standard output to the file we created.
