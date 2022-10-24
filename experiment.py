@@ -26,7 +26,7 @@ py.arg('--identity_loss_weight', type=float, default=0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
 py.arg('--clf_name', type=str, default="inception")
-py.arg('--clf_ckp_name', type=str, default="2022-06-04--00.00")  # Mura: 2022-06-04--00.05, H2Z: 2022-06-04--00.00
+py.arg('--clf_ckp_name', type=str, default="2022-06-04--00.00")  # Mura: 2022-06-04--00.05, H2Z: 2022-06-04--00.00 A2O: 2022-09-23--15.18
 py.arg('--attention_type', type=str, default="attention-gan-original",
        choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
 py.arg('--current_attention_type', type=str, default="none")
@@ -47,7 +47,7 @@ if args.dataset == "mura":
     args.sample_interval = 2
     args.clf_ckp_name = "2022-06-04--00.05"
 
-if args.dataset == "rsna":
+elif args.dataset == "rsna":
     args.load_size = 512
     args.crop_size = 512
     args.epochs = 19
@@ -60,6 +60,10 @@ if args.dataset == "rsna":
     if args.clf_name == "inception":
         args.clf_ckp_name = "2022-10-12--10.37" # inception
         args.img_channels = 3
+elif args.dataset == "a2o":
+    args.clf_ckp_name = "2022-09-23--15.18"
+else: # h2z
+    args.clf_ckp_name = "2022-06-04--00.00"
 
 # Create new output dir if new experiment
 if not args.load_checkpoint:

@@ -44,7 +44,10 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     A2B_pool = ItemPool(args.pool_size)
     B2A_pool = ItemPool(args.pool_size)
 
-    special_normalisation = tf.keras.applications.inception_v3.preprocess_input
+    if args.clf_name != "densenet":
+        special_normalisation = tf.keras.applications.inception_v3.preprocess_input
+    else:
+        special_normalisation = tf.keras.applications.densenet.preprocess_input
 
     if args.dataset == "mura":
         # A = Normal, B = Abnormal
@@ -76,7 +79,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     elif args.generator == "resnet":
         G_A2B = module.ResnetGenerator(input_shape=args.img_shape)
         G_B2A = module.ResnetGenerator(input_shape=args.img_shape)
-    else: # Unet
+    else:  # Unet
         G_A2B = module.UnetGenerator(input_shape=args.img_shape)
         G_B2A = module.UnetGenerator(input_shape=args.img_shape)
 
