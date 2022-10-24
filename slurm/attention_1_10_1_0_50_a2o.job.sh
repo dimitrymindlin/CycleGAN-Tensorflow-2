@@ -7,11 +7,10 @@ python3 -m experiment \
   --dataset apple2orange \
   --adversarial_loss_weight 1 \
   --cycle_loss_weight 10 \
-  --counterfactual_loss_weight 1 \
-  --identity_loss_weight 0 \
+  --counterfactual_loss_weight 0 \
+  --identity_loss_weight 1 \
   --generator resnet \
-  --clf_ckp_name 2022-09-23--15.18 \
   --epoch_decay 100 \
-  --start_attention_epoch 50 \
-  --discriminator patch_gan_attention \
+  --start_attention_epoch 199 \
+  --discriminator patch-gan \
 
