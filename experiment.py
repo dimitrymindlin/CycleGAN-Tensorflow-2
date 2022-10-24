@@ -60,7 +60,7 @@ elif args.dataset == "rsna":
     if args.clf_name == "inception":
         args.clf_ckp_name = "2022-10-12--10.37" # inception
         args.img_channels = 3
-elif args.dataset == "a2o":
+elif args.dataset == "apple2orange":
     args.clf_ckp_name = "2022-09-23--15.18"
 else: # h2z
     args.clf_ckp_name = "2022-06-04--00.00"
