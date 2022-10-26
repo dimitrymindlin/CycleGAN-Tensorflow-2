@@ -232,7 +232,7 @@ for counterfactuals_type in tqdm.tqdm(counterfactuals_to_test, desc='Counterfact
     with open(f'{counterfactuals_type}_{args.dataset}.txt', 'w') as f:
         sys.stdout = f  # Change the standard output to the file we created.
         load_generators, checkpoint_ts_list, checkpoint_ep_list = load_generators_and_ckp_lists(counterfactuals_type)
-        for name, ep in zip(checkpoint_ts_list[:-2], checkpoint_ep_list[:-2]):
+        for name, ep in zip(checkpoint_ts_list[-2:], checkpoint_ep_list[-2:]):
             print(f"Starting {name}_{ep}")
             G_A2B, G_B2A = load_generators(name, ep)
             if args.save_img:
