@@ -158,8 +158,9 @@ if args.dataset == "rsna":
     checkpoint_ep_list_abc = ["16", "18"]
 if args.dataset == "apple2orange":
     checkpoint_ts_list_abc = ["2022-09-23--16.25", "2022-09-23--16.25", "2022-09-27--10.17", "2022-09-27--10.17",
-                              "2022-09-29--16.20", "2022-09-29--16.20", "2022-10-04--11.09", "2022-10-04--11.09"]
-    checkpoint_ep_list_abc = ["180", "195", "180", "195", "180", "195", "180", "195"]
+                              "2022-09-29--16.20", "2022-09-29--16.20", "2022-10-04--11.09", "2022-10-04--11.09",
+                              "2022-10-24--14.16", "2022-10-24--14.16"]
+    checkpoint_ep_list_abc = ["180", "195", "180", "195", "180", "195", "180", "195", "180", "195"]
 if args.dataset == "horse2zebra":
     checkpoint_ts_list_abc = ["2022-09-23--16.36", "2022-09-23--16.36", "2022-09-27--10.26", "2022-09-27--10.26",
                               "2022-09-29--16.23", "2022-09-29--16.23", "2022-10-04--11.12", "2022-10-04--11.12"]
@@ -231,7 +232,7 @@ for counterfactuals_type in tqdm.tqdm(counterfactuals_to_test, desc='Counterfact
     with open(f'{counterfactuals_type}_{args.dataset}.txt', 'w') as f:
         sys.stdout = f  # Change the standard output to the file we created.
         load_generators, checkpoint_ts_list, checkpoint_ep_list = load_generators_and_ckp_lists(counterfactuals_type)
-        for name, ep in zip(checkpoint_ts_list, checkpoint_ep_list):
+        for name, ep in zip(checkpoint_ts_list[:-2], checkpoint_ep_list[:-2]):
             print(f"Starting {name}_{ep}")
             G_A2B, G_B2A = load_generators(name, ep)
             if args.save_img:
