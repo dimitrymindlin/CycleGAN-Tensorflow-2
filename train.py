@@ -350,7 +350,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                            name='learning rate')
 
                 # sample
-                if ep == 0 or ep % args.sample_interval == 0:
+                """if ep == 0 or ep % args.sample_interval == 0:
                     if G_optimizer.iterations.numpy() % 1000 == 0 or G_optimizer.iterations.numpy() == 1:
                         try:
                             A, B = next(test_iter)
@@ -381,7 +381,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                                        A_holder=A_holder,
                                        B_holder=B_holder,
                                        A2B2A=A2B2A,
-                                       B2A2B=B2A2B)
+                                       B2A2B=B2A2B)"""
 
             if (ep > (args.epochs / 2) and ep % args.sample_interval == 0) or ep == (args.epochs - 1):
                 checkpoint.save(ep)
