@@ -5,10 +5,10 @@ cd /media/compute/homes/dmindlin/CycleGAN-Tensorflow-2
 
 python3 -m experiment \
   --dataset rsna \
-  --adversarial_loss_weight 5 \
+  --adversarial_loss_weight 1 \
   --cycle_loss_weight 5 \
   --counterfactual_loss_weight 1 \
-  --identity_loss_weight 0 \
+  --identity_loss_weight 1 \
   --generator resnet \
   --start_attention_epoch 0 \
 
