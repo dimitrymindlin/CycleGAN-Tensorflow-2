@@ -169,8 +169,8 @@ if args.dataset == "horse2zebra":
 """checkpoint_ts_list_abc = ["2022-08-17--03.54"]
 checkpoint_ep_list_abc = ["180"]"""
 
-checkpoint_ts_list_ganterfactual = ["2022-10-17--15.10"]
-checkpoint_ep_list_ganterfactual = ["ep_19"]
+checkpoint_ts_list_ganterfactual = ["2022-10-17--15.10", "2022-10-27--18.35"]
+checkpoint_ep_list_ganterfactual = ["ep_19", "ep_19"]
 
 checkpoint_ts_list_cyclegan = ["2022-08-29--12.05"]
 checkpoint_ep_list_cyclegan = ["14"]
@@ -227,12 +227,12 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
     print()
 
 
-counterfactuals_to_test = ["abc-gan"]  # ganterfactual
+counterfactuals_to_test = ["ganterfactual"]  # ganterfactual
 for counterfactuals_type in tqdm.tqdm(counterfactuals_to_test, desc='Counterfactual Type Loop'):
     with open(f'{counterfactuals_type}_{args.dataset}.txt', 'w') as f:
         sys.stdout = f  # Change the standard output to the file we created.
         load_generators, checkpoint_ts_list, checkpoint_ep_list = load_generators_and_ckp_lists(counterfactuals_type)
-        for name, ep in zip(checkpoint_ts_list[-2:], checkpoint_ep_list[-2:]):
+        for name, ep in zip(checkpoint_ts_list[-1:], checkpoint_ep_list[-1:]):
             print(f"Starting {name}_{ep}")
             G_A2B, G_B2A = load_generators(name, ep)
             if args.save_img:
