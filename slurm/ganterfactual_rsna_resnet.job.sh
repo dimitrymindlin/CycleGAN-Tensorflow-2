@@ -10,5 +10,6 @@ python3 -m experiment \
   --counterfactual_loss_weight 1 \
   --identity_loss_weight 1 \
   --generator resnet \
+  --clf_name alexnet \
   --discriminator patch-gan \
 
