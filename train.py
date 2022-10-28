@@ -65,9 +65,11 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                                                                                                       args.load_size,
                                                                                                       special_normalisation,
                                                                                                       channels=args.img_channels)
+
     else:  # Load Horse2Zebra / Apple2Orange
         A_B_dataset, A_B_dataset_test, len_dataset_train = standard_datasets_loading.load_tfds_dataset(args.dataset,
                                                                                                        args.crop_size)
+
 
     # ==============================================================================
     # =                                   models                                   =
@@ -123,6 +125,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
             # ... Implement SPA-GAN completely?
     else:
         clf = None
+        gradcam = None
 
     # ==============================================================================
     # =                                 train step                                 =
