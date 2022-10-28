@@ -124,7 +124,9 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
             gradcam_D_B = Gradcam(D_B, model_modifier=ReplaceToLinear(), clone=True)
             # ... Implement SPA-GAN completely?
     else:
-        clf = None
+        clf = tf.keras.models.load_model(
+            f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
+            compile=False)
         gradcam = None
 
     # ==============================================================================
