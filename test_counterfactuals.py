@@ -154,8 +154,8 @@ checkpoint_ts_list_h2z = ["2022-08-13--15.48"]  # "2022-08-17--03.54"
 checkpoint_ep_list_h2z = ["195"]  # 180"""
 
 if args.dataset == "rsna":
-    checkpoint_ts_list_abc = ["2022-10-17--12.45", "2022-10-17--12.45"]
-    checkpoint_ep_list_abc = ["16", "18"]
+    checkpoint_ts_list_abc = ["2022-10-17--12.45", "2022-10-17--12.45", "2022-10-28--18.42", "2022-10-28--18.42"]
+    checkpoint_ep_list_abc = ["16", "18", "16", "18"]
 if args.dataset == "apple2orange":
     checkpoint_ts_list_abc = ["2022-09-23--16.25", "2022-09-23--16.25", "2022-09-27--10.17", "2022-09-27--10.17",
                               "2022-09-29--16.20", "2022-09-29--16.20", "2022-10-04--11.09", "2022-10-04--11.09",
@@ -227,12 +227,12 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
     print()
 
 
-counterfactuals_to_test = ["ganterfactual"]  # ganterfactual
+counterfactuals_to_test = ["abc-gan"]  # ganterfactual
 for counterfactuals_type in tqdm.tqdm(counterfactuals_to_test, desc='Counterfactual Type Loop'):
     with open(f'{counterfactuals_type}_{args.dataset}.txt', 'w') as f:
         sys.stdout = f  # Change the standard output to the file we created.
         load_generators, checkpoint_ts_list, checkpoint_ep_list = load_generators_and_ckp_lists(counterfactuals_type)
-        for name, ep in zip(checkpoint_ts_list[-1:], checkpoint_ep_list[-1:]):
+        for name, ep in zip(checkpoint_ts_list[-2:], checkpoint_ep_list[-2:]):
             print(f"Starting {name}_{ep}")
             G_A2B, G_B2A = load_generators(name, ep)
             if args.save_img:
