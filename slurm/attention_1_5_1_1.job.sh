@@ -9,6 +9,6 @@ python3 -m experiment \
   --cycle_loss_weight 5 \
   --counterfactual_loss_weight 1 \
   --identity_loss_weight 1 \
-  --generator unet \
+  --generator resnet \
   --start_attention_epoch 0 \
 
