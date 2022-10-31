@@ -57,9 +57,6 @@ def apply_gradcam(img, gradcam, class_index, args, attention_intensity=1, attent
         cam = shift_values_above_intensity(cam, attention_intensity)
     if attention_intensity == 0:  # for testing purposes when you want to apply attention everywhere.
         cam = tf.ones(shape=cam.shape)
-    if args.clf_input_channel == 1:
-        # Turn to 3 channel img
-        cam = tf.image.grayscale_to_rgb(cam)
     cam = scale_between_minus_one_one(cam)
     img = apply_attention_on_img(img, cam)
     return img, cam  # [-1,1]
