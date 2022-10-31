@@ -20,13 +20,15 @@ py.arg('--lr', type=float, default=0.0002)
 py.arg('--beta_1', type=float, default=0.5)
 py.arg('--adversarial_loss_mode', default='gan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
 py.arg('--adversarial_loss_weight', type=float, default=1)
-py.arg('--cycle_loss_weight', type=float, default=10)
-py.arg('--counterfactual_loss_weight', type=float, default=0)
-py.arg('--identity_loss_weight', type=float, default=0)
+py.arg('--cycle_loss_weight', type=float, default=5)
+py.arg('--counterfactual_loss_weight', type=float, default=1)
+py.arg('--identity_loss_weight', type=float, default=1)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
-py.arg('--clf_name', type=str, default="inception")
-py.arg('--clf_ckp_name', type=str, default="2022-06-04--00.00")  # Mura: 2022-06-04--00.05, H2Z: 2022-06-04--00.00 A2O: 2022-09-23--15.18
+py.arg('--clf_name', type=str, default="alexnet")
+py.arg('--clf_ckp_name', type=str,
+       default="2022-06-04--00.00")  # Mura: 2022-06-04--00.05, H2Z: 2022-06-04--00.00 A2O: 2022-09-23--15.18
+py.arg('--clf_input_channel', type=int, default=3)
 py.arg('--attention_type', type=str, default="attention-gan-original",
        choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
 py.arg('--current_attention_type', type=str, default="none")
@@ -56,13 +58,13 @@ elif args.dataset == "rsna":
     # args.clf_ckp_name = "2022-10-12--10.37" # Inception
     if args.clf_name == "alexnet":
         args.clf_ckp_name = "2022-10-13--13.03"  # alexnet
-        args.img_channels = 1
+        args.clf_input_channel = 1
     if args.clf_name == "inception":
-        args.clf_ckp_name = "2022-10-12--10.37" # inception
+        args.clf_ckp_name = "2022-10-12--10.37"  # inception
         args.img_channels = 3
 elif args.dataset == "apple2orange":
     args.clf_ckp_name = "2022-09-23--15.18"
-else: # h2z
+else:  # h2z
     args.clf_ckp_name = "2022-06-04--00.00"
 
 # Create new output dir if new experiment
@@ -93,8 +95,8 @@ if len(tf.config.list_physical_devices('GPU')) == 0:
     TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
 else:
     TFDS_PATH = "../tensorflow_datasets"
-    #TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
-    #os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
+    # TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
+    # os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
 
 # save settings
 py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)

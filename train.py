@@ -70,7 +70,6 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
         A_B_dataset, A_B_dataset_test, len_dataset_train = standard_datasets_loading.load_tfds_dataset(args.dataset,
                                                                                                        args.crop_size)
 
-
     # ==============================================================================
     # =                                   models                                   =
     # ==============================================================================
@@ -107,16 +106,14 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     train_D_A_acc = tf.keras.metrics.BinaryAccuracy()
     train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 
+    clf = tf.keras.models.load_model(
+        f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
+        compile=False)
+
     if args.attention_type == "attention-gan-original":
-        clf = tf.keras.models.load_model(
-            f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
-            compile=False)
         gradcam = GradcamPlusPlus(clf, clone=True)
     elif args.attention_type == "spa-gan":
         if args.attention == "clf":
-            clf = tf.keras.models.load_model(
-                f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
-                compile=False)
             gradcam = GradcamPlusPlus(clf, clone=True)
         else:  # discriminator attention
             args.counterfactual_loss_weight = 0
@@ -124,9 +121,6 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
             gradcam_D_B = Gradcam(D_B, model_modifier=ReplaceToLinear(), clone=True)
             # ... Implement SPA-GAN completely?
     else:
-        clf = tf.keras.models.load_model(
-            f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
-            compile=False)
         gradcam = None
 
     # ==============================================================================
@@ -142,11 +136,14 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
             B2A_d_logits = D_A(B2A, training=training)
 
             if args.counterfactual_loss_weight > 0:
+                if args.clf_input_channel == 1:
+                    A2B_clf = tf.image.rgb_to_grayscale(A2B)
+                    B2A_clf = tf.image.rgb_to_grayscale(B2A)
                 A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
-                                                                 clf(tf.image.resize(A2B, [512, 512],
+                                                                 clf(tf.image.resize(A2B_clf, [512, 512],
                                                                                      method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
                 B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth,
-                                                                 clf(tf.image.resize(A2B, [512, 512],
+                                                                 clf(tf.image.resize(B2A_clf, [512, 512],
                                                                                      method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
 
             else:
@@ -178,7 +175,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
         G_optimizer.apply_gradients(zip(G_grad, G_A2B.trainable_variables + G_B2A.trainable_variables))
         return A2B, B2A, G_loss_dict
 
-    # @tf.function
+    @tf.function
     def train_G_attention_gan(A_img, B_img, A_attention, B_attention, A_background, B_background):
         training = True
         with tf.GradientTape() as t:
@@ -190,11 +187,14 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
             B2A_d_logits = D_A(B2A, training=training)
 
             if args.counterfactual_loss_weight > 0:
+                if args.clf_input_channel == 1:
+                    A2B_clf = tf.image.rgb_to_grayscale(A2B)
+                    B2A_clf = tf.image.rgb_to_grayscale(B2A)
                 A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
-                                                                 clf(tf.image.resize(A2B, [512, 512],
+                                                                 clf(tf.image.resize(A2B_clf, [512, 512],
                                                                                      method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
                 B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth,
-                                                                 clf(tf.image.resize(B2A, [512, 512],
+                                                                 clf(tf.image.resize(B2A_clf, [512, 512],
                                                                                      method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
             else:
                 A2B_counterfactual_loss = tf.zeros(())
@@ -343,8 +343,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                 else:
                     args.current_attention_type = args.attention_type
 
-                A_holder, B_holder = get_img_holders(A, B, args.current_attention_type, args.attention,
-                                                     gradcam=gradcam)
+                A_holder, B_holder = get_img_holders(A, B, args, gradcam=gradcam)
 
                 G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
 
