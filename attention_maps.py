@@ -25,7 +25,7 @@ def apply_attention_on_img(img, attention_map):
     return scale_between_minus_one_one(img)
 
 
-def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity=1, attention_source="clf"):
+def apply_gradcam(img, gradcam, class_index, args, attention_intensity=1, attention_source="clf"):
     """
     Applys gradcam to an image and returns the heatmap as well as the enhanced img.
     """
@@ -46,7 +46,7 @@ def apply_gradcam(img, gradcam, class_index, attention_type, attention_intensity
     if img.get_shape()[-2] == 256 and attention_source != "discriminator":
         cam = tf.image.resize(cam, [256, 256], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
-    if attention_type == "spa-gan":
+    if args.attention_type == "spa-gan":
         cam = shift_values_above_intensity(cam, attention_intensity)
     if attention_intensity == 0:  # for testing purposes when you want to apply attention everywhere.
         cam = tf.ones(shape=cam.shape)
