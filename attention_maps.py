@@ -30,16 +30,23 @@ def apply_gradcam(img, gradcam, class_index, args, attention_intensity=1, attent
     Applys gradcam to an image and returns the heatmap as well as the enhanced img.
     """
     # Generate cam map
+    if args.clf_input_channel == 1:
+        # Make temporary 1 channel img
+        img_tmp = tf.image.rgb_to_grayscale(img)
+    else:
+        img_tmp = img
+
     if img.get_shape()[-2] == 256 and attention_source != "discriminator":
-        cam_input = tf.image.resize(img, [512, 512], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        cam_input = tf.image.resize(img_tmp, [512, 512], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
         cam = gradcam(CategoricalScore(class_index), cam_input, penultimate_layer=-1)
     else:
-        cam = gradcam(CategoricalScore(class_index), img, penultimate_layer=-1)
+        cam = gradcam(CategoricalScore(class_index), img_tmp, penultimate_layer=-1)
     if np.max(cam) == 0 and np.min(cam) == 0:
         print(f"Found image without attention...")
         cam = tf.ones(shape=cam.shape)
     cam = tf.math.divide(cam, tf.reduce_max(cam))
-    # Turn to batched channeled array
+
+    # Turn to batched channeled array and make compatible with img
     cam = tf.expand_dims(cam, axis=-1)
     if img.get_shape()[-1] == 3:
         cam = tf.image.grayscale_to_rgb(tf.convert_to_tensor(cam))
@@ -50,6 +57,9 @@ def apply_gradcam(img, gradcam, class_index, args, attention_intensity=1, attent
         cam = shift_values_above_intensity(cam, attention_intensity)
     if attention_intensity == 0:  # for testing purposes when you want to apply attention everywhere.
         cam = tf.ones(shape=cam.shape)
+    if args.clf_input_channel == 1:
+        # Turn to 3 channel img
+        cam = tf.image.grayscale_to_rgb(cam)
     cam = scale_between_minus_one_one(cam)
     img = apply_attention_on_img(img, cam)
     return img, cam  # [-1,1]
