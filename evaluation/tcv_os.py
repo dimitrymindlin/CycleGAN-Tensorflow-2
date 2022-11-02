@@ -4,11 +4,12 @@ import numpy as np
 from PIL import Image
 from matplotlib import pyplot as plt
 from skimage.metrics import structural_similarity, peak_signal_noise_ratio
-
+import pylib as py
 import tqdm
 
 from attention_strategies.attention_gan import attention_gan_single
 from attention_strategies.no_attention import no_attention_single
+from imlib import immerge, imwrite
 from imlib.image_holder import ImageHolder
 import tensorflow as tf
 
@@ -105,15 +106,16 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
             clf_prediction = int(np.argmax(clf(translated_i_batched)))
             y_pred_translated.append(clf_prediction)
             if not args.save_only_translated_img and save_img:
-                """img = immerge(np.concatenate([img_holder.img, img_holder.attention, translated_img], axis=0), n_rows=1)
+                original_prediction = int(np.argmax(clf(tf.expand_dims(tf.image.resize(img_i, [512, 512]), axis=0))))
+                img = immerge(np.concatenate([img_holder.img, img_holder.attention, translated_img], axis=0), n_rows=1)
                 class_label_name = "Normal" if class_label == 0 else "Abnormal"
-                img_folder = f'output_mura/{class_label_name}'
+                img_folder = f'output_mura/{class_label_name}_{original_prediction}_{clf_prediction}'
                 py.mkdir(img_folder)
-                imwrite(img, f"{img_folder}/%d.png" % (batch_i))"""
-                r, c = 1, 3
+                imwrite(img, f"{img_folder}/%d.png" % (batch_i))
+                """r, c = 1, 3
                 titles = ['Original', 'Attention', 'Output']
                 imgs = [img_holder.img, img_holder.attention, translated_img]
-                original_prediction = int(np.argmax(clf(tf.expand_dims(tf.image.resize(img_i, [512, 512]), axis=0))))
+
                 classification = [original_prediction, "", clf_prediction]
                 gen_imgs = np.concatenate(imgs)
                 #gen_imgs = 0.5 * gen_imgs + 0.5
@@ -141,7 +143,7 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
                 img_folder = f'{save_img}/{class_label_name}'
                 os.makedirs(img_folder, exist_ok=True)
                 fig.savefig(f"{img_folder}/%d.png" % (batch_i))
-                plt.close()
+                plt.close()"""
 
             if args.save_only_translated_img:
                 # im = Image.fromarray(np.squeeze(np.array(0.5 * translated_img + 0.5)))
