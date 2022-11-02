@@ -121,9 +121,12 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
                 fig, axs = plt.subplots(r, c, figsize=(30, 20))
                 cnt = 0
 
-                cmap = 'gray' if dataset in ["mura", "rsna"] else 'jet'
+                cmap = 'gray' if dataset in ["mura", "rsna"] else None
                 for j in range(c):
-                    axs[j].imshow(gen_imgs[cnt][:, :, 0], cmap=cmap)
+                    if cmap:
+                        axs[j].imshow(gen_imgs[cnt][:, :, 0], cmap=cmap)
+                    else:
+                        axs[j].imshow(gen_imgs[cnt][:, :, 0])
                     if j == 2:
                         axs[j].set_title(
                             f'{titles[j]} (T: {correct_classification[cnt]} | P: {classification[cnt]})')
