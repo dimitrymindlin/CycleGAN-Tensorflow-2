@@ -32,6 +32,7 @@ def apply_gradcam(img, gradcam, class_index, args, attention_intensity=1, attent
     # Generate cam map
     if args.clf_input_channel == 1:
         # Make temporary 1 channel img
+        print(tf.shape(img))
         img_tmp = tf.image.rgb_to_grayscale(img)
     else:
         img_tmp = img
