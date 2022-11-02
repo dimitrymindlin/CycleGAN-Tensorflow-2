@@ -120,7 +120,7 @@ elif args.dataset == "rsna":
                                                                                         args.crop_size,
                                                                                         args.crop_size,
                                                                                         special_normalisation=None,
-                                                                                        channels=1)
+                                                                                        channels=args.img_channels)
 
 else:  # Horse2Zebra / Apple2Orange
     A_dataset, A_dataset_test, B_dataset, B_dataset_test = load_tfds_test_data(args.dataset)
