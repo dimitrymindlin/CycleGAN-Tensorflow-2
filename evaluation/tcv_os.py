@@ -109,7 +109,7 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
                 original_prediction = int(np.argmax(clf(tf.expand_dims(tf.image.resize(img_i, [512, 512]), axis=0))))
                 img = immerge(np.concatenate([img_holder.img, img_holder.attention, translated_img], axis=0), n_rows=1)
                 class_label_name = "Normal" if class_label == 0 else "Abnormal"
-                img_folder = f'output_mura/{class_label_name}'
+                img_folder = f'{save_img}/{class_label_name}'
                 os.makedirs(img_folder, exist_ok=True)
                 imwrite(img, f"{img_folder}/%d_{original_prediction}_{clf_prediction}.png" % (batch_i))
                 """r, c = 1, 3
