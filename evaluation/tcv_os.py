@@ -116,7 +116,7 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
                 original_prediction = int(np.argmax(clf(tf.expand_dims(tf.image.resize(img_i, [512, 512]), axis=0))))
                 classification = [original_prediction, "", clf_prediction]
                 gen_imgs = np.concatenate(imgs)
-                gen_imgs = 0.5 * gen_imgs + 0.5
+                #gen_imgs = 0.5 * gen_imgs + 0.5
                 correct_classification = [class_label_name, class_label_name, target_class_name]
                 fig, axs = plt.subplots(r, c, figsize=(30, 20))
                 cnt = 0
