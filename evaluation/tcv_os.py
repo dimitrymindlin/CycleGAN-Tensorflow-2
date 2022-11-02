@@ -84,7 +84,7 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
     len_dataset = 0
 
     for batch_i, img_batch in enumerate(tqdm.tqdm(dataset, desc='Translating images')):
-        img_holder = ImageHolder(img_batch, class_label, gradcam=gradcam, attention_type=args.attention_type)
+        img_holder = ImageHolder(img_batch, args, class_label, gradcam=gradcam)
         class_label_name = "Normal" if class_label == 0 else "Abnormal"
         target_class_name = "Abnormal" if class_label == 0 else "Normal"
         if args.attention_type == "attention-gan-original":
