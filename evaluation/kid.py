@@ -142,7 +142,10 @@ def calc_KID_for_model(translated_images, img_shape, dataset):
                 current_translated_images = translated_images[j * max_samples:(j + 1) * max_samples]
             if current_translated_images < 100:
                 break"""
-        tmp_samples_tensor = tf.squeeze(tf.image.grayscale_to_rgb(tf.convert_to_tensor(tmp_samples)))
+        if img_shape[-1] == 1:
+            tmp_samples_tensor = tf.squeeze(tf.image.grayscale_to_rgb(tf.convert_to_tensor(tmp_samples)))
+        else:
+            tmp_samples_tensor = tf.squeeze(tf.convert_to_tensor(tmp_samples))
         kid.update_state(tmp_samples_tensor, translated_images)
         kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
         kid.reset_state()
