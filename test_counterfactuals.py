@@ -61,7 +61,7 @@ elif args.dataset == "rsna":
     args.crop_size = 512
     if args.clf_name == "alexnet":
         args.clf_ckp_name = "2022-10-13--13.03"  # alexnet
-        args.img_channels = 1
+        args.clf_input_channel = 1
     if args.clf_name == "inception":
         args.clf_ckp_name = "2022-10-12--10.37"  # inception
         args.img_channels = 3
