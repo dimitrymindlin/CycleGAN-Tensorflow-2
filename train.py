@@ -139,6 +139,9 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                 if args.clf_input_channel == 1:
                     A2B_clf = tf.image.rgb_to_grayscale(A2B)
                     B2A_clf = tf.image.rgb_to_grayscale(B2A)
+                else:
+                    A2B_clf = A2B
+                    B2A_clf = B2A
                 A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
                                                                  clf(tf.image.resize(A2B_clf, [512, 512],
                                                                                      method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
