@@ -99,7 +99,7 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
                 if args.img_channels == 1:
                     translated_i = tf.expand_dims(translated_i, axis=-1)
                 translated_images.append(translated_i)
-            translated_i_batched = tf.expand_dims(tf.image.resize(translated_i, [512, 512]), axis=0)
+            translated_i_batched = tf.expand_dims(tf.squeeze(tf.image.resize(translated_i, [512, 512])), axis=0)
             if args.clf_input_channel == 1:
                 translated_i_batched = tf.image.rgb_to_grayscale(translated_i_batched)
             clf_prediction = int(np.argmax(clf(tf.expand_dims(tf.image.resize(translated_i_batched, [512, 512]), axis=0))))
