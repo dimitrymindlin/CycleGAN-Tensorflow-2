@@ -10,5 +10,5 @@ python3 -m test_counterfactuals \
 --kid True \
 --save_img False \
 --clf_name inception \
---generator unet
+--generator resnet
 
