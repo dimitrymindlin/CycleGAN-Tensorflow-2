@@ -32,6 +32,7 @@ py.arg('--oracle_ckp_name', type=str, default="2022-08-21--00.00")  # Mura: 2022
 py.arg('--print_images', type=bool, default=True)
 py.arg('--crop_size', type=int, default=256)  # Mura: 512 H2Z: 256
 py.arg('--img_channels', type=int, default=3)
+py.arg('--clf_input_channel', type=int, default=3)
 py.arg('--save_img', type=bool, default=True)
 py.arg('--save_only_translated_img', type=bool, default=False)
 py.arg('--tcv_os', type=bool, default=True)
