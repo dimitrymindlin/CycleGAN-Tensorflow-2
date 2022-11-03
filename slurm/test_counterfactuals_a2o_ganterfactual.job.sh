@@ -4,11 +4,13 @@ conda activate medical-decision-support-system
 cd /media/compute/homes/dmindlin/CycleGAN-Tensorflow-2
 
 python3 -m test_counterfactuals \
---dataset rsna \
+--dataset apple2orange \
 --tcv_os True \
 --ssim_psnr True \
 --kid True \
---save_img True \
---clf_name alexnet \
---generator unet
+--save_img False \
+--clf_name inception \
+--generator resnet \
+--attention_type none
+
 
