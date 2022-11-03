@@ -6,7 +6,7 @@ cd /media/compute/homes/dmindlin/CycleGAN-Tensorflow-2
 python3 -m experiment \
   --dataset apple2orange \
   --adversarial_loss_weight 1 \
-  --cycle_loss_weight 10 \
+  --cycle_loss_weight 5 \
   --counterfactual_loss_weight 1 \
   --identity_loss_weight 1 \
   --generator resnet \
