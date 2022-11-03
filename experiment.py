@@ -48,6 +48,7 @@ if args.dataset == "mura":
     args.epoch_decay = 16
     args.sample_interval = 2
     args.clf_ckp_name = "2022-06-04--00.05"
+    args.clf_name = "inception"
 
 elif args.dataset == "rsna":
     args.load_size = 512
@@ -64,6 +65,7 @@ elif args.dataset == "rsna":
         args.img_channels = 3
 elif args.dataset == "apple2orange":
     args.clf_ckp_name = "2022-09-23--15.18"
+    args.clf_name = "inception"
 else:  # h2z
     args.clf_ckp_name = "2022-06-04--00.00"
 
