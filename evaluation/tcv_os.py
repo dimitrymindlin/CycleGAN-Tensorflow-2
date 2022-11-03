@@ -107,43 +107,45 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
             y_pred_translated.append(clf_prediction)
             if not args.save_only_translated_img and save_img:
                 original_prediction = int(np.argmax(clf(tf.expand_dims(tf.image.resize(img_i, [512, 512]), axis=0))))
-                img = immerge(np.concatenate([img_holder.img, img_holder.attention, translated_img], axis=0), n_rows=1)
-                class_label_name = "Normal" if class_label == 0 else "Abnormal"
-                img_folder = f'{save_img}/{class_label_name}'
-                os.makedirs(img_folder, exist_ok=True)
-                imwrite(img, f"{img_folder}/%d_{original_prediction}_{clf_prediction}.png" % (batch_i))
-                """r, c = 1, 3
-                titles = ['Original', 'Attention', 'Output']
-                imgs = [img_holder.img, img_holder.attention, translated_img]
+                if args.dataset == "apple2orange":
+                    img = immerge(np.concatenate([img_holder.img, img_holder.attention, translated_img], axis=0), n_rows=1)
+                    class_label_name = "Normal" if class_label == 0 else "Abnormal"
+                    img_folder = f'{save_img}/{class_label_name}'
+                    os.makedirs(img_folder, exist_ok=True)
+                    imwrite(img, f"{img_folder}/%d_{original_prediction}_{clf_prediction}.png" % (batch_i))
+                else:
+                    r, c = 1, 3
+                    titles = ['Original', 'Attention', 'Output']
+                    imgs = [img_holder.img, img_holder.attention, translated_img]
 
-                classification = [original_prediction, "", clf_prediction]
-                gen_imgs = np.concatenate(imgs)
-                #gen_imgs = 0.5 * gen_imgs + 0.5
-                correct_classification = [class_label_name, class_label_name, target_class_name]
-                fig, axs = plt.subplots(r, c, figsize=(30, 20))
-                cnt = 0
+                    classification = [original_prediction, "", clf_prediction]
+                    gen_imgs = np.concatenate(imgs)
+                    gen_imgs = 0.5 * gen_imgs + 0.5
+                    correct_classification = [class_label_name, class_label_name, target_class_name]
+                    fig, axs = plt.subplots(r, c, figsize=(30, 20))
+                    cnt = 0
 
-                cmap = 'gray' if dataset in ["mura", "rsna"] else None
-                for j in range(c):
-                    if cmap:
-                        axs[j].imshow(gen_imgs[cnt][:, :, 0], cmap=cmap)
-                    else:
-                        axs[j].imshow(gen_imgs[cnt][:, :, 0])
-                    if j == 2:
-                        axs[j].set_title(
-                            f'{titles[j]} (T: {correct_classification[cnt]} | P: {classification[cnt]})')
-                    elif j == 1:
-                        axs[j].set_title(
-                            f'{titles[j]}')
-                    else:
-                        axs[j].set_title(
-                            f'{titles[j]} (T: {correct_classification[cnt]} | P: {classification[cnt]}')
-                    axs[j].axis('off')
-                    cnt += 1
-                img_folder = f'{save_img}/{class_label_name}'
-                os.makedirs(img_folder, exist_ok=True)
-                fig.savefig(f"{img_folder}/%d.png" % (batch_i))
-                plt.close()"""
+                    cmap = 'gray' if dataset in ["mura", "rsna"] else None
+                    for j in range(c):
+                        if cmap:
+                            axs[j].imshow(gen_imgs[cnt][:, :, 0], cmap=cmap)
+                        else:
+                            axs[j].imshow(gen_imgs[cnt][:, :, 0])
+                        if j == 2:
+                            axs[j].set_title(
+                                f'{titles[j]} (T: {correct_classification[cnt]} | P: {classification[cnt]})')
+                        elif j == 1:
+                            axs[j].set_title(
+                                f'{titles[j]}')
+                        else:
+                            axs[j].set_title(
+                                f'{titles[j]} (T: {correct_classification[cnt]} | P: {classification[cnt]}')
+                        axs[j].axis('off')
+                        cnt += 1
+                    img_folder = f'{save_img}/{class_label_name}'
+                    os.makedirs(img_folder, exist_ok=True)
+                    fig.savefig(f"{img_folder}/%d.png" % (batch_i))
+                    plt.close()
 
             if args.save_only_translated_img:
                 # im = Image.fromarray(np.squeeze(np.array(0.5 * translated_img + 0.5)))
