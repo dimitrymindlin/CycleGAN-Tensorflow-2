@@ -16,7 +16,6 @@ import tqdm
 import module
 from attention_strategies.attention_gan import attention_gan_step, attention_gan_discriminator_step
 from attention_strategies.no_attention import no_attention_step
-from imlib import generate_image
 from imlib.image_holder import get_img_holders
 from tf2lib.data.item_pool import ItemPool
 
@@ -193,6 +192,9 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                 if args.clf_input_channel == 1:
                     A2B_clf = tf.image.rgb_to_grayscale(A2B)
                     B2A_clf = tf.image.rgb_to_grayscale(B2A)
+                else:
+                    A2B_clf = A2B
+                    B2A_clf = B2A
                 A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
                                                                  clf(tf.image.resize(A2B_clf, [512, 512],
                                                                                      method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
