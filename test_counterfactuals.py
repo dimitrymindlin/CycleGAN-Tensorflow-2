@@ -167,15 +167,15 @@ if args.dataset == "apple2orange":
     checkpoint_ep_list_abc = ["180", "195", "180", "195", "180", "195", "180", "195", "180", "195", "180", "195",
                               "180", "195", "180", "195", "180", "195", "180", "195"]
     # For Paper
-    """checkpoint_ts_list_abc = [
+    checkpoint_ts_list_abc = [
         "2022-10-04--11.09",
         "2022-10-24--11.27",
-        "2022-10-27--18.22",
+        "2022-11-03--23.21",
         "2022-10-30--21.45", ]
     checkpoint_ep_list_abc = ["195",
                               "195",
                               "180",
-                              "180", ]"""
+                              "180", ]
 
 if args.dataset == "mura":
     checkpoint_ts_list_abc = ["2022-11-04--14.21", "2022-11-04--14.21", "2022-11-04--14.33", "2022-11-04--14.33",
@@ -253,7 +253,7 @@ for counterfactuals_type in tqdm.tqdm(counterfactuals_to_test, desc='Counterfact
     with open(f'{counterfactuals_type}_{args.dataset}.txt', 'w') as f:
         sys.stdout = f  # Change the standard output to the file we created.
         load_generators, checkpoint_ts_list, checkpoint_ep_list = load_generators_and_ckp_lists(counterfactuals_type)
-        for name, ep in zip(checkpoint_ts_list[-4:], checkpoint_ep_list[-4:]):
+        for name, ep in zip(checkpoint_ts_list, checkpoint_ep_list):
             print(f"Starting {name}_{ep}")
             G_A2B, G_B2A = load_generators(name, ep)
             if args.save_img:
