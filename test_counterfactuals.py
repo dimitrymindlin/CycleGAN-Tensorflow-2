@@ -178,8 +178,8 @@ if args.dataset == "apple2orange":
                               "180", ]"""
 
 if args.dataset == "mura":
-    checkpoint_ts_list_abc = ["2022-11-04--14.21", "2022-11-04--14.21"]
-    checkpoint_ep_list_abc = ["16", "18"]
+    checkpoint_ts_list_abc = ["2022-11-04--14.21", "2022-11-04--14.21", "2022-11-04--14.33", "2022-11-04--14.33"]
+    checkpoint_ep_list_abc = ["16", "18", "16", "18"]
 
 if args.dataset == "horse2zebra":
     checkpoint_ts_list_abc = ["2022-09-23--16.36", "2022-09-23--16.36", "2022-09-27--10.26", "2022-09-27--10.26",
