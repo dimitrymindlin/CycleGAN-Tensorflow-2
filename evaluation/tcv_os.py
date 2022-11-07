@@ -73,8 +73,7 @@ def translate_images_clf_oracle(dataset, clf, oracle, generator, gradcam, class_
                 fig.savefig(f"{img_folder}/%d.png" % (batch_i))
                 plt.close()
         len_dataset += 1
-        if len_dataset >= 250:
-            break
+
     return y_pred_translated, y_pred_oracle, len_dataset, translated_images
 
 
