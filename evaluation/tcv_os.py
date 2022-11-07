@@ -110,7 +110,7 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
                     original_img_batched = tf.image.rgb_to_grayscale(original_img_batched)
                 original_prediction = int(np.argmax(clf(original_img_batched)))
                 if args.dataset == "apple2orange":
-                    if args.attention != "none":
+                    if args.attention_type != "none":
                         img = immerge(np.concatenate([img_holder.img, img_holder.attention, translated_img], axis=0),
                                       n_rows=1)
                     else:
