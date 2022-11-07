@@ -157,6 +157,8 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
                 os.makedirs(img_folder, exist_ok=True)
                 im.save(f"{img_folder}/%d.png" % (batch_i))
         len_dataset += 1
+        if len_dataset > 250:
+            break
     return y_pred_translated, len_dataset, translated_images
 
 
