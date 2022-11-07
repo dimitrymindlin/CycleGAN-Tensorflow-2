@@ -106,7 +106,7 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
             clf_prediction = int(np.argmax(clf(translated_i_batched)))
             y_pred_translated.append(clf_prediction)
             if not args.save_only_translated_img and save_img:
-                original_img_batched = int(np.argmax(clf(tf.expand_dims(tf.image.resize(img_i, [512, 512]), axis=0))))
+                original_img_batched = tf.expand_dims(tf.image.resize(img_i, [512, 512]), axis=0)
                 if args.clf_input_channel == 1:
                     original_img_batched = tf.image.rgb_to_grayscale(original_img_batched)
                 original_prediction = int(np.argmax(clf(original_img_batched)))
