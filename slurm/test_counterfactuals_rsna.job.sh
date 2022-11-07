@@ -9,5 +9,6 @@ python3 -m test_counterfactuals \
 --ssim_psnr True \
 --kid True \
 --save_img True \
+--clf_name alexnet
 
 
