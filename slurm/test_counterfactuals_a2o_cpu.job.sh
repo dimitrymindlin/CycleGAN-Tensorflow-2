@@ -10,5 +10,6 @@ python3 -m test_counterfactuals \
 --kid True \
 --save_img True \
 --clf_name inception \
---generator resnet
+--generator resnet \
+--attention_type none
 
