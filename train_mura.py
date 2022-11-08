@@ -273,7 +273,7 @@ with train_summary_writer.as_default():
                 A2B, B2A, A2B2A, B2A2B = sample(A, B)
 
                 # Save images
-                generate_image(args, None, A, B, A2B, B2A,
+                generate_image(args, A, B, A2B, B2A,
                                execution_id, ep, batch_count,
                                A2B2A=A2B2A,
                                B2A2B=B2A2B)

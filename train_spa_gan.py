@@ -371,8 +371,9 @@ with train_summary_writer.as_default():
                     A_holder.transformed_part = A_enhanced
                     B_holder.transformed_part = B_enhanced
                     # Save images
-                    generate_image(args, clf, A, B, A2B, B2A,
+                    generate_image(args, A, B, A2B, B2A,
                                    execution_id, ep, batch_count,
+                                   clf=clf,
                                    A_holder=A_holder,
                                    B_holder=B_holder)
 

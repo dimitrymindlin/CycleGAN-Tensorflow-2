@@ -8,8 +8,9 @@ from imlib import dtype
 from imlib.transform import immerge
 
 
-def generate_image(args, clf, A, B, A2B, B2A,
+def generate_image(args, A, B, A2B, B2A,
                    execution_id, ep, batch_count,
+                   clf = None,
                    A_holder=None,
                    B_holder=None,
                    A2B2A=None,
