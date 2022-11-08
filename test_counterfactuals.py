@@ -179,12 +179,12 @@ if args.dataset == "apple2orange":
                               "180",
                               "180", ]
 
-    # For TEST
+    """# For TEST
     checkpoint_ts_list_abc = [
         "2022-11-03--23.21", ]
     checkpoint_ep_list_abc = [
         "180",
-    ]
+    ]"""
 
 if args.dataset == "mura":
     checkpoint_ts_list_abc = ["2022-11-04--14.21", "2022-11-04--14.21", "2022-11-04--14.33", "2022-11-04--14.33",
