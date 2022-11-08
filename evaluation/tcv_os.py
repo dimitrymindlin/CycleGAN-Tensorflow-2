@@ -9,7 +9,7 @@ import tqdm
 
 from attention_strategies.attention_gan import attention_gan_single
 from attention_strategies.no_attention import no_attention_single
-from imlib import immerge, imwrite
+from imlib import immerge, imwrite, generate_image
 from imlib.image_holder import ImageHolder
 import tensorflow as tf
 
@@ -46,13 +46,13 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
                 if args.clf_input_channel == 1:
                     original_img_batched = tf.image.rgb_to_grayscale(original_img_batched)
                 original_prediction = int(np.argmax(clf(original_img_batched)))
-                if args.dataset == "apple2orange":
+                if args.dataset in ["apple2orange", "horse2zebra"]:
                     if args.attention_type != "none":
                         img = immerge(np.concatenate([img_holder.img, img_holder.attention, translated_img], axis=0),
                                       n_rows=1)
                     else:
                         img = immerge(np.concatenate([img_holder.img, translated_img], axis=0), n_rows=1)
-                    class_label_name = "Normal" if class_label == 0 else "Abnormal"
+                    class_label_name = "A" if class_label == 0 else "B"
                     img_folder = f'{save_img}/{class_label_name}'
                     os.makedirs(img_folder, exist_ok=True)
                     imwrite(img, f"{img_folder}/%d_{original_prediction}_{clf_prediction}.png" % (batch_i))
