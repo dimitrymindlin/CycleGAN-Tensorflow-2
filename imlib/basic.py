@@ -10,17 +10,17 @@ from imlib.transform import immerge
 
 def generate_image(args, A, B, A2B, B2A,
                    execution_id, ep, batch_count,
-                   clf = None,
+                   clf=None,
                    A_holder=None,
                    B_holder=None,
                    A2B2A=None,
                    B2A2B=None):
     if args.current_attention_type != "none":  # Save with attention
-        if args.dataset == "mura":
+        if args.dataset in ["mura", "rsna"]:
             imgs = [A, A_holder.attention, A_holder.transformed_part, A2B,
                     B, B_holder.attention, B_holder.transformed_part, B2A]
-            save_mura_images_with_attention(imgs, clf, args.dataset, execution_id, ep, batch_count)
-        else:
+            save_imgs_with_attention_and_clf_predictions(args, imgs, clf, args.dataset, execution_id, ep, batch_count)
+        else:  # a2o, h2z...
             save_images_with_attention(A_holder, A2B, B_holder, B2A,
                                        clf, args.dataset, execution_id, ep, batch_count,
                                        args.current_attention_type)
@@ -28,7 +28,7 @@ def generate_image(args, A, B, A2B, B2A,
         if args.dataset == "mura":
             imgs = [A, A2B, B, B2A]
             save_mura_images(imgs, clf, args.dataset, execution_id, ep, batch_count)
-        else: # Horse2Zebra
+        else:  # Horse2Zebra
             img = immerge(np.concatenate([A, A2B, A2B2A, B, B2A, B2A2B], axis=0), n_rows=2)
             img_folder = f'output_{args.dataset}/{execution_id}/images'
             imwrite(img, f"{img_folder}/%d_%d.png" % (ep, batch_count))
@@ -68,19 +68,26 @@ def save_mura_images(imgs, clf, dataset, execution_id, ep_cnt, batch_count):
     plt.close()
 
 
-def save_mura_images_with_attention(imgs, clf, dataset, execution_id, ep_cnt, batch_count):
+def save_imgs_with_attention_and_clf_predictions(args, imgs, clf, dataset, execution_id, ep_cnt, batch_count):
+    """
+    Saves one image with classifier attention maps and titles indication true and rpedicted values.
+    Parameters
+    """
     r, c = 2, 4
     titles = ['Original', 'Attention', 'Translated', 'Output']
-    classification = [['Normal', 'Abnormal'][int(np.argmax(clf.predict(x)))] for x in imgs]
+    classification = [['A', 'B'][int(np.argmax(clf.predict(x)))] for x in imgs]
     gen_imgs = np.concatenate(imgs)
     gen_imgs = 0.5 * gen_imgs + 0.5
-    correct_classification = ['Normal', 'Normal', 'Normal', 'Abnormal',
-                              'Abnormal', 'Abnormal', 'Abnormal', 'Normal']
+    correct_classification = ['A', 'A', 'A', 'B',
+                              'B', 'B', 'B', 'A']
     fig, axs = plt.subplots(r, c, figsize=(30, 20))
     cnt = 0
     for i in range(r):
         for j in range(c):
-            axs[i, j].imshow(gen_imgs[cnt][:, :, 0], cmap='gray')
+            if args.dataset in ["mura", "rsna"]:
+                axs[i, j].imshow(gen_imgs[cnt][:, :, 0], cmap='gray')
+            else:
+                axs[i, j].imshow(gen_imgs[cnt][:, :, 0])  # H2Z, A2O ...
             if j in [0, 3]:
                 axs[i, j].set_title(
                     f'{titles[j]} (T: {correct_classification[cnt]} | P: {classification[cnt]})')
@@ -88,7 +95,7 @@ def save_mura_images_with_attention(imgs, clf, dataset, execution_id, ep_cnt, ba
                 axs[i, j].set_title(f'{titles[j]}')
             axs[i, j].axis('off')
             cnt += 1
-    img_folder = f'output_{dataset}/{execution_id}/images'
+    img_folder = f'test_{dataset}/{execution_id}/images'
     os.makedirs(img_folder, exist_ok=True)
     fig.savefig(f"{img_folder}/%d_%d.png" % (ep_cnt, batch_count))
     plt.close()
