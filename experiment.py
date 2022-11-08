@@ -40,6 +40,8 @@ py.arg('--start_attention_epoch', type=int, default=0)
 py.arg('--sample_interval', type=int, default=5)
 args = py.args()
 
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
+
 print(f"Using {args.dataset} dataset.")
 if args.dataset == "mura":
     args.load_size = 512
@@ -74,13 +76,13 @@ if not args.load_checkpoint:
     execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
     # output_dir
     try:
-        output_dir = py.join(f'output_{args.dataset}/{execution_id}')
-        py.mkdir(output_dir)
+        #output_dir = py.join(f'output_{args.dataset}/{execution_id}')
+        output_dir = py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{execution_id}")
     except FileExistsError:
         time.sleep(60)
         execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
-        output_dir = py.join(f'output_{args.dataset}/{execution_id}')
-        py.mkdir(output_dir)
+        output_dir = py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{execution_id}")
+    py.mkdir(output_dir)
 else:
     # For loading checkpoint if continuation of experiment
     print(f"Setting {args.load_checkpoint} as checkpoint.")
