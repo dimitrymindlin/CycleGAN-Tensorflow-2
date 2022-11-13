@@ -1,9 +1,9 @@
 import tensorflow as tf
 
-from tf2lib.data import *
-from tf2lib.image import *
-from tf2lib.ops import *
-from tf2lib.utils import *
+from tf2lib_local.data import *
+from tf2lib_local.image import *
+from tf2lib_local.ops import *
+from tf2lib_local.utils import *
 
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
 for d in physical_devices:
