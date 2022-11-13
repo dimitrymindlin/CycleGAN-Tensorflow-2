@@ -9,7 +9,7 @@ import tqdm
 
 from attention_strategies.attention_gan import attention_gan_single
 from attention_strategies.no_attention import no_attention_single
-from imlib import immerge, imwrite, generate_image
+from imlib import immerge, imwrite, generate_image, save_images_with_attention
 from imlib.image_holder import ImageHolder
 import tensorflow as tf
 
@@ -22,80 +22,56 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
 
     for batch_i, img_batch in enumerate(tqdm.tqdm(dataset, desc='Translating images')):
         img_holder = ImageHolder(img_batch, args, class_label, gradcam=gradcam)
-        class_label_name = "Normal" if class_label == 0 else "Abnormal"
-        target_class_name = "Abnormal" if class_label == 0 else "Normal"
+        class_label_name = "A" if class_label == 0 else "B"
+        target_class_name = "B" if class_label == 0 else "A"
+        # Generate Images (only batch of 1 img supported at the moment)
         if args.attention_type == "attention-gan-original":
             translated_img, _ = attention_gan_single(img_holder.img, generator, None, img_holder.attention,
                                                      img_holder.background, training)
         else:
             translated_img = no_attention_single(img_holder.img, generator, None, training)
+
+        if return_images:
+            # save imgs to list and return later
+            translated_img_unbatched = tf.squeeze(translated_img)
+            if args.img_channels == 1:
+                translated_img = tf.expand_dims(translated_img_unbatched, axis=-1)
+            translated_images.append(translated_img)
+
         # Predict images with CLF
         for img_i, translated_i in zip(img_batch, translated_img):
-            if return_images:
-                translated_i = tf.squeeze(translated_i)
-                if args.img_channels == 1:
-                    translated_i = tf.expand_dims(translated_i, axis=-1)
-                translated_images.append(translated_i)
+            # To predict, scale to 512,512 and batch
             translated_i_batched = tf.expand_dims(tf.image.resize(translated_i, [512, 512]), axis=0)
             if args.clf_input_channel == 1:
                 translated_i_batched = tf.image.rgb_to_grayscale(translated_i_batched)
+            # get predicted class label as int
             clf_prediction = int(np.argmax(clf(translated_i_batched)))
             y_pred_translated.append(clf_prediction)
-            if not args.save_only_translated_img and save_img:
-                original_img_batched = tf.expand_dims(tf.image.resize(img_i, [512, 512]), axis=0)
-                if args.clf_input_channel == 1:
-                    original_img_batched = tf.image.rgb_to_grayscale(original_img_batched)
-                original_prediction = int(np.argmax(clf(original_img_batched)))
-                if args.dataset in ["apple2orange", "horse2zebra"]:
-                    if args.attention_type != "none":
-                        img = immerge(np.concatenate([img_holder.img, img_holder.attention, translated_img], axis=0),
-                                      n_rows=1)
-                    else:
-                        img = immerge(np.concatenate([img_holder.img, translated_img], axis=0), n_rows=1)
+            # If images should be saved
+            if save_img:
+                # Save all imgs (original, (attention,) translated)
+                if not args.save_only_translated_img:
+                    original_img_batched = tf.expand_dims(tf.image.resize(img_i, [512, 512]), axis=0)
+                    if args.clf_input_channel == 1:
+                        original_img_batched = tf.image.rgb_to_grayscale(original_img_batched)
+                    original_prediction = int(np.argmax(clf(original_img_batched)))
                     class_label_name = "A" if class_label == 0 else "B"
+                    if args.attention_type != "none":
+                        img = immerge(
+                            np.concatenate([img_holder.img, img_holder.attention, translated_img], axis=0), n_rows=1)
+                    else:
+                        img = immerge(
+                            np.concatenate([img_holder.img, translated_img], axis=0), n_rows=1)
                     img_folder = f'{save_img}/{class_label_name}'
                     os.makedirs(img_folder, exist_ok=True)
                     imwrite(img, f"{img_folder}/%d_{original_prediction}_{clf_prediction}.png" % (batch_i))
                 else:
-                    r, c = 1, 3
-                    titles = ['Original', 'Attention', 'Output']
-                    imgs = [img_holder.img, img_holder.attention, translated_img]
-
-                    classification = [original_prediction, "", clf_prediction]
-                    gen_imgs = np.concatenate(imgs)
-                    gen_imgs = 0.5 * gen_imgs + 0.5
-                    correct_classification = [class_label_name, class_label_name, target_class_name]
-                    fig, axs = plt.subplots(r, c, figsize=(30, 20))
-                    cnt = 0
-
-                    cmap = 'gray' if args.dataset in ["mura", "rsna"] else None
-                    for j in range(c):
-                        if cmap:
-                            axs[j].imshow(gen_imgs[cnt][:, :, 0], cmap=cmap)
-                        else:
-                            axs[j].imshow(gen_imgs[cnt][:, :, 0])
-                        if j == 2:
-                            axs[j].set_title(
-                                f'{titles[j]} (T: {correct_classification[cnt]} | P: {classification[cnt]})')
-                        elif j == 1:
-                            axs[j].set_title(
-                                f'{titles[j]}')
-                        else:
-                            axs[j].set_title(
-                                f'{titles[j]} (T: {correct_classification[cnt]} | P: {classification[cnt]}')
-                        axs[j].axis('off')
-                        cnt += 1
+                    # if only translated imgs should be saved.
+                    # im = Image.fromarray(np.squeeze(np.array(0.5 * translated_img + 0.5)))
+                    im = Image.fromarray(np.uint8(np.squeeze(np.array(0.5 * translated_img + 0.5)) * 255))
                     img_folder = f'{save_img}/{class_label_name}'
                     os.makedirs(img_folder, exist_ok=True)
-                    fig.savefig(f"{img_folder}/%d.png" % (batch_i))
-                    plt.close()
-
-            if args.save_only_translated_img:
-                # im = Image.fromarray(np.squeeze(np.array(0.5 * translated_img + 0.5)))
-                im = Image.fromarray(np.uint8(np.squeeze(np.array(0.5 * translated_img + 0.5)) * 255))
-                img_folder = f'{save_img}/{class_label_name}'
-                os.makedirs(img_folder, exist_ok=True)
-                im.save(f"{img_folder}/%d.png" % (batch_i))
+                    im.save(f"{img_folder}/%d.png" % (batch_i))
         len_dataset += 1
 
     return y_pred_translated, len_dataset, translated_images
