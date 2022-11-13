@@ -54,17 +54,19 @@ if args.dataset == "mura":
     args.crop_size = 512
     args.oracle_name = "densenet"
     args.oracle_ckp_name = "2022-08-15--17.42"
+    args.clf_name = "inception"
     args.clf_ckp_name = "2022-06-04--00.05"
     args.img_channels = 3
 elif args.dataset == "rsna":
     args.load_size = 512
     args.crop_size = 512
+    args.img_channels = 3
     if args.clf_name == "alexnet":
         args.clf_ckp_name = "2022-10-13--13.03"  # alexnet
         args.clf_input_channel = 1
     if args.clf_name == "inception":
         args.clf_ckp_name = "2022-10-12--10.37"  # inception
-        args.img_channels = 3
+        args.clf_input_channel = 3
 elif args.dataset == "apple2orange":
     args.clf_name = "inception"
     args.clf_ckp_name = "2022-09-23--15.18"
