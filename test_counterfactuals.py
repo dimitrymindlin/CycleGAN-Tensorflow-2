@@ -1,7 +1,6 @@
 import os
 import sys
 
-import numpy as np
 import tqdm
 from mura.tfds_from_disc import get_mura_test_ds_by_body_part_split_class
 from rsna import get_rsna_TEST_ds_split_class
@@ -18,7 +17,7 @@ from tensorflow_addons.layers import InstanceNormalization
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-py.arg('--dataset', default='apple2orange', choices=['horse2zebra', 'mura', 'apple2orange', 'rsna'])
+py.arg('--dataset', default='rsna', choices=['horse2zebra', 'mura', 'apple2orange', 'rsna'])
 py.arg('--body_parts', default=["XR_WRIST"])  # Only used in Mura dataset. Body part of x-ray images
 py.arg('--batch_size', type=int, default=1)
 py.arg('--datasets_dir', default='datasets')
@@ -49,6 +48,7 @@ else:
     TFDS_PATH = "../tensorflow_datasets"
 
 TFDS_PATH = "../tensorflow_datasets"
+TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
 
 if args.dataset == "mura":
     args.crop_size = 512
@@ -87,7 +87,7 @@ def get_abc_gan_generators(name, ep):
     else:
         tl.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A),
                       py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}")).restore(
-            save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}/ckpt-{ep}')
+            save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}/checkpoints/ckpt-{ep}')
     return G_A2B, G_B2A
 
 
@@ -160,8 +160,8 @@ if args.dataset == "rsna":
     checkpoint_ts_list_abc = ["2022-10-17--12.45", "2022-10-17--12.45", "2022-10-28--18.42", "2022-10-28--18.42",
                               "2022-10-31--11.00", "2022-10-31--11.00", "2022-11-02--16.45", "2022-11-02--16.45"]
     checkpoint_ep_list_abc = ["16", "18", "16", "18", "16", "18", "16", "18"]
-    checkpoint_ts_list_abc = [ "2022-11-02--16.45", "2022-11-02--16.45"]
-    checkpoint_ep_list_abc = [ "16", "18"]
+    checkpoint_ts_list_abc = ["2022-11-02--16.45"]
+    checkpoint_ep_list_abc = ["18"]
 if args.dataset == "apple2orange":
     checkpoint_ts_list_abc = ["2022-09-23--16.25", "2022-09-23--16.25", "2022-09-27--10.17", "2022-09-27--10.17",
                               "2022-09-29--16.20", "2022-09-29--16.20", "2022-10-04--11.09", "2022-10-04--11.09",
@@ -196,13 +196,16 @@ if args.dataset == "mura":
     checkpoint_ts_list_abc = ["2022-11-06--18.19", "2022-11-06--18.19"]
     checkpoint_ep_list_abc = ["16", "18"]
 
+    checkpoint_ts_list_abc = ["2022-08-27--18.00"]
+    checkpoint_ep_list_abc = ["16"]
+
 if args.dataset == "horse2zebra":
     checkpoint_ts_list_abc = ["2022-09-23--16.36", "2022-09-23--16.36", "2022-09-27--10.26", "2022-09-27--10.26",
                               "2022-09-29--16.23", "2022-09-29--16.23", "2022-10-04--11.12", "2022-10-04--11.12"]
     checkpoint_ep_list_abc = ["180", "195", "180", "195", "180", "195", "180", "195"]
 
-"""checkpoint_ts_list_abc = ["2022-08-17--03.54"]
-checkpoint_ep_list_abc = ["180"]"""
+    checkpoint_ts_list_abc = ["2022-08-13--15.48"]
+    checkpoint_ep_list_abc = ["195"]
 
 checkpoint_ts_list_ganterfactual = ["2022-10-17--15.10", "2022-10-27--18.35"]
 checkpoint_ep_list_ganterfactual = ["ep_19", "ep_19"]
@@ -271,7 +274,7 @@ for counterfactuals_type in tqdm.tqdm(counterfactuals_to_test, desc='Counterfact
             print(f"Starting {name}_{ep}")
             G_A2B, G_B2A = load_generators(name, ep)
             if args.save_img:
-                save_img = name + "_" + ep
+                save_img = args.dataset + "/" + name + "_" + ep
             else:
                 save_img = False
             evaluate_current_model(G_A2B, G_B2A, save_img)
