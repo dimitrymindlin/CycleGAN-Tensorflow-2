@@ -119,19 +119,13 @@ if args.dataset == "mura":
                                                                                                      args.crop_size,
                                                                                                      special_normalisation=None)
 elif args.dataset == "rsna":
-    """A_dataset, B_dataset, A_dataset_test, B_dataset_test = get_rsna_TEST_ds_split_class(TFDS_PATH,
+    A_dataset, B_dataset, A_dataset_test, B_dataset_test = get_rsna_TEST_ds_split_class(TFDS_PATH,
                                                                                         args.batch_size,
                                                                                         args.crop_size,
                                                                                         args.crop_size,
-                                                                                        special_normalisation=None,
+                                                                                        special_normalisation=special_normalisation,
                                                                                         channels=args.img_channels,
-                                                                                        training=True)"""
-    A_B_dataset, A_B_dataset_valid, A_B_dataset_test, len_dataset_train = get_rsna_ds_split_class(TFDS_PATH,
-                                                                                                  args.batch_size,
-                                                                                                  args.crop_size,
-                                                                                                  args.load_size,
-                                                                                                  special_normalisation,
-                                                                                                  channels=args.img_channels)
+                                                                                        training=True)
 
 
 else:  # Horse2Zebra / Apple2Orange
