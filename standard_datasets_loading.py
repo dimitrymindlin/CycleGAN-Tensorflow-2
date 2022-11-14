@@ -1,5 +1,5 @@
 import tensorflow as tf
-import tf2lib as tl
+import tf2lib_local as tl
 import tensorflow_addons as tfa
 import pylib as py
 import tensorflow_datasets as tfds
