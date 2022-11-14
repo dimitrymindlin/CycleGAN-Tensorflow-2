@@ -19,7 +19,7 @@ from tensorflow_addons.layers import InstanceNormalization
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-py.arg('--dataset', default='rsna', choices=['horse2zebra', 'mura', 'apple2orange', 'rsna'])
+py.arg('--dataset', default='apple2orange', choices=['horse2zebra', 'mura', 'apple2orange', 'rsna'])
 py.arg('--body_parts', default=["XR_WRIST"])  # Only used in Mura dataset. Body part of x-ray images
 py.arg('--batch_size', type=int, default=1)
 py.arg('--datasets_dir', default='datasets')
@@ -50,7 +50,7 @@ else:
     TFDS_PATH = "../tensorflow_datasets"
 
 TFDS_PATH = "../tensorflow_datasets"
-TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
+#TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
 
 if args.dataset == "mura":
     args.crop_size = 512
@@ -124,7 +124,8 @@ elif args.dataset == "rsna":
                                                                                         args.crop_size,
                                                                                         args.crop_size,
                                                                                         special_normalisation=None,
-                                                                                        channels=args.img_channels)
+                                                                                        channels=args.img_channels,
+                                                                                        training=True)
 
 else:  # Horse2Zebra / Apple2Orange
     A_dataset, A_dataset_test, B_dataset, B_dataset_test = load_tfds_test_data(args.dataset)
