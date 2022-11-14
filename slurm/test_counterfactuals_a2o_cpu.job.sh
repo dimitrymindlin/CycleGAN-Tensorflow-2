@@ -8,7 +8,7 @@ python3 -m test_counterfactuals \
 --tcv_os True \
 --ssim_psnr True \
 --kid True \
---save_img True \
+--save_img False \
 --clf_name inception \
 --generator resnet \
 --attention_type none
