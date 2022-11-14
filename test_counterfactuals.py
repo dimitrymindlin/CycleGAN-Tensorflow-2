@@ -5,7 +5,7 @@ import tqdm
 from mura.tfds_from_disc import get_mura_test_ds_by_body_part_split_class
 from tensorflow.python.framework.errors_impl import NotFoundError
 
-from rsna import get_rsna_TEST_ds_split_class
+from rsna import get_rsna_TEST_ds_split_class, get_rsna_ds_split_class
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 import pylib as py
 import tensorflow as tf
@@ -50,7 +50,7 @@ else:
     TFDS_PATH = "../tensorflow_datasets"
 
 TFDS_PATH = "../tensorflow_datasets"
-#TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
+# TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
 
 if args.dataset == "mura":
     args.crop_size = 512
@@ -119,13 +119,20 @@ if args.dataset == "mura":
                                                                                                      args.crop_size,
                                                                                                      special_normalisation=None)
 elif args.dataset == "rsna":
-    A_dataset, B_dataset, A_dataset_test, B_dataset_test = get_rsna_TEST_ds_split_class(TFDS_PATH,
+    """A_dataset, B_dataset, A_dataset_test, B_dataset_test = get_rsna_TEST_ds_split_class(TFDS_PATH,
                                                                                         args.batch_size,
                                                                                         args.crop_size,
                                                                                         args.crop_size,
                                                                                         special_normalisation=None,
                                                                                         channels=args.img_channels,
-                                                                                        training=True)
+                                                                                        training=True)"""
+    A_B_dataset, A_B_dataset_valid, A_B_dataset_test, len_dataset_train = get_rsna_ds_split_class(TFDS_PATH,
+                                                                                                  args.batch_size,
+                                                                                                  args.crop_size,
+                                                                                                  args.load_size,
+                                                                                                  special_normalisation,
+                                                                                                  channels=args.img_channels)
+
 
 else:  # Horse2Zebra / Apple2Orange
     A_dataset, A_dataset_test, B_dataset, B_dataset_test = load_tfds_test_data(args.dataset)
