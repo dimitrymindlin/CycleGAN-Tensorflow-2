@@ -7,7 +7,7 @@ from rsna import get_rsna_TEST_ds_split_class
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 import pylib as py
 import tensorflow as tf
-import tf2lib as tl
+import tf2lib_local as tl
 import module
 from evaluation.kid import calc_KID_for_model_target_source, calc_KID_for_model
 from evaluation.load_test_data import load_tfds_test_data
@@ -165,12 +165,15 @@ if args.dataset == "rsna":
 if args.dataset == "apple2orange":
     checkpoint_ts_list_abc = ["2022-09-23--16.25", "2022-09-23--16.25", "2022-09-27--10.17", "2022-09-27--10.17",
                               "2022-09-29--16.20", "2022-09-29--16.20", "2022-10-04--11.09", "2022-10-04--11.09",
-                              "2022-10-24--14.16", "2022-10-24--14.16", "2022-10-24--11.27", "2022-10-24--11.27",
-                              "2022-10-27--18.22", "2022-10-27--18.22", "2022-10-30--21.28", "2022-10-30--21.28",
-                              "2022-10-30--21.45", "2022-10-30--21.45", "2022-11-03--23.21", "2022-11-03--23.21"]
-    checkpoint_ep_list_abc = ["180", "195", "180", "195", "180", "195", "180", "195", "180", "195", "180", "195",
-                              "180", "195", "180", "195", "180", "195", "180", "195"]
-    # For Paper
+                              "2022-10-24--14.16", "2022-10-24--14.16",
+                              "2022-10-30--21.28", "2022-10-30--21.28",
+                              "2022-10-30--21.45", "2022-10-30--21.45", "2022-11-03--23.21", "2022-11-03--23.21",
+                              "2022-10-30--21.45"]
+    checkpoint_ep_list_abc = ["180", "195", "180", "195", "180", "195", "180", "195",
+                              "180", "195", "180", "195", "180", "195", "180", "195",
+                              "180"]
+
+    """# For Paper
     checkpoint_ts_list_abc = [
         "2022-10-04--11.09",
         "2022-10-24--11.27",
@@ -179,7 +182,7 @@ if args.dataset == "apple2orange":
     checkpoint_ep_list_abc = ["195",
                               "195",
                               "180",
-                              "180", ]
+                              "180", ]"""
 
     """# For TEST
     checkpoint_ts_list_abc = [
