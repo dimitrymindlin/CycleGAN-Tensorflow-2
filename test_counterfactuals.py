@@ -258,6 +258,9 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
                                                                                  gradcam, class_label, True,
                                                                                  training=False, save_img=save_img)
 
+        print(tf.shape(source_dataset))
+        print(tf.shape(translated_images))
+
         if args.tcv_os:
             calculate_tcv(y_pred_translated, len_dataset, translation_name)
 
