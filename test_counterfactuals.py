@@ -87,14 +87,9 @@ def get_abc_gan_generators(name, ep):
                       py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}")).restore(
             save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}/ckpt-{ep}')
     else:
-        try:
-            tl.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A),
-                          py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}")).restore(
-                save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}/checkpoints/ckpt-{ep}')
-        except NotFoundError:
-            tl.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A),
-                          py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}")).restore(
-                save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}/ckpt-{ep}')
+        tl.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A),
+                      py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}")).restore(
+            save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}/ckpt-{ep}')
     return G_A2B, G_B2A
 
 
