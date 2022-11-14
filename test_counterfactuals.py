@@ -50,6 +50,7 @@ else:
     TFDS_PATH = "../tensorflow_datasets"
 
 TFDS_PATH = "../tensorflow_datasets"
+print(TFDS_PATH)
 # TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
 
 if args.dataset == "mura":
@@ -123,9 +124,9 @@ elif args.dataset == "rsna":
                                                                                         args.batch_size,
                                                                                         args.crop_size,
                                                                                         args.crop_size,
-                                                                                        special_normalisation=special_normalisation,
+                                                                                        special_normalisation=None,
                                                                                         channels=args.img_channels,
-                                                                                        training=True)
+                                                                                        training=False)
 
 
 else:  # Horse2Zebra / Apple2Orange
