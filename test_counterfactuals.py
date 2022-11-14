@@ -3,6 +3,8 @@ import sys
 
 import tqdm
 from mura.tfds_from_disc import get_mura_test_ds_by_body_part_split_class
+from tensorflow.python.framework.errors_impl import NotFoundError
+
 from rsna import get_rsna_TEST_ds_split_class
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 import pylib as py
@@ -85,9 +87,14 @@ def get_abc_gan_generators(name, ep):
                       py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}")).restore(
             save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}/ckpt-{ep}')
     else:
-        tl.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A),
-                      py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}")).restore(
-            save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}/checkpoints/ckpt-{ep}')
+        try:
+            tl.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A),
+                          py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}")).restore(
+                save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}/checkpoints/ckpt-{ep}')
+        except NotFoundError:
+            tl.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A),
+                          py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}")).restore(
+                save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}/ckpt-{ep}')
     return G_A2B, G_B2A
 
 
