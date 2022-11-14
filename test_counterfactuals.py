@@ -178,6 +178,8 @@ if args.dataset == "apple2orange":
                               "180", "195", "180", "195", "180", "195", "180", "195",
                               "180"]
 
+    "2022-10-27--18.22"
+
     """# For Paper
     checkpoint_ts_list_abc = [
         "2022-10-04--11.09",
@@ -189,12 +191,12 @@ if args.dataset == "apple2orange":
                               "180",
                               "180", ]"""
 
-    """# For TEST
+    # For TEST
     checkpoint_ts_list_abc = [
-        "2022-11-03--23.21", ]
+        "2022-10-27--18.22", ]
     checkpoint_ep_list_abc = [
         "180",
-    ]"""
+    ]
 
 if args.dataset == "mura":
     checkpoint_ts_list_abc = ["2022-11-04--14.21", "2022-11-04--14.21", "2022-11-04--14.33", "2022-11-04--14.33",
@@ -257,10 +259,11 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
                                                                                  source_dataset, clf, generator,
                                                                                  gradcam, class_label, True,
                                                                                  training=False, save_img=save_img)
-
+        print("Okay")
         print(tf.shape(source_dataset))
         print(tf.shape(translated_images))
-
+        print("Here")
+        quit()
         if args.tcv_os:
             calculate_tcv(y_pred_translated, len_dataset, translation_name)
 
