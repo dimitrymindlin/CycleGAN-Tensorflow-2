@@ -10,14 +10,14 @@ import tensorflow as tf
 import tensorflow.keras as keras
 from mura import get_mura_ds_by_body_part_split_class
 import standard_datasets_loading
-import tf2lib as tl
+import tf2lib_local as tl
 import tf2gan as gan
 import tqdm
 import module
 from attention_strategies.attention_gan import attention_gan_step, attention_gan_discriminator_step
 from attention_strategies.no_attention import no_attention_step
 from imlib.image_holder import get_img_holders
-from tf2lib.data.item_pool import ItemPool
+from tf2lib_local.data.item_pool import ItemPool
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
 
