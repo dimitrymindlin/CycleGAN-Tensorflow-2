@@ -107,9 +107,9 @@ def calculate_tcv(y_pred_translated, len_dataset, translation_name, calc_os=Fals
 def calculate_ssim_psnr(images, translated_images):
     ssim_count = 0
     psnr_count = 0
+    print(np.shape(images))
+    print(np.shape(translated_images))
     for img_i, translated_i in zip(images, translated_images):
-        print(np.shape(img_i))
-        print(np.shape(translated_i))
         img_i = tf.squeeze(img_i)
 
         if np.shape(translated_images)[-1] == 1:
