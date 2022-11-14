@@ -108,7 +108,10 @@ def calculate_ssim_psnr(images, translated_images):
     ssim_count = 0
     psnr_count = 0
     for img_i, translated_i in zip(images, translated_images):
+        print(np.shape(img_i))
+        print(np.shape(translated_i))
         img_i = tf.squeeze(img_i)
+
         if np.shape(translated_images)[-1] == 1:
             img_i = tf.expand_dims(img_i, axis=-1).numpy()
         else:
