@@ -33,9 +33,9 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
 
         if return_images:
             # save imgs to list and return later
-            translated_img_unbatched = tf.squeeze(translated_img)
+            translated_img = tf.squeeze(translated_img) #unbatch
             if args.img_channels == 1:
-                translated_img = tf.expand_dims(translated_img_unbatched, axis=-1)
+                translated_img = tf.expand_dims(translated_img, axis=-1)
             translated_images.append(translated_img)
 
         # Predict images with CLF
