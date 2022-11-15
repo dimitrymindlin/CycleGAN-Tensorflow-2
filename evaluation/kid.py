@@ -99,7 +99,7 @@ def calc_KID_for_model_target_source(translated_images, translation_name, img_sh
         source_sample_tensor = tf.squeeze(tf.convert_to_tensor(source_samples))
         all_samples_tensor = tf.concat((target_sample_tensor, source_sample_tensor), axis=0)
         kid.update_state(all_samples_tensor,
-                         tf.convert_to_tensor(translated_images))
+                         tf.squeeze(tf.convert_to_tensor(translated_images)))
         kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
         kid.reset_state()
 
@@ -120,7 +120,7 @@ def calc_KID_for_model(translated_images, img_shape, dataset):
         img_shape = (img_shape[0], img_shape[1], 3)
         translated_images = tf.image.grayscale_to_rgb(tf.convert_to_tensor(translated_images[:max_samples]))
     else:
-        translated_images = tf.convert_to_tensor(translated_images[:max_samples])
+        translated_images = tf.squeeze(tf.convert_to_tensor(translated_images[:max_samples]))
 
     kid = KID(img_shape=img_shape)
     kid_value_list = []
