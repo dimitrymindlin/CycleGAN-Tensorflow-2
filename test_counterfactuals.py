@@ -20,7 +20,7 @@ from tensorflow_addons.layers import InstanceNormalization
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-py.arg('--dataset', default='apple2orange', choices=['horse2zebra', 'mura', 'apple2orange', 'rsna'])
+py.arg('--dataset', default='rsna', choices=['horse2zebra', 'mura', 'apple2orange', 'rsna'])
 py.arg('--body_parts', default=["XR_WRIST"])  # Only used in Mura dataset. Body part of x-ray images
 py.arg('--batch_size', type=int, default=1)
 py.arg('--datasets_dir', default='datasets')
@@ -51,7 +51,6 @@ else:
     TFDS_PATH = "../tensorflow_datasets"
 
 TFDS_PATH = "../tensorflow_datasets"
-print(TFDS_PATH)
 # TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
 
 if args.dataset == "mura":
@@ -166,8 +165,8 @@ if args.dataset == "rsna":
     checkpoint_ts_list_abc = ["2022-10-17--12.45", "2022-10-17--12.45", "2022-10-28--18.42", "2022-10-28--18.42",
                               "2022-10-31--11.00", "2022-10-31--11.00", "2022-11-02--16.45", "2022-11-02--16.45"]
     checkpoint_ep_list_abc = ["16", "18", "16", "18", "16", "18", "16", "18"]
-    checkpoint_ts_list_abc = ["2022-11-02--16.45", "2022-11-02--16.45"]
-    checkpoint_ep_list_abc = ["16", "18"]
+    checkpoint_ts_list_abc = ["2022-11-02--16.45"]
+    checkpoint_ep_list_abc = ["16"]
 if args.dataset == "apple2orange":
     checkpoint_ts_list_abc = ["2022-09-23--16.25", "2022-09-23--16.25", "2022-09-27--10.17", "2022-09-27--10.17",
                               "2022-09-29--16.20", "2022-09-29--16.20", "2022-10-04--11.09", "2022-10-04--11.09",
@@ -179,36 +178,10 @@ if args.dataset == "apple2orange":
                               "180", "195", "180", "195", "180", "195", "180", "195",
                               "180"]
 
-    "2022-10-27--18.22"
-
-    """# For Paper
-    checkpoint_ts_list_abc = [
-        "2022-10-04--11.09",
-        "2022-10-24--11.27",
-        "2022-11-03--23.21",
-        "2022-10-30--21.45", ]
-    checkpoint_ep_list_abc = ["195",
-                              "195",
-                              "180",
-                              "180", ]"""
-
-    # For TEST
-    checkpoint_ts_list_abc = [
-        "2022-10-27--18.22", ]
-    checkpoint_ep_list_abc = [
-        "180",
-    ]
-
 if args.dataset == "mura":
     checkpoint_ts_list_abc = ["2022-11-04--14.21", "2022-11-04--14.21", "2022-11-04--14.33", "2022-11-04--14.33",
                               "2022-11-04--02.36", "2022-11-04--02.36"]
     checkpoint_ep_list_abc = ["16", "18", "16", "18", "16", "18"]
-
-    checkpoint_ts_list_abc = ["2022-11-06--18.19", "2022-11-06--18.19"]
-    checkpoint_ep_list_abc = ["16", "18"]
-
-    checkpoint_ts_list_abc = ["2022-08-27--18.00"]
-    checkpoint_ep_list_abc = ["16"]
 
 if args.dataset == "horse2zebra":
     checkpoint_ts_list_abc = ["2022-09-23--16.36", "2022-09-23--16.36", "2022-09-27--10.26", "2022-09-27--10.26",
@@ -265,7 +238,7 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
             calculate_tcv(y_pred_translated, len_dataset, translation_name)
 
         if args.ssim_psnr:
-            calculate_ssim_psnr(source_dataset, translated_images)
+            calculate_ssim_psnr(args, source_dataset, translated_images)
 
         if args.kid:
             if args.dataset == "mura" or args.dataset == "rsna":
