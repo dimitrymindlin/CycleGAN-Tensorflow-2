@@ -260,11 +260,7 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
                                                                                  source_dataset, clf, generator,
                                                                                  gradcam, class_label, True,
                                                                                  training=False, save_img=save_img)
-        print("Okay")
-        print(np.shape(source_dataset))
-        print(np.shape(translated_images))
-        print("Here")
-        quit()
+
         if args.tcv_os:
             calculate_tcv(y_pred_translated, len_dataset, translation_name)
 
