@@ -33,9 +33,9 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
 
         if return_images:
             # save imgs to list and return later
-            translated_img = tf.squeeze(translated_img) #unbatch
+            """translated_img = tf.squeeze(translated_img) #unbatch 
             if args.img_channels == 1:
-                translated_img = tf.expand_dims(translated_img, axis=-1)
+                translated_img = tf.expand_dims(translated_img, axis=-1)"""
             translated_images.append(translated_img)
 
         # Predict images with CLF
@@ -104,19 +104,14 @@ def calculate_tcv(y_pred_translated, len_dataset, translation_name, calc_os=Fals
     return tcv
 
 
-def calculate_ssim_psnr(images, translated_images):
+def calculate_ssim_psnr(args, images, translated_images):
     ssim_count = 0
     psnr_count = 0
-    print(np.shape(images))
-    print(np.shape(translated_images))
     for img_i, translated_i in zip(images, translated_images):
-        img_i = tf.squeeze(img_i)
-
-        if np.shape(translated_images)[-1] == 1:
-            img_i = tf.expand_dims(img_i, axis=-1).numpy()
-        else:
-            img_i = img_i.numpy()
-        translated_i = translated_i.numpy()
+        img_i = tf.squeeze(img_i).numpy()
+        if tf.shape(translated_i)[-1] == 1:
+            translated_i = tf.image.grayscale_to_rgb()
+        translated_i = tf.squeeze(translated_i).numpy()
         ssim_count += structural_similarity(img_i, translated_i, channel_axis=2)
         psnr_count += peak_signal_noise_ratio(img_i, translated_i)
 
