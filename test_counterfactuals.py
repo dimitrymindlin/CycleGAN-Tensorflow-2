@@ -41,7 +41,7 @@ py.arg('--tcv_os', type=bool, default=True)
 py.arg('--ssim_psnr', type=bool, default=True)
 py.arg('--kid', type=bool, default=True)
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
-py.arg('--cyclegan_mode', type=str, default="abc-gan", choices=['abc-gan', 'ganterfactual'])
+py.arg('--cyclegan_mode', type=str, default="abc-gan", choices=['abc-gan', 'ganterfactual', 'normal'])
 
 args = py.args()
 
@@ -190,6 +190,10 @@ if args.dataset == "apple2orange":
     else:
         checkpoint_ts_list_abc = ["2022-10-30--21.28", "2022-10-30--21.28"]
         checkpoint_ep_list_abc = ["180", "195"]
+
+    if args.cyclegan_mode == "normal":
+        checkpoint_ts_list_abc = ["2022-10-24--11.27"]
+        checkpoint_ep_list_abc = ["195"]
 
 if args.dataset == "mura":
     checkpoint_ts_list_abc = ["2022-11-04--14.21", "2022-11-04--14.21", "2022-11-04--14.33", "2022-11-04--14.33",
