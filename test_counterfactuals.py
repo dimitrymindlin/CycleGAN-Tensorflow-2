@@ -1,6 +1,7 @@
 import os
 import sys
 
+import numpy as np
 import tqdm
 from mura.tfds_from_disc import get_mura_test_ds_by_body_part_split_class
 from tensorflow.python.framework.errors_impl import NotFoundError
@@ -260,8 +261,8 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
                                                                                  gradcam, class_label, True,
                                                                                  training=False, save_img=save_img)
         print("Okay")
-        print(tf.shape(source_dataset))
-        print(tf.shape(translated_images))
+        print(np.shape(source_dataset))
+        print(np.shape(translated_images))
         print("Here")
         quit()
         if args.tcv_os:
