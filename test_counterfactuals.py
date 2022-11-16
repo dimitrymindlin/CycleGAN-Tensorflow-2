@@ -21,20 +21,6 @@ from tensorflow_addons.layers import InstanceNormalization
 # =                                   param                                    =
 # ==============================================================================
 py.arg('--dataset', default='rsna', choices=['horse2zebra', 'mura', 'apple2orange', 'rsna'])
-py.arg('--body_parts', default=["XR_WRIST"])  # Only used in Mura dataset. Body part of x-ray images
-py.arg('--batch_size', type=int, default=1)
-py.arg('--datasets_dir', default='datasets')
-py.arg('--attention_type', type=str, default="attention-gan-original",
-       choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
-py.arg('--clf_name', type=str, default="alexnet")
-py.arg('--clf_ckp_name', type=str,
-       default="2022-06-04--00.00")  # Mura: 2022-06-04--00.05, H2Z: 2022-06-04--00.00 # A2O: 2022-09-23--15.18
-"""py.arg('--oracle_name', type=str, default="resnet50")  # Mura: inception H2Z: resnet50
-py.arg('--oracle_ckp_name', type=str, default="2022-08-21--00.00")  # Mura: 2022-03-24--12.42 H2Z: 2022-08-21--00.00"""
-py.arg('--print_images', type=bool, default=True)
-py.arg('--crop_size', type=int, default=256)  # Mura: 512 H2Z: 256
-py.arg('--img_channels', type=int, default=3)
-py.arg('--clf_input_channel', type=int, default=3)
 py.arg('--save_img', type=bool, default=True)
 py.arg('--save_only_translated_img', type=bool, default=False)
 py.arg('--tcv_os', type=bool, default=True)
@@ -44,44 +30,16 @@ py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 py.arg('--cyclegan_mode', type=str, default="abc-gan", choices=['abc-gan', 'ganterfactual', 'normal'])
 
 args = py.args()
-
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
-if len(tf.config.list_physical_devices('GPU')) == 0:
-    TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
-else:
-    TFDS_PATH = "../tensorflow_datasets"
-
-TFDS_PATH = "../tensorflow_datasets"
-# TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
-
-if args.dataset == "mura":
-    args.crop_size = 512
-    args.oracle_name = "densenet"
-    args.oracle_ckp_name = "2022-08-15--17.42"
-    args.clf_name = "inception"
-    args.clf_ckp_name = "2022-06-04--00.05"
-    args.img_channels = 3
-elif args.dataset == "rsna":
-    args.load_size = 512
-    args.crop_size = 512
-    args.img_channels = 3
-    if args.clf_name == "alexnet":
-        args.clf_ckp_name = "2022-10-13--13.03"  # alexnet
-        args.clf_input_channel = 1
-    if args.clf_name == "inception":
-        args.clf_ckp_name = "2022-10-12--10.37"  # inception
-        args.clf_input_channel = 3
-elif args.dataset == "apple2orange":
-    args.clf_name = "inception"
-    args.clf_ckp_name = "2022-09-23--15.18"
-    args.img_channels = 3
-elif args.dataset == "horse2zebra":
-    args.clf_name = "inception"
-    args.clf_ckp_name = "2022-06-04--00.00"
-    args.img_channels = 3
-
-args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
-
+experiments_dir = f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/"  # CycleGAN experiment results folder
+TFDS_PATH = f"{ROOT_DIR}/../tensorflow_datasets"  # Path to datasets
+CYCLEGAN_MODE = args.cyclegan_mode
+KID = args.kid
+TCV = args.tcv_os
+SSIM = args.ssim_psnr
+SAVE_IMG = args.save_img
+SAVE_ONLY_TRANSLATED_IMG = args.save_only_translated_img
+print(TFDS_PATH)
 
 def get_abc_gan_generators(timestamp_id, ep):
     if timestamp_id == "2022-05-23--18.32":  # normal MURA gan without attention
@@ -108,130 +66,98 @@ def get_ganterfactual_generators(name, ep):
 # ==============================================================================
 # =                                    data                                    =
 # ==============================================================================
-if args.clf_name != "densenet":
-    special_normalisation = tf.keras.applications.inception_v3.preprocess_input
-else:
-    special_normalisation = tf.keras.applications.densenet.preprocess_input
-
-if args.dataset == "mura":
-    A_dataset, B_dataset, A_dataset_test, B_dataset_test = get_mura_test_ds_by_body_part_split_class(args.body_parts,
-                                                                                                     TFDS_PATH,
-                                                                                                     args.batch_size,
-                                                                                                     args.crop_size,
-                                                                                                     args.crop_size,
-                                                                                                     special_normalisation=None)
-elif args.dataset == "rsna":
-    A_dataset, B_dataset, A_dataset_test, B_dataset_test = get_rsna_TEST_ds_split_class(TFDS_PATH,
-                                                                                        args.batch_size,
-                                                                                        args.crop_size,
-                                                                                        args.crop_size,
-                                                                                        special_normalisation=None,
-                                                                                        channels=args.img_channels,
-                                                                                        training=False)
+def load_test_data():
+    if args.dataset == "mura":
+        A_dataset, B_dataset, A_dataset_test, B_dataset_test = get_mura_test_ds_by_body_part_split_class(
+            args.body_parts,
+            TFDS_PATH,
+            args.batch_size,
+            args.crop_size,
+            args.crop_size,
+            special_normalisation=None)
+    elif args.dataset == "rsna":
+        A_dataset, B_dataset, A_dataset_test, B_dataset_test = get_rsna_TEST_ds_split_class(TFDS_PATH,
+                                                                                            args.batch_size,
+                                                                                            args.crop_size,
+                                                                                            args.crop_size,
+                                                                                            special_normalisation=None,
+                                                                                            channels=args.img_channels,
+                                                                                            training=False)
 
 
-else:  # Horse2Zebra / Apple2Orange
-    A_dataset, A_dataset_test, B_dataset, B_dataset_test = load_tfds_test_data(args.dataset)
+    else:  # Horse2Zebra / Apple2Orange
+        A_dataset, A_dataset_test, B_dataset, B_dataset_test = load_tfds_test_data(args.dataset)
+    return A_dataset, A_dataset_test, B_dataset, B_dataset_test
+
 
 # ==============================================================================
 # =                                    models                                  =
 # ==============================================================================
+def get_ckps():
+    if args.dataset == "rsna":
+        if args.generator == "unet":
+            checkpoint_ts_list_abc = ["2022-10-17--12.45", "2022-10-17--12.45", "2022-10-31--11.00",
+                                      "2022-10-31--11.00",
+                                      "2022-11-02--16.45", "2022-11-02--16.45"]
+            checkpoint_ep_list_abc = ["16", "18", "16", "18", "16", "18", "16", "18"]
+        if args.generator == "resnet":
+            checkpoint_ts_list_abc = ["2022-10-28--18.42", "2022-10-28--18.42",
+                                      "2022-11-02--16.45", "2022-11-02--16.45", "2022-11-02--16.45",
+                                      "2022-11-02--16.45"]
+            checkpoint_ep_list_abc = ["18", "16", "16", "18", "16", "18"]
+        if args.cyclegan_mode == "ganterfactual":
+            checkpoint_ts_list_abc = ["2022-10-17--15.10", "2022-10-27--18.35_ep_19"]
+            checkpoint_ep_list_abc = ["19", "19"]
 
-if args.generator == "resnet":
-    G_A2B = module.ResnetGenerator(input_shape=args.img_shape)
-    G_B2A = module.ResnetGenerator(input_shape=args.img_shape)
-else:
-    # Unet
-    G_A2B = module.UnetGenerator(input_shape=args.img_shape)
-    G_B2A = module.UnetGenerator(input_shape=args.img_shape)
+    if args.dataset == "apple2orange":
+        if args.generator == "resnet":
+            """ "2022-09-23--16.25", "2022-09-23--16.25", "2022-09-27--10.17", "2022-09-27--10.17",
+                                      "2022-09-29--16.20", "2022-09-29--16.20", "2022-10-04--11.09", "2022-10-04--11.09",
+                                      "2022-10-24--14.16", "2022-10-24--14.16... "180", "195", "180", "195", "180", "195", "180", "195",
+                                      "180", "195", "180", "195", """
+            checkpoint_ts_list_abc = [
+                "2022-10-30--21.45", "2022-10-30--21.45", "2022-11-03--23.21", "2022-11-03--23.21",
+                "2022-10-30--21.45"]
+            checkpoint_ep_list_abc = ["180", "195", "180", "195",
+                                      "180"]
+        else:
+            checkpoint_ts_list_abc = ["2022-10-30--21.28", "2022-10-30--21.28"]
+            checkpoint_ep_list_abc = ["180", "195"]
 
-clf = tf.keras.models.load_model(
-    f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model", compile=False)
+        if args.cyclegan_mode == "normal":
+            checkpoint_ts_list_abc = ["2022-10-24--11.27"]
+            checkpoint_ep_list_abc = ["195"]
 
-"""oracle = tf.keras.models.load_model(
-    f"{ROOT_DIR}/checkpoints/{args.oracle_name}_{args.dataset}/{args.oracle_ckp_name}/model", compile=False)"""
-
-gradcam = GradcamPlusPlus(clf, clone=True)
-
-"""done_h2z = ["2022-05-31--14.02", "2022-05-31--13.04", "2022-06-01--13.06", "2022-06-02--12.45"]
-done_ep_h2z = ["180", "180", "180", "180"]
-checkpoint_ts_list = ["2022-05-31--13.04", "2022-05-31--14.02", "2022-06-01--13.06", "2022-06-02--12.45",
-                      "2022-06-03--14.07", "2022-06-03--19.10"]
-
-
-checkpoint_ts_list_h2z = ["2022-08-13--15.48"]  # "2022-08-17--03.54"
-checkpoint_ep_list_h2z = ["195"]  # 180"""
-
-if args.dataset == "rsna":
-    if args.generator == "unet":
-        checkpoint_ts_list_abc = ["2022-10-17--12.45", "2022-10-17--12.45", "2022-10-31--11.00", "2022-10-31--11.00",
-                                  "2022-11-02--16.45", "2022-11-02--16.45"]
-        checkpoint_ep_list_abc = ["16", "18", "16", "18", "16", "18", "16", "18"]
-    if args.generator == "resnet":
-        checkpoint_ts_list_abc = ["2022-10-28--18.42", "2022-10-28--18.42",
-                                  "2022-11-02--16.45", "2022-11-02--16.45", "2022-11-02--16.45", "2022-11-02--16.45"]
+    if args.dataset == "mura":
+        checkpoint_ts_list_abc = ["2022-11-04--14.21", "2022-11-04--14.21", "2022-11-04--14.33", "2022-11-04--14.33",
+                                  "2022-11-04--02.36", "2022-11-04--02.36"]
         checkpoint_ep_list_abc = ["16", "18", "16", "18", "16", "18"]
-    if args.cyclegan_mode == "ganterfactual":
-        # GANterfactual
-        checkpoint_ts_list_abc = ["2022-10-17--15.10", "2022-10-27--18.35_ep_19"]
-        checkpoint_ep_list_abc = ["19", "19"]
 
-if args.dataset == "apple2orange":
-    if args.generator == "resnet":
-        """ "2022-09-23--16.25", "2022-09-23--16.25", "2022-09-27--10.17", "2022-09-27--10.17",
-                                  "2022-09-29--16.20", "2022-09-29--16.20", "2022-10-04--11.09", "2022-10-04--11.09",
-                                  "2022-10-24--14.16", "2022-10-24--14.16... "180", "195", "180", "195", "180", "195", "180", "195",
-                                  "180", "195", "180", "195", """
-        checkpoint_ts_list_abc = [
-            "2022-10-30--21.45", "2022-10-30--21.45", "2022-11-03--23.21", "2022-11-03--23.21",
-            "2022-10-30--21.45"]
-        checkpoint_ep_list_abc = ["180", "195", "180", "195",
-                                  "180"]
-    else:
-        checkpoint_ts_list_abc = ["2022-10-30--21.28", "2022-10-30--21.28"]
-        checkpoint_ep_list_abc = ["180", "195"]
+    if args.dataset == "horse2zebra":
+        checkpoint_ts_list_abc = ["2022-09-23--16.36", "2022-09-23--16.36", "2022-09-27--10.26", "2022-09-27--10.26",
+                                  "2022-09-29--16.23", "2022-09-29--16.23", "2022-10-04--11.12", "2022-10-04--11.12"]
+        checkpoint_ep_list_abc = ["180", "195", "180", "195", "180", "195", "180", "195"]
 
-    if args.cyclegan_mode == "normal":
-        checkpoint_ts_list_abc = ["2022-10-24--11.27"]
+        checkpoint_ts_list_abc = ["2022-08-13--15.48"]
         checkpoint_ep_list_abc = ["195"]
 
-if args.dataset == "mura":
-    checkpoint_ts_list_abc = ["2022-11-04--14.21", "2022-11-04--14.21", "2022-11-04--14.33", "2022-11-04--14.33",
-                              "2022-11-04--02.36", "2022-11-04--02.36"]
-    checkpoint_ep_list_abc = ["16", "18", "16", "18", "16", "18"]
-
-if args.dataset == "horse2zebra":
-    checkpoint_ts_list_abc = ["2022-09-23--16.36", "2022-09-23--16.36", "2022-09-27--10.26", "2022-09-27--10.26",
-                              "2022-09-29--16.23", "2022-09-29--16.23", "2022-10-04--11.12", "2022-10-04--11.12"]
-    checkpoint_ep_list_abc = ["180", "195", "180", "195", "180", "195", "180", "195"]
-
-    checkpoint_ts_list_abc = ["2022-08-13--15.48"]
-    checkpoint_ep_list_abc = ["195"]
-
-checkpoint_ts_list_ganterfactual = ["2022-10-17--15.10", "2022-10-27--18.35"]
-checkpoint_ep_list_ganterfactual = ["ep_19", "ep_19"]
-
-checkpoint_ts_list_cyclegan = ["2022-08-29--12.05"]
-checkpoint_ep_list_cyclegan = ["14"]
+    return checkpoint_ts_list_abc, checkpoint_ep_list_abc
 
 
-def load_generators_and_ckp_lists(counterfactuals_type):
+def get_load_generators(counterfactuals_type):
+    """
+    Decide if from this project or GANterfactual project generators.
+    """
     if counterfactuals_type == "abc-gan":
         load_generators = get_abc_gan_generators
-        checkpoint_ts_list = checkpoint_ts_list_abc
-        checkpoint_ep_list = checkpoint_ep_list_abc
     elif counterfactuals_type == "ganterfactual":
         load_generators = get_ganterfactual_generators
-        checkpoint_ts_list = checkpoint_ts_list_ganterfactual
-        checkpoint_ep_list = checkpoint_ep_list_ganterfactual
     else:  # CycleGAN
         load_generators = get_abc_gan_generators
-        checkpoint_ts_list = checkpoint_ts_list_cyclegan
-        checkpoint_ep_list = checkpoint_ep_list_cyclegan
-    return load_generators, checkpoint_ts_list, checkpoint_ep_list
+    return load_generators
 
 
-def evaluate_current_model(G_A2B, G_B2A, save_img=False):
+def evaluate_current_model(G_A2B, G_B2A, A_dataset, A_dataset_test, B_dataset, B_dataset_test, save_img=False):
     for translation_name in ["B2A", "A2B"]:
         print(f"-> {translation_name}")
         if translation_name == "A2B":
@@ -266,16 +192,34 @@ def evaluate_current_model(G_A2B, G_B2A, save_img=False):
     print()
 
 
-counterfactuals_to_test = ["abc-gan"]  # ganterfactual
-for counterfactuals_type in tqdm.tqdm(counterfactuals_to_test, desc='Counterfactual Type Loop'):
-    with open(f'{counterfactuals_type}_{args.dataset}_{args.generator}.txt', 'w') as f:
+checkpoint_ts_list, checkpoint_ep_list = get_ckps()
+for name, ep in zip(checkpoint_ts_list, checkpoint_ep_list):
+    args = py.args_from_yaml(py.join(experiments_dir, name, 'settings.yml'))
+    args.__dict__.update(args.__dict__)
+    args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
+    args.cyclegan_mode = CYCLEGAN_MODE
+    args.kid = KID
+    args.tcv_os = TCV
+    args.ssim_psnr = SSIM
+    args.save_img = SAVE_IMG
+    args.save_only_translated_img = SAVE_ONLY_TRANSLATED_IMG
+    args.clf_input_channel = 1 if args.generator == "alexnet" else 3
+    with open(py.join(experiments_dir, name, 'test_output.txt'), 'w') as f:
         sys.stdout = f  # Change the standard output to the file we created.
-        load_generators, checkpoint_ts_list, checkpoint_ep_list = load_generators_and_ckp_lists(counterfactuals_type)
-        for name, ep in zip(checkpoint_ts_list, checkpoint_ep_list):
-            print(f"Starting {name}_{ep}")
-            G_A2B, G_B2A = load_generators(name, ep)
-            if args.save_img:
-                save_img = args.dataset + "/" + name + "_" + ep
-            else:
-                save_img = False
-            evaluate_current_model(G_A2B, G_B2A, save_img)
+        ### Get Generators
+        load_generators = get_load_generators(args.cyclegan_mode)  # decide which load method to use
+        generator = module.ResnetGenerator if args.generator == "resnet" else module.UnetGenerator
+        G_A2B = generator(input_shape=args.img_shape)
+        G_B2A = generator(input_shape=args.img_shape)
+        print(f"Starting {name}_{ep}")
+        G_A2B, G_B2A = load_generators(name, ep)  # load generator checkpoints.
+        ### Get CLF + Gradcam
+        clf = tf.keras.models.load_model(
+            f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model", compile=False)
+        gradcam = GradcamPlusPlus(clf, clone=True)
+        if args.save_img:
+            save_img = args.dataset + "/" + name + "_" + ep
+        else:
+            save_img = False
+        A_dataset, A_dataset_test, B_dataset, B_dataset_test = load_test_data()
+        evaluate_current_model(G_A2B, G_B2A, A_dataset, A_dataset_test, B_dataset, B_dataset_test, save_img)
