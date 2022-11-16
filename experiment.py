@@ -64,7 +64,7 @@ elif args.dataset == "rsna":
         args.clf_input_channel = 1
     if args.clf_name == "inception":
         args.clf_ckp_name = "2022-10-12--10.37"  # inception
-        args.img_channels = 3
+        args.clf_input_channel = 3
 elif args.dataset == "apple2orange":
     args.clf_ckp_name = "2022-09-23--15.18"
     args.clf_name = "inception"
@@ -76,7 +76,7 @@ if not args.load_checkpoint:
     execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
     # output_dir
     try:
-        #output_dir = py.join(f'output_{args.dataset}/{execution_id}')
+        # output_dir = py.join(f'output_{args.dataset}/{execution_id}')
         output_dir = py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{execution_id}")
     except FileExistsError:
         time.sleep(60)
@@ -95,12 +95,7 @@ if args.discriminator == "patch_gan_attention":
     args.disc_norm = "none"
 
 TF_LOG_DIR = f"logs/{args.dataset}/"
-if len(tf.config.list_physical_devices('GPU')) == 0:
-    TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
-else:
-    TFDS_PATH = "../tensorflow_datasets"
-    # TFDS_PATH = "/Users/dimitrymindlin/tensorflow_datasets"
-    # os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
+TFDS_PATH = f"{ROOT_DIR}/../tensorflow_datasets"
 
 # save settings
 py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
