@@ -5,10 +5,12 @@ cd /media/compute/homes/dmindlin/CycleGAN-Tensorflow-2
 
 python3 -m test_counterfactuals \
 --dataset rsna \
+--generator resnet \
 --tcv_os True \
 --ssim_psnr True \
 --kid True \
---save_img True \
---clf_name alexnet
+--save_img False \
+--cyclegan_mode abc-gan
+
 
 
