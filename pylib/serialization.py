@@ -44,11 +44,11 @@ def save_yaml(path, data, **kwargs):
 def load_yaml(path, **kwargs):
     import oyaml as yaml
     with open(path) as f:
+        yaml.add_multi_constructor('tag:yaml.org,2002:python/tuple', lambda loader, suffix, node: None, Loader=yaml.SafeLoader)
         return yaml.safe_load(f, **kwargs)
 
 
 def save_pickle(path, obj, **kwargs):
-
     path = _check_ext(path, 'pkl')
 
     # wrap pickle.dump
