@@ -50,9 +50,15 @@ def get_abc_gan_generators(timestamp_id, ep):
                       py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}")).restore(
             save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}/ckpt-{ep}')
     else:
-        tl.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A),
-                      py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}")).restore(
-            save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}/ckpt-{ep}')
+        if os.path.exists(py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}/checkpoints")):
+            # New runs will keep checkpoints in checkpoints folder
+            tl.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A),
+                          py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}")).restore(
+                save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}/ckpt-{ep}')
+        else:
+            tl.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A),
+                          py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}")).restore(
+                save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}/ckpt-{ep}')
     return G_A2B, G_B2A
 
 
