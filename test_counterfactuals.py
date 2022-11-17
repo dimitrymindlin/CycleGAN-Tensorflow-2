@@ -73,7 +73,7 @@ def is_normal_run():
     return args.attention_type == "none" and args.counterfactual_loss_weight == 0
 
 
-def is_ganterfactual_run():
+def is_ganterfactual_run_in_abc_repo():
     return args.attention_type == "none" and args.counterfactual_loss_weight > 0
 
 
@@ -111,10 +111,11 @@ def get_load_generators():
     """
     Decide if generators from this project or GANterfactual project.
     """
-    if is_ganterfactual_run():
-        load_generators = get_ganterfactual_generators
+    if is_ganterfactual_run_in_abc_repo():
+        load_generators = get_abc_gan_generators
     else:
         load_generators = get_abc_gan_generators
+    # TODO: Implement ganterfactual run from GANterfacctual repo testing.
     return load_generators
 
 
