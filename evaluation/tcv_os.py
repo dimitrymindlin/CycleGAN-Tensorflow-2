@@ -16,12 +16,16 @@ import tensorflow as tf
 
 def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, return_images,
                          training=False, save_img=False):
+    if args.attention_type != "none":
+        use_attention = True
+    else:
+        use_attention = False
     translated_images = []
     y_pred_translated = []
     len_dataset = 0
 
     for batch_i, img_batch in enumerate(tqdm.tqdm(dataset, desc='Translating images')):
-        img_holder = ImageHolder(img_batch, args, class_label, gradcam=gradcam)
+        img_holder = ImageHolder(img_batch, args, class_label, gradcam=gradcam, use_attention=use_attention)
         class_label_name = "A" if class_label == 0 else "B"
         target_class_name = "B" if class_label == 0 else "A"
         # Generate Images (only batch of 1 img supported at the moment)
