@@ -187,7 +187,7 @@ for name, ep in zip(config[args.dataset]["model_names"], config[args.dataset]["e
     with open(py.join(experiments_dir, name, 'test_output.txt'), 'w') as f:
         sys.stdout = f  # Change the standard output to the file we created.
         if args.save_img:
-            save_img = args.dataset + "/" + name + "_" + ep
+            save_img = py.join(experiments_dir, name, f"test_images_{ep}")
         else:
             save_img = False
         A_dataset, A_dataset_test, B_dataset, B_dataset_test = load_test_data()
