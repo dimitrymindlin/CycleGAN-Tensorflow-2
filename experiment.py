@@ -12,7 +12,6 @@ py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=286)  # load image to this size
 py.arg('--crop_size', type=int, default=256)  # then crop to this size
 py.arg('--img_channels', type=int, default=3)
-py.arg('--img_shape', type=tuple, default=(256, 256, 3))
 py.arg('--batch_size', type=int, default=1)
 py.arg('--epochs', type=int, default=200)
 py.arg('--epoch_decay', type=int, default=100)  # epoch to start decaying learning rate
