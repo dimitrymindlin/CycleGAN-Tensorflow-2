@@ -28,14 +28,11 @@ py.arg('--tcv_os', type=bool, default=True)
 py.arg('--ssim_psnr', type=bool, default=True)
 py.arg('--kid', type=bool, default=True)
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
-py.arg('--attention_type', type=str, default="attention-gan-original",
-       choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
 
 args = py.args()
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
 experiments_dir = f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/"  # CycleGAN experiment results folder
 TFDS_PATH = f"{ROOT_DIR}/../tensorflow_datasets"  # Path to datasets
-ATTENTION_TYPE = args.attention_type
 KID = args.kid
 TCV = args.tcv_os
 SSIM = args.ssim_psnr
@@ -161,9 +158,6 @@ for name, ep in zip(config[args.dataset]["model_names"], config[args.dataset]["e
     args.__dict__.update(args.__dict__)
     args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
     # Check if correct attention Type!
-    if args.attention_type != ATTENTION_TYPE:
-        print(f"{name} was loaded in run for {ATTENTION_TYPE} but is {args.attention_type}")
-        continue
     args.kid = KID
     args.tcv_os = TCV
     args.ssim_psnr = SSIM
@@ -180,7 +174,7 @@ for name, ep in zip(config[args.dataset]["model_names"], config[args.dataset]["e
     ### Get CLF + Gradcam
     clf = tf.keras.models.load_model(
         f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model", compile=False)
-    if ATTENTION_TYPE != "none":
+    if args.attention_type != "none":
         gradcam = GradcamPlusPlus(clf, clone=True)
     else:
         gradcam = None
