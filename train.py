@@ -109,6 +109,11 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
         f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
         compile=False)
 
+    args.clf_input_channel = clf.layers[0].input_shape[0][-1]
+
+    # save settings
+    py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
+
     if args.attention_type == "attention-gan-original":
         gradcam = GradcamPlusPlus(clf, clone=True)
     elif args.attention_type == "spa-gan":

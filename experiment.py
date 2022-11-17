@@ -27,7 +27,6 @@ py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam',
 py.arg('--clf_name', type=str, default="alexnet")
 py.arg('--clf_ckp_name', type=str,
        default="2022-06-04--00.00")  # Mura: 2022-06-04--00.05, H2Z: 2022-06-04--00.00 A2O: 2022-09-23--15.18
-py.arg('--clf_input_channel', type=int, default=3)
 py.arg('--attention_type', type=str, default="attention-gan-original",
        choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
 py.arg('--current_attention_type', type=str, default="none")
@@ -60,10 +59,8 @@ elif args.dataset == "rsna":
     # args.clf_ckp_name = "2022-10-12--10.37" # Inception
     if args.clf_name == "alexnet":
         args.clf_ckp_name = "2022-10-13--13.03"  # alexnet
-        args.clf_input_channel = 1
     if args.clf_name == "inception":
         args.clf_ckp_name = "2022-10-12--10.37"  # inception
-        args.clf_input_channel = 3
 elif args.dataset == "apple2orange":
     args.clf_ckp_name = "2022-09-23--15.18"
     args.clf_name = "inception"
@@ -95,9 +92,6 @@ if args.discriminator == "patch_gan_attention":
 
 TF_LOG_DIR = f"logs/{args.dataset}/"
 TFDS_PATH = f"{ROOT_DIR}/../tensorflow_datasets"
-
-# save settings
-py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 
 ### Start Experiment
 run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id)
