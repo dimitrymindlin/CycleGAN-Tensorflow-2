@@ -94,8 +94,8 @@ def calculate_tcv_os(y_pred_translated, y_pred_oracle, len_dataset, translation_
     return tcv, os
 
 
-def calculate_tcv(y_pred_translated, len_dataset, translation_name, calc_os=False):
-    # Calculate tcv and os
+def calculate_tcv(y_pred_translated, len_dataset, translation_name):
+    # Calculate tcv
     if translation_name == "A2B":
         tcv = sum(y_pred_translated) / len_dataset
     else:
