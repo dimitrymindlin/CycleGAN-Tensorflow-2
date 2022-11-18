@@ -118,7 +118,8 @@ def calc_KID_for_model(translated_images, img_shape, dataset):
     # Check if one channel images and if so, turn to 3 channel images.
     if img_shape[-1] == 1:
         img_shape = (img_shape[0], img_shape[1], 3)
-        translated_images = tf.image.grayscale_to_rgb(tf.convert_to_tensor(translated_images[:max_samples]))
+        translated_images = tf.image.grayscale_to_rgb(
+            tf.expand_dims(tf.squeeze(tf.convert_to_tensor(translated_images[:max_samples])), axis=-1))
     else:
         translated_images = tf.squeeze(tf.convert_to_tensor(translated_images[:max_samples]))
 
@@ -142,10 +143,12 @@ def calc_KID_for_model(translated_images, img_shape, dataset):
                 current_translated_images = translated_images[j * max_samples:(j + 1) * max_samples]
             if current_translated_images < 100:
                 break"""
-        if img_shape[-1] == 1:
-            tmp_samples_tensor = tf.squeeze(tf.image.grayscale_to_rgb(tf.convert_to_tensor(tmp_samples)))
-        else:
-            tmp_samples_tensor = tf.squeeze(tf.convert_to_tensor(tmp_samples))
+
+        tmp_samples_tensor = tf.convert_to_tensor(tf.squeeze(tmp_samples))
+
+        if len(tf.shape(tmp_samples_tensor)) < 4:  # channel dimension lost in squeeze because was 1 channel tensor.
+            tmp_samples_tensor = tf.image.grayscale_to_rgb(tf.expand_dims(tf.squeeze(tmp_samples_tensor), axis=-1))
+
         kid.update_state(tmp_samples_tensor, translated_images)
         kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
         kid.reset_state()

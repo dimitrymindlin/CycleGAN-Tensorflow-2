@@ -113,6 +113,8 @@ def calculate_ssim_psnr(args, images, translated_images):
     ssim_count = 0
     psnr_count = 0
     for img_i, translated_i in zip(images, translated_images):
+        if tf.shape(img_i)[-1] == 1:
+            img_i = tf.image.grayscale_to_rgb(img_i)
         img_i = tf.squeeze(img_i).numpy()
         if tf.shape(translated_i)[-1] == 1:
             translated_i = tf.image.grayscale_to_rgb(translated_i)
