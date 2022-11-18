@@ -114,7 +114,7 @@ def calc_KID_for_model_target_source(translated_images, translation_name, img_sh
 def calc_KID_for_model(translated_images, img_shape, dataset):
     # Standard KID calculation of translated images with target domain.
     max_samples = 1050
-    oom_split_size = 500
+    oom_split_size = 750
     kid_splits = 5
     oom_splits = 3
 
@@ -139,7 +139,7 @@ def calc_KID_for_model(translated_images, img_shape, dataset):
             tmp_samples = all_samples_list[i * images_length:(i + 1) * images_length]
         # Calc KID in splits because all samples don't fit in memory
         print(f"ALL tmp_samples: {len(tmp_samples)}. ")
-        if len(tmp_samples) > 600:
+        if len(tmp_samples) > oom_split_size:
             for j in tqdm.trange(oom_splits, desc='KID inner splits'):
                 print(j)
                 if j == oom_splits - 1:
