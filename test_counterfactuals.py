@@ -15,12 +15,24 @@ from evaluation.load_test_data import load_tfds_test_data
 from evaluation.tcv_os import calculate_ssim_psnr, calculate_tcv, translate_images_clf
 from tensorflow_addons.layers import InstanceNormalization
 
-from tf2lib_local import is_ganterfactual_run_in_abc_repo
+from tf2lib_local.utils import is_ganterfactual_repo
+
+
+def set_ganterfactual_repo_args():
+    args.ganterfactual_repo = True
+    args.crop_size = 512
+    args.img_channels = 1  # Old Models with UNET and Alexnet -> 1 channel
+    args.clf_name = "alexnet"
+    args.clf_ckp_name = "2022-10-13--13.03"
+    args.attention_type = "none"
+    args.batch_size = 1
+    args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
+
 
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-py.arg('--dataset', default='apple2orange', choices=['horse2zebra', 'mura', 'apple2orange', 'rsna'])
+py.arg('--dataset', default='rsna', choices=['horse2zebra', 'mura', 'apple2orange', 'rsna'])
 py.arg('--save_img', type=bool, default=True)
 py.arg('--save_only_translated_img', type=bool, default=False)
 py.arg('--tcv_os', type=bool, default=True)
@@ -102,11 +114,10 @@ def get_load_generators():
     """
     Decide if generators from this project or GANterfactual project.
     """
-    if is_ganterfactual_run_in_abc_repo(args):
-        load_generators = get_abc_gan_generators
+    if is_ganterfactual_repo(args):
+        load_generators = get_ganterfactual_generators
     else:
         load_generators = get_abc_gan_generators
-    # TODO: Implement ganterfactual run from GANterfacctual repo testing.
     return load_generators
 
 
@@ -146,10 +157,13 @@ def evaluate_current_model(G_A2B, G_B2A, A_dataset, A_dataset_test, B_dataset, B
 
 
 for name, ep in zip(config[args.dataset]["model_names"], config[args.dataset]["epochs"]):
-    args = py.args_from_yaml(py.join(experiments_dir, name, 'settings.yml'))
-    args.__dict__.update(args.__dict__)
-    args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
-    # Check if correct attention Type!
+    try:
+        args = py.args_from_yaml(py.join(experiments_dir, name, 'settings.yml'))
+        args.__dict__.update(args.__dict__)
+        args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
+    except FileNotFoundError:  # From GANterfacfual
+        set_ganterfactual_repo_args()
+
     args.kid = KID
     args.tcv_os = TCV
     args.ssim_psnr = SSIM
