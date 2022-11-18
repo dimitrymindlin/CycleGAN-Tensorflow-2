@@ -138,13 +138,15 @@ def calc_KID_for_model(translated_images, img_shape, dataset):
         else:
             tmp_samples = all_samples_list[i * images_length:(i + 1) * images_length]
         # Calc KID in splits because all samples don't fit in memory
-        print(f"tmp_samples: {len(tmp_samples)}. ")
+        print(f"ALL tmp_samples: {len(tmp_samples)}. ")
         if len(tmp_samples) > 600:
             for j in tqdm.trange(oom_splits, desc='KID inner splits'):
+                print(j)
                 if j == oom_splits - 1:
                     current_samples = tmp_samples[j * oom_split_size:]
-                    print(f"tmp_samples: {len(current_samples)}. ")
+                    print(f"current_samples: {len(current_samples)}. ")
                     current_translated_images = translated_images[j * oom_split_size:]
+                    print(f"current_translated_images: {len(current_samples)}. ")
                 else:
                     current_samples = tmp_samples[j * oom_split_size:(j + 1) * oom_split_size]
                     print(f"current_samples: {len(current_samples)}. ")
