@@ -113,7 +113,7 @@ def calc_KID_for_model_target_source(translated_images, translation_name, img_sh
 
 def calc_KID_for_model(translated_images, img_shape, dataset):
     # Standard KID calculation of translated images with target domain.
-    max_samples = 1000
+    max_samples = 600
 
     # Check if one channel images and if so, turn to 3 channel images.
     if img_shape[-1] == 1:
@@ -133,23 +133,31 @@ def calc_KID_for_model(translated_images, img_shape, dataset):
             tmp_samples = all_samples_list[i * images_length:]
         else:
             tmp_samples = all_samples_list[i * images_length:(i + 1) * images_length]
-            # Calc KID in splits because all samples don't fit in memory
-        """for j in tqdm.trange(3, desc='KID inner splits'):
-            if j == 2:
-                current_samples = tmp_samples[j * max_samples:]
-                current_translated_images = translated_images[j * max_samples:]
-            else:
-                current_samples = tmp_samples[j * max_samples:(j + 1) * max_samples]
-                current_translated_images = translated_images[j * max_samples:(j + 1) * max_samples]
-            if current_translated_images < 100:
-                break"""
+        # Calc KID in splits because all samples don't fit in memory
+        if images_length > 500:
+            for j in tqdm.trange(3, desc='KID inner splits'):
+                if j == 2:
+                    current_samples = tmp_samples[j * max_samples:]
+                    current_translated_images = translated_images[j * max_samples:]
+                else:
+                    current_samples = tmp_samples[j * max_samples:(j + 1) * max_samples]
+                    current_translated_images = translated_images[j * max_samples:(j + 1) * max_samples]
+                if current_translated_images < 100:
+                    break
 
-        tmp_samples_tensor = tf.convert_to_tensor(tf.squeeze(tmp_samples))
+                tmp_samples_tensor = tf.convert_to_tensor(tf.squeeze(current_samples))
 
-        if len(tf.shape(tmp_samples_tensor)) < 4:  # channel dimension lost in squeeze because was 1 channel tensor.
-            tmp_samples_tensor = tf.image.grayscale_to_rgb(tf.expand_dims(tf.squeeze(tmp_samples_tensor), axis=-1))
+                if len(tf.shape(tmp_samples_tensor)) < 4:  # channel dimension lost in squeeze because was 1 channel tensor.
+                    tmp_samples_tensor = tf.image.grayscale_to_rgb(tf.expand_dims(tf.squeeze(tmp_samples_tensor), axis=-1))
 
-        kid.update_state(tmp_samples_tensor, translated_images)
+                kid.update_state(tmp_samples_tensor, translated_images)
+        else:
+            tmp_samples_tensor = tf.convert_to_tensor(tf.squeeze(tmp_samples))
+            if len(tf.shape(tmp_samples_tensor)) < 4:  # channel dimension lost in squeeze because was 1 channel tensor.
+                tmp_samples_tensor = tf.image.grayscale_to_rgb(tf.expand_dims(tf.squeeze(tmp_samples_tensor), axis=-1))
+
+            kid.update_state(tmp_samples_tensor, translated_images)
+            print(float("{0:.3f}".format(kid.result().numpy())))
         kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
         kid.reset_state()
 
