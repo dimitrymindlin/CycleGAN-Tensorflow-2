@@ -18,6 +18,7 @@ from attention_strategies.attention_gan import attention_gan_step, attention_gan
 from attention_strategies.no_attention import no_attention_step
 from imlib.image_holder import get_img_holders
 from tf2lib_local.data.item_pool import ItemPool
+from tf2lib_local.utils import is_normal_run
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
 
@@ -105,11 +106,12 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     train_D_A_acc = tf.keras.metrics.BinaryAccuracy()
     train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 
-    clf = tf.keras.models.load_model(
-        f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
-        compile=False)
+    if not is_normal_run(args):
+        clf = tf.keras.models.load_model(
+            f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
+            compile=False)
 
-    args.clf_input_channel = clf.layers[0].input_shape[0][-1]
+        args.clf_input_channel = clf.layers[0].input_shape[0][-1]
 
     # save settings
     py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)

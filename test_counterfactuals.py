@@ -1,13 +1,10 @@
 import os
 import sys
 
-import numpy as np
-import tqdm
 from mura.tfds_from_disc import get_mura_test_ds_by_body_part_split_class
-from tensorflow.python.framework.errors_impl import NotFoundError
 
 from test_config import config
-from rsna import get_rsna_TEST_ds_split_class, get_rsna_ds_split_class
+from rsna import get_rsna_TEST_ds_split_class
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 import pylib as py
 import tensorflow as tf
@@ -17,6 +14,8 @@ from evaluation.kid import calc_KID_for_model_target_source, calc_KID_for_model
 from evaluation.load_test_data import load_tfds_test_data
 from evaluation.tcv_os import calculate_ssim_psnr, calculate_tcv, translate_images_clf
 from tensorflow_addons.layers import InstanceNormalization
+
+from tf2lib_local import is_ganterfactual_run_in_abc_repo
 
 # ==============================================================================
 # =                                   param                                    =
@@ -69,14 +68,6 @@ def get_ganterfactual_generators(name, ep):
     return G_A2B, G_B2A
 
 
-def is_normal_run():
-    return args.attention_type == "none" and args.counterfactual_loss_weight == 0
-
-
-def is_ganterfactual_run_in_abc_repo():
-    return args.attention_type == "none" and args.counterfactual_loss_weight > 0
-
-
 # ==============================================================================
 # =                                    data                                    =
 # ==============================================================================
@@ -111,7 +102,7 @@ def get_load_generators():
     """
     Decide if generators from this project or GANterfactual project.
     """
-    if is_ganterfactual_run_in_abc_repo():
+    if is_ganterfactual_run_in_abc_repo(args):
         load_generators = get_abc_gan_generators
     else:
         load_generators = get_abc_gan_generators
