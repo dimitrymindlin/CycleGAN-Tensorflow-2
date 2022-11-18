@@ -14,6 +14,12 @@ from imlib.image_holder import ImageHolder
 import tensorflow as tf
 
 
+def get_predicted_class_label(args, img, clf):
+    if args.clf_input_channel == 1 and args.img_channels == 3:
+        img = tf.image.rgb_to_grayscale(img)
+    return int(np.argmax(clf(img)))
+
+
 def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, return_images,
                          training=False, save_img=False):
     if args.attention_type != "none":
@@ -46,19 +52,14 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
         for img_i, translated_i in zip(img_batch, translated_img):
             # To predict, scale to 512,512 and batch
             translated_i_batched = tf.expand_dims(tf.image.resize(translated_i, [512, 512]), axis=0)
-            if args.clf_input_channel == 1:
-                translated_i_batched = tf.image.rgb_to_grayscale(translated_i_batched)
-            # get predicted class label as int
-            clf_prediction = int(np.argmax(clf(translated_i_batched)))
+            clf_prediction = get_predicted_class_label(args, translated_i_batched, clf)
             y_pred_translated.append(clf_prediction)
             # If images should be saved
             if save_img:
                 # Save all imgs (original, (attention,) translated)
                 if not args.save_only_translated_img:
                     original_img_batched = tf.expand_dims(tf.image.resize(img_i, [512, 512]), axis=0)
-                    if args.clf_input_channel == 1:
-                        original_img_batched = tf.image.rgb_to_grayscale(original_img_batched)
-                    original_prediction = int(np.argmax(clf(original_img_batched)))
+                    original_prediction = get_predicted_class_label(args, original_img_batched, clf)
                     class_label_name = "A" if class_label == 0 else "B"
                     if args.attention_type != "none":
                         img = immerge(
