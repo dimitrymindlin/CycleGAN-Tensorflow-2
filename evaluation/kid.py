@@ -155,14 +155,8 @@ def calc_KID_for_model(translated_images, img_shape, dataset):
                 if len(current_translated_images) < 100:
                     break
 
-                tmp_samples_tensor = tf.convert_to_tensor(tf.squeeze(current_samples))
-
-                if len(tf.shape(
-                        tmp_samples_tensor)) < 4:  # channel dimension lost in squeeze because was 1 channel tensor.
-                    tmp_samples_tensor = tf.image.grayscale_to_rgb(
-                        tf.expand_dims(tf.squeeze(tmp_samples_tensor), axis=-1))
-                print("current_samples ", len(current_samples))
-                print("current_samples limited", len(current_samples[:len(current_translated_images)]))
+                print(f"current_samples: {len(current_samples)}")
+                print(f"current_samples limited: {len(current_samples[:len(current_translated_images)])}")
                 kid.update_state(current_samples[:len(current_translated_images)], current_translated_images)
                 print(float("{0:.3f}".format(kid.result().numpy())))
         else:
