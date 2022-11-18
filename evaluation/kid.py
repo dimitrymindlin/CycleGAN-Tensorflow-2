@@ -113,7 +113,10 @@ def calc_KID_for_model_target_source(translated_images, translation_name, img_sh
 
 def calc_KID_for_model(translated_images, img_shape, dataset):
     # Standard KID calculation of translated images with target domain.
-    max_samples = 650
+    max_samples = 1050
+    oom_split_size = 500
+    kid_splits = 5
+    oom_splits = 3
 
     # Check if one channel images and if so, turn to 3 channel images.
     if img_shape[-1] == 1:
@@ -126,22 +129,27 @@ def calc_KID_for_model(translated_images, img_shape, dataset):
     kid = KID(img_shape=img_shape)
     kid_value_list = []
     images_length = len(translated_images)
-    all_samples_list = list(dataset.take(images_length * 5))
+    all_samples_list = list(
+        dataset.take(images_length * kid_splits))  # 5 times more original images to compare against in 5 splits
     # Calc KID in splits of 5 different target samples
-    for i in tqdm.trange(5, desc='KID outer splits'):
+    for i in tqdm.trange(kid_splits, desc='KID outer splits'):
         if i == 4:
             tmp_samples = all_samples_list[i * images_length:]
         else:
             tmp_samples = all_samples_list[i * images_length:(i + 1) * images_length]
         # Calc KID in splits because all samples don't fit in memory
-        if images_length > 600:
-            for j in tqdm.trange(3, desc='KID inner splits'):
-                if j == 2:
-                    current_samples = tmp_samples[j * max_samples:]
-                    current_translated_images = translated_images[j * max_samples:]
+        print(f"tmp_samples: {len(tmp_samples)}. ")
+        if len(tmp_samples) > 600:
+            for j in tqdm.trange(oom_splits, desc='KID inner splits'):
+                if j == oom_splits - 1:
+                    current_samples = tmp_samples[j * oom_split_size:]
+                    print(f"tmp_samples: {len(current_samples)}. ")
+                    current_translated_images = translated_images[j * oom_split_size:]
                 else:
-                    current_samples = tmp_samples[j * max_samples:(j + 1) * max_samples]
-                    current_translated_images = translated_images[j * max_samples:(j + 1) * max_samples]
+                    current_samples = tmp_samples[j * oom_split_size:(j + 1) * oom_split_size]
+                    print(f"current_samples: {len(current_samples)}. ")
+                    current_translated_images = translated_images[j * oom_split_size:(j + 1) * oom_split_size]
+                    print(f"current_translated_images: {len(current_samples)}. ")
                 if len(current_translated_images) < 100:
                     break
 
