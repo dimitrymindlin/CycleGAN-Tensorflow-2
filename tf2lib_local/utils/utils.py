@@ -73,3 +73,7 @@ def is_normal_run(args):
 
 def is_ganterfactual_run_in_abc_repo(args):
     return args.attention_type == "none" and args.counterfactual_loss_weight > 0
+
+
+def is_ganterfactual_repo(args):
+    return args.ganterfactual_repo
