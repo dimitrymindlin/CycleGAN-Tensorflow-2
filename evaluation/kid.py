@@ -114,7 +114,7 @@ def calc_KID_for_model_target_source(translated_images, translation_name, img_sh
 def calc_KID_for_model(translated_images, img_shape, dataset):
     # Standard KID calculation of translated images with target domain.
     max_samples = 1050
-    oom_split_size = 750
+    oom_split_size = 500
     kid_splits = 5
     oom_splits = 3
 
