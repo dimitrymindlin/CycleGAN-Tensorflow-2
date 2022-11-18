@@ -113,9 +113,9 @@ def calc_KID_for_model_target_source(translated_images, translation_name, img_sh
 
 def calc_KID_for_model(translated_images, img_shape, dataset):
     # Standard KID calculation of translated images with target domain.
-    max_samples = 1050
+    max_samples = 650
     oom_split_size = 500
-    kid_splits = 5
+    kid_splits = 3
     oom_splits = 3
 
     # Check if one channel images and if so, turn to 3 channel images.
@@ -161,8 +161,9 @@ def calc_KID_for_model(translated_images, img_shape, dataset):
                         tmp_samples_tensor)) < 4:  # channel dimension lost in squeeze because was 1 channel tensor.
                     tmp_samples_tensor = tf.image.grayscale_to_rgb(
                         tf.expand_dims(tf.squeeze(tmp_samples_tensor), axis=-1))
-
-                kid.update_state(tmp_samples_tensor[:len(current_translated_images)], current_translated_images)
+                print("current_samples ", len(current_samples))
+                print("current_samples limited", len(current_samples[:len(current_translated_images)]))
+                kid.update_state(current_samples[:len(current_translated_images)], current_translated_images)
                 print(float("{0:.3f}".format(kid.result().numpy())))
         else:
             tmp_samples_tensor = tf.convert_to_tensor(tf.squeeze(tmp_samples))
