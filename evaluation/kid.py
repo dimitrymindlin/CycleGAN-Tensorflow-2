@@ -162,7 +162,7 @@ def calc_KID_for_model(translated_images, img_shape, dataset):
                     tmp_samples_tensor = tf.image.grayscale_to_rgb(
                         tf.expand_dims(tf.squeeze(tmp_samples_tensor), axis=-1))
 
-                kid.update_state(tmp_samples_tensor, current_translated_images)
+                kid.update_state(tmp_samples_tensor[:len(current_translated_images)], current_translated_images)
                 print(float("{0:.3f}".format(kid.result().numpy())))
         else:
             tmp_samples_tensor = tf.convert_to_tensor(tf.squeeze(tmp_samples))
