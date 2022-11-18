@@ -104,6 +104,10 @@ def load_test_data():
 
     else:  # Horse2Zebra / Apple2Orange
         A_dataset, A_dataset_test, B_dataset, B_dataset_test = load_tfds_test_data(args.dataset)
+    """print("A_dataset",len(A_dataset))
+    print("A_dataset_test", len(A_dataset_test))
+    print("B_dataset", len(B_dataset))
+    print("B_dataset_test", len(B_dataset_test))"""
     return A_dataset, A_dataset_test, B_dataset, B_dataset_test
 
 
