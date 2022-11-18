@@ -170,7 +170,7 @@ for name, ep in zip(config[args.dataset]["model_names"], config[args.dataset]["e
     generator = module.ResnetGenerator if args.generator == "resnet" else module.UnetGenerator
     G_A2B = generator(input_shape=args.img_shape)
     G_B2A = generator(input_shape=args.img_shape)
-    print(f"Starting {name}_{ep}")
+
     G_A2B, G_B2A = load_generators(name, ep)  # load generator checkpoints.
     ### Get CLF + Gradcam
     clf = tf.keras.models.load_model(
@@ -187,6 +187,7 @@ for name, ep in zip(config[args.dataset]["model_names"], config[args.dataset]["e
 
     with open(py.join(experiments_dir, name, 'test_output.txt'), 'w') as f:
         sys.stdout = f  # Change the standard output to the file we created.
+        print(f"Starting {name}_{ep}")
         if args.save_img:
             save_img = py.join(experiments_dir, name, f"test_images_{ep}")
         else:
