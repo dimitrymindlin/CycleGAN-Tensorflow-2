@@ -113,7 +113,7 @@ def calc_KID_for_model_target_source(translated_images, translation_name, img_sh
 
 def calc_KID_for_model(translated_images, img_shape, dataset):
     # Standard KID calculation of translated images with target domain.
-    max_samples = 100
+    max_samples = 1000
 
     # Check if one channel images and if so, turn to 3 channel images.
     if img_shape[-1] == 1:
