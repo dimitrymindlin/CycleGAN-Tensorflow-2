@@ -150,9 +150,18 @@ def calc_KID_for_model(translated_images, img_shape, dataset):
                 tmp_samples_tensor = tf.image.grayscale_to_rgb(tf.expand_dims(tf.squeeze(tmp_samples_tensor), axis=-1))
             kid.update_state(tmp_samples_tensor[:len(translated_images)], translated_images)
         else:  # Calc KID in splits because all samples don't fit in memory
-            print(f"ALL tmp_samples: {len(tmp_samples_tensor)}. ")
             for j in tqdm.trange(oom_splits, desc='KID inner splits'):
                 print(j)
+                if i == kid_splits - 1:
+                    tmp_samples = all_samples_list[j * images_length:]
+                else:
+                    tmp_samples = all_samples_list[j * images_length:(j + 1) * images_length]
+                # Turn to tensors
+                tmp_samples_tensor = tf.convert_to_tensor(tf.squeeze(tmp_samples))
+                print(f"tmp_samples: {len(tmp_samples)}")
+                if len(tf.shape(tmp_samples_tensor)) < 4:
+                    tmp_samples_tensor = tf.image.grayscale_to_rgb(
+                        tf.expand_dims(tf.squeeze(tmp_samples_tensor), axis=-1))
                 if j == oom_splits - 1:
                     current_samples = tmp_samples_tensor[j * oom_split_size:]
                     print(f"current_samples: {len(current_samples)}. ")
