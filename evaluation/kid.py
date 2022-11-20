@@ -115,8 +115,8 @@ def calc_KID_for_model_target_source(translated_images, translation_name, img_sh
 
 def calc_KID_for_model(translated_images, img_shape, dataset):
     # Standard KID calculation of translated images with target domain.
-    max_samples = 1000
-    kid_splits = 5
+    max_samples = len(translated_images)
+    kid_splits = 1
     images_length = len(translated_images)
     oom_splits = ceil(images_length / max_samples)
     oom_split_size = floor(images_length / oom_splits)
@@ -134,15 +134,12 @@ def calc_KID_for_model(translated_images, img_shape, dataset):
     kid = KID(img_shape=img_shape)
     kid_value_list = []
     all_samples_list = list(
-        dataset.take(images_length * kid_splits))  # 5 times more original images to compare against in 5 splits
-    # Calc KID in splits of 5 different target samples
+        dataset.take(images_length))  # 3 times more original images to compare against in 3 splits
     print(f"All translated: {len(translated_images)}")
     for i in tqdm.trange(kid_splits, desc='KID outer splits'):
         if images_length < max_samples:
-            if i == kid_splits - 1:
-                tmp_samples = all_samples_list[i * images_length:]
-            else:
-                tmp_samples = all_samples_list[i * images_length:(i + 1) * images_length]
+
+            tmp_samples = all_samples_list[i * images_length:(i + 1) * images_length]
             print(f"tmp_samples: {len(tmp_samples)}")
             # Turn to tensors
             tmp_samples_tensor = tf.convert_to_tensor(tf.squeeze(tmp_samples))
@@ -153,9 +150,9 @@ def calc_KID_for_model(translated_images, img_shape, dataset):
             for j in tqdm.trange(oom_splits, desc='KID inner splits'):
                 print(j)
                 if i == kid_splits - 1:
-                    tmp_samples = all_samples_list[j * images_length:]
+                    tmp_samples = all_samples_list[i * j * oom_split_size:]
                 else:
-                    tmp_samples = all_samples_list[j * images_length:(j + 1) * images_length]
+                    tmp_samples = all_samples_list[i * j * oom_split_size:(i * j + 1) * oom_split_size]
                 # Turn to tensors
                 tmp_samples_tensor = tf.convert_to_tensor(tf.squeeze(tmp_samples))
                 print(f"tmp_samples: {len(tmp_samples)}")
