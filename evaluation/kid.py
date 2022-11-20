@@ -1,4 +1,4 @@
-from math import ceil
+from math import ceil, floor
 
 import tensorflow as tf
 import tensorflow.keras as keras
@@ -119,7 +119,7 @@ def calc_KID_for_model(translated_images, img_shape, dataset):
     kid_splits = 5
     images_length = len(translated_images)
     oom_splits = ceil(images_length / max_samples)
-    oom_split_size = images_length / oom_splits
+    oom_split_size = floor(images_length / oom_splits)
 
     print(f"images_length: {images_length}, oom_splits {oom_splits}, oom_split_size {oom_split_size}")
 
