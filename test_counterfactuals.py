@@ -10,7 +10,7 @@ import pylib as py
 import tensorflow as tf
 import tf2lib_local as tl
 import module
-from evaluation.kid import calc_KID_for_model_target_source, calc_KID_for_model
+from evaluation.kid import calc_KID_for_model_target_source, calc_KID_for_model, calc_KID_for_model_batched
 from evaluation.load_test_data import load_tfds_test_data
 from evaluation.tcv_os import calculate_ssim_psnr, calculate_tcv, translate_images_clf
 from tensorflow_addons.layers import InstanceNormalization
@@ -153,7 +153,7 @@ def evaluate_current_model(G_A2B, G_B2A, A_dataset, A_dataset_test, B_dataset, B
 
         if args.kid:
             if args.dataset == "mura" or args.dataset == "rsna":
-                calc_KID_for_model(translated_images, args.img_shape, target_dataset)
+                calc_KID_for_model_batched(translated_images, args.img_shape, target_dataset)
             else:
                 calc_KID_for_model_target_source(translated_images, translation_name, args.img_shape, A_dataset,
                                                  B_dataset)
