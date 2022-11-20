@@ -206,8 +206,9 @@ def calc_KID_for_model_batched(translated_images, img_shape, dataset):
     dataset = dataset.shuffle(len(dataset))
     # Batch after shuffling to get unique batches at each epoch.
     dataset = dataset.batch(len(translated_images))
-
+    print("Prepared dataset.")
     for tmp_samples, counter in zip(dataset, range(kid_splits)):
+        print(f"Processing {counter} batch...")
         tmp_samples_tensor = tf.convert_to_tensor(tf.squeeze(tmp_samples))
         if len(tf.shape(tmp_samples_tensor)) < 4:
             tmp_samples_tensor = tf.image.grayscale_to_rgb(tf.expand_dims(tf.squeeze(tmp_samples_tensor), axis=-1))
