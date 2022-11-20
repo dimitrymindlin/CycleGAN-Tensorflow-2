@@ -212,7 +212,7 @@ def calc_KID_for_model_batched(translated_images, img_shape, dataset):
         tmp_samples_tensor = tf.convert_to_tensor(tf.squeeze(tmp_samples))
         if len(tf.shape(tmp_samples_tensor)) < 4:
             tmp_samples_tensor = tf.image.grayscale_to_rgb(tf.expand_dims(tf.squeeze(tmp_samples_tensor), axis=-1))
-        kid.update_state(tmp_samples_tensor[:len(translated_images)], translated_images)
+        kid.update_state(tmp_samples_tensor, translated_images)
         kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
         kid.reset_state()
 
