@@ -76,4 +76,7 @@ def is_ganterfactual_run_in_abc_repo(args):
 
 
 def is_ganterfactual_repo(args):
-    return args.ganterfactual_repo
+    try:
+        return args.ganterfactual_repo
+    except AttributeError:
+        return False
