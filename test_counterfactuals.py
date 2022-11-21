@@ -54,17 +54,17 @@ print(TFDS_PATH)
 
 def get_abc_gan_generators(timestamp_id, ep):
     if timestamp_id == "2022-05-23--18.32":  # normal MURA gan without attention
-        tl.Checkpoint(dict(generator_g=G_A2B, generator_f=G_B2A),
+        tl.utils.Checkpoint(dict(generator_g=G_A2B, generator_f=G_B2A),
                       py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}")).restore(
             save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}/ckpt-{ep}')
     else:
         if os.path.exists(py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}/checkpoints")):
             # New runs will keep checkpoints in checkpoints folder
-            tl.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A),
+            tl.utils.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A),
                           py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}")).restore(
                 save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}/ckpt-{ep}')
         else:
-            tl.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A),
+            tl.utils.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A),
                           py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}")).restore(
                 save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}/ckpt-{ep}')
     return G_A2B, G_B2A
