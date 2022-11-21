@@ -186,12 +186,10 @@ def calc_KID_for_model(translated_images, img_shape, dataset):
     return mean, std
 
 
-def calc_KID_for_model_batched(translated_images, img_shape, dataset):
+def calc_KID_for_model_batched(translated_images, img_shape, dataset, batch_size=60):
     # Standard KID calculation of translated images with target domain.
-    max_samples = 700
     kid_splits = 3
     images_length = len(translated_images)
-    kid_inner_splits = ceil(images_length / max_samples)
     print(f"images_length: {images_length}, kid_splits: {kid_splits}")
 
     # Check if one channel images and if so, turn to 3 channel images.
@@ -207,26 +205,21 @@ def calc_KID_for_model_batched(translated_images, img_shape, dataset):
 
     dataset = dataset.shuffle(len(dataset))
     # Batch after shuffling to get unique batches at each epoch.
-    dataset = dataset.batch(max_samples)
+    dataset = dataset.batch(batch_size)
+
     print("Prepared dataset.")
-    for tmp_samples, counter in zip(dataset, range(kid_splits)):
-        print(f"Processing {counter} batch...")
+    for tmp_samples, batch_i in zip(dataset, range(kid_splits)):
+        print(f"Processing {batch_i} batch...")
         tmp_samples_tensor = tf.convert_to_tensor(tf.squeeze(tmp_samples))
         if len(tf.shape(tmp_samples_tensor)) < 4:
             tmp_samples_tensor = tf.image.grayscale_to_rgb(tf.expand_dims(tf.squeeze(tmp_samples_tensor), axis=-1))
-        for j in range(kid_inner_splits):
-            print(f"Inner Split {j}...")
-            if j == kid_inner_splits - 1:
-                translated_images_tmp = tmp_samples_tensor[j * max_samples:]
-            else:
-                translated_images_tmp = translated_images[j * max_samples:(j + 1) * max_samples]
-            if len(translated_images_tmp) < 100:  # Too small to calculate KID
-                break
-            print(f"Took {len(translated_images_tmp)} translated images.")
-            print(f"Took {len(tmp_samples_tensor[:len(translated_images_tmp)])} original samples.")
-            kid.update_state(tmp_samples_tensor[:len(translated_images_tmp)], translated_images_tmp)
-            kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
-            kid.reset_state()
+        try:
+            translated_images_tmp = translated_images[batch_i * batch_size:(batch_i + 1) * batch_size]
+        except IndexError:
+            break
+        kid.update_state(tmp_samples_tensor[:len(translated_images_tmp)], translated_images_tmp)
+        kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
+        kid.reset_state()
 
     print(kid_value_list)
     mean = float("{0:.3f}".format(np.mean(kid_value_list) * 100))
