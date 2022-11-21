@@ -10,7 +10,7 @@ import pylib as py
 import tensorflow as tf
 import tf2lib_local as tl
 import module
-from evaluation.kid import calc_KID_for_model_target_source, calc_KID_for_model, calc_KID_for_model_batched
+from evaluation.kid import calc_KID_for_model_target_source, calc_KID_for_model_batched
 from evaluation.load_test_data import load_tfds_test_data
 from evaluation.tcv_os import calculate_ssim_psnr, calculate_tcv, translate_images_clf
 from tensorflow_addons.layers import InstanceNormalization
