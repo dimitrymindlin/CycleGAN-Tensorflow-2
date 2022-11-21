@@ -203,7 +203,7 @@ for name, ep in zip(config[args.dataset]["model_names"], config[args.dataset]["e
     except AttributeError:
         args.clf_input_channel = clf.layers[0].input_shape[0][-1]  # ignore batch dimension eg. (512,512,3)
 
-    with open(py.join(experiments_dir, name, 'test_output.txt'), 'w') as f:
+    with open(py.join(experiments_dir, name, f'test_metrics_{ep}.txt'), 'w') as f:
         sys.stdout = f  # Change the standard output to the file we created.
         print(f"Starting {name}_{ep}")
         if args.save_img:
