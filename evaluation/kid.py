@@ -115,8 +115,8 @@ def calc_KID_for_model_target_source(translated_images, translation_name, img_sh
 
 def calc_KID_for_model_batched(translated_images, img_shape, dataset, batch_size=60):
     # Standard KID calculation of translated images with target domain.
-    kid_splits = 3
     images_length = len(translated_images)
+    kid_splits = ceil(images_length / batch_size)
 
     # Check if one channel images and if so, turn to 3 channel images.
     if img_shape[-1] == 1:
