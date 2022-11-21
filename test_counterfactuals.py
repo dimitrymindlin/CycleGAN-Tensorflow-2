@@ -21,9 +21,14 @@ from tf2lib_local.utils import is_ganterfactual_repo
 def set_ganterfactual_repo_args():
     args.ganterfactual_repo = True
     args.crop_size = 512
-    args.img_channels = 1  # Old Models with UNET and Alexnet -> 1 channel
-    args.clf_name = "alexnet"
-    args.clf_ckp_name = "2022-10-13--13.03"
+    if args.dataset == "rsna":
+        args.img_channels = 1  # Old Models with UNET and Alexnet -> 1 channel
+        args.clf_name = "alexnet"
+        args.clf_ckp_name = "2022-10-13--13.03"
+    else:  # For MURA
+        args.img_channels = 3  # Old Models with UNET and Alexnet -> 1 channel
+        args.clf_name = "inception"
+        args.clf_ckp_name = "2022-06-04--00.05"
     args.attention_type = "none"
     args.batch_size = 1
     args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
@@ -55,17 +60,17 @@ print(TFDS_PATH)
 def get_abc_gan_generators(timestamp_id, ep):
     if timestamp_id == "2022-05-23--18.32":  # normal MURA gan without attention
         tl.utils.Checkpoint(dict(generator_g=G_A2B, generator_f=G_B2A),
-                      py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}")).restore(
+                            py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}")).restore(
             save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}/ckpt-{ep}')
     else:
         if os.path.exists(py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}/checkpoints")):
             # New runs will keep checkpoints in checkpoints folder
             tl.utils.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A),
-                          py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}")).restore(
+                                py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}")).restore(
                 save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}/ckpt-{ep}')
         else:
             tl.utils.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A),
-                          py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}")).restore(
+                                py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}")).restore(
                 save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}/ckpt-{ep}')
     return G_A2B, G_B2A
 
