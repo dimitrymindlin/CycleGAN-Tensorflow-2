@@ -30,7 +30,7 @@ def apply_gradcam(img, gradcam, class_index, args, attention_intensity=1, attent
     Applys gradcam to an image and returns the heatmap as well as the enhanced img.
     """
     # Generate cam map
-    if tf.shape(img)[-1] == 3:
+    if tf.shape(img)[-1] == 3 and args.clf_input_channel == 1:
         # Make temporary 1 channel img if 3 channel
         img_tmp = tf.image.rgb_to_grayscale(img)
     else:
