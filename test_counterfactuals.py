@@ -170,7 +170,10 @@ for name, ep in zip(config[args.dataset]["model_names"], config[args.dataset]["e
     try:
         args = py.args_from_yaml(py.join(experiments_dir, name, 'settings.yml'))
         args.__dict__.update(args.__dict__)
-        args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
+        try:
+            args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
+        except AttributeError:
+            args.img_shape = (args.crop_size, args.crop_size, 3)  # ABC-GANs images have always 3 channels.
     except FileNotFoundError:  # From GANterfacfual
         set_ganterfactual_repo_args()
 
