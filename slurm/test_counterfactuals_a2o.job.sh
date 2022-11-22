@@ -9,8 +9,4 @@ python3 -m test_counterfactuals \
 --ssim_psnr True \
 --kid True \
 --save_img False \
---clf_name inception \
---generator resnet \
---attention_type none \
---cyclegan_mode normal
 
