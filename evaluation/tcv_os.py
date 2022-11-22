@@ -55,8 +55,8 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
             clf_prediction = get_predicted_class_label(args, translated_i_batched, clf)
             y_pred_translated.append(clf_prediction)
             # If images should be saved
-            if save_img:
-                # Save all imgs (original, (attention,) translated)
+            if save_img and len_dataset < 100:
+                # Save first 100 imgs (original, (attention,) translated)
                 if not args.save_only_translated_img:
                     original_img_batched = tf.expand_dims(tf.image.resize(img_i, [512, 512]), axis=0)
                     original_prediction = get_predicted_class_label(args, original_img_batched, clf)
