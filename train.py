@@ -314,7 +314,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     ep_cnt = tf.Variable(initial_value=0, trainable=False, dtype=tf.int64)
 
     # checkpoint
-    checkpoint = tl.Checkpoint(dict(G_A2B=G_A2B,
+    checkpoint = tl.utils.Checkpoint(dict(G_A2B=G_A2B,
                                     G_B2A=G_B2A,
                                     D_A=D_A,
                                     D_B=D_B,
@@ -360,9 +360,9 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                 G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
 
                 # # summary
-                tl.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
-                tl.summary(D_loss_dict, step=G_optimizer.iterations, name='D_losses')
-                tl.summary({'learning rate': G_lr_scheduler.current_learning_rate}, step=G_optimizer.iterations,
+                tl.utils.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
+                tl.utils.summary(D_loss_dict, step=G_optimizer.iterations, name='D_losses')
+                tl.utils.summary({'learning rate': G_lr_scheduler.current_learning_rate}, step=G_optimizer.iterations,
                            name='learning rate')
 
                 # sample
