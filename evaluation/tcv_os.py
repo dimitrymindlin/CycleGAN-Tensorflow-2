@@ -14,6 +14,13 @@ from imlib.image_holder import ImageHolder
 import tensorflow as tf
 
 
+def only_save_imgs(args):
+    """
+    Returns true when all metrics are set to false, else, false
+    """
+    return not args.kid and not args.tcv_os and not args.ssim_psnr
+
+
 def get_predicted_class_label(args, img, clf):
     if args.clf_input_channel == 1 and args.img_channels == 3:
         img = tf.image.rgb_to_grayscale(img)
@@ -77,6 +84,9 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
                     img_folder = f'{save_img}/{class_label_name}'
                     os.makedirs(img_folder, exist_ok=True)
                     im.save(f"{img_folder}/%d.png" % (batch_i))
+            else:
+                if only_save_imgs(args):
+                    return y_pred_translated, len_dataset, translated_images  # Stop if only images should be saved.
         len_dataset += 1
 
     return y_pred_translated, len_dataset, translated_images
