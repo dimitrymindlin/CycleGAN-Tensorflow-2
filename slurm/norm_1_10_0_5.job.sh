@@ -4,7 +4,7 @@ conda activate medical-decision-support-system
 cd /media/compute/homes/dmindlin/CycleGAN-Tensorflow-2
 
 python3 -m experiment \
-  --dataset apple2orange \
+  --dataset mura \
   --adversarial_loss_weight 1 \
   --cycle_loss_weight 10 \
   --counterfactual_loss_weight 0 \
