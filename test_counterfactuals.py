@@ -158,11 +158,11 @@ def evaluate_current_model(G_A2B, G_B2A, A_dataset, A_dataset_test, B_dataset, B
             calculate_ssim_psnr(args, source_dataset, translated_images)
 
         if args.kid:
-            if args.dataset == "mura" or args.dataset == "rsna" or args.dataset == "apple2orange":
+            if args.dataset == "mura" or args.dataset == "rsna":
                 calc_KID_for_model_batched(translated_images, args.img_shape, target_dataset)
             else:
-                calc_KID_for_model_target_source(translated_images, translation_name, args.img_shape, A_dataset,
-                                                 B_dataset)
+                calc_KID_for_model_target_source_batched(translated_images, args.img_shape, A_dataset,
+                                                         B_dataset, translation_name)
     print()
 
 
