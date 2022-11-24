@@ -55,3 +55,13 @@ def random_rotate(images, max_degrees, interpolation='BILINEAR'):
     max_degrees = tf.convert_to_tensor(max_degrees, dtype=tf.float32)
     angles = tf.random.uniform(tf.shape(max_degrees), minval=-1.0, maxval=1.0) * max_degrees / 180.0 * math.pi
     return tfa.image.rotate(images, angles, interpolation=interpolation)
+
+
+def img_to_3_channel_tf_tensor(img_array):
+    """
+    Converts an img / or batch of images that is an array into a tensor and makes sure it will be shape rgb img.
+    """
+    img_tensor = tf.squeeze(tf.convert_to_tensor(img_array))
+    if len(tf.shape(img_tensor)) < 4:  # make sure its rgb
+        img_tensor = tf.image.grayscale_to_rgb(tf.expand_dims(img_tensor, axis=-1))
+    return img_tensor
