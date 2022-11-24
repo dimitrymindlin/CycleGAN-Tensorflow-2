@@ -207,7 +207,10 @@ for name, ep in zip(config[args.dataset]["model_names"], config[args.dataset]["e
         sys.stdout = f  # Change the standard output to the file we created.
         print(f"Starting {name}_{ep}")
         if args.save_img:
-            save_img = py.join(experiments_dir, name, f"test_images_{ep}")
+            if args.dataset == "apple2orange":
+                save_img = py.join(experiments_dir, name, f"test_images_target_source_{ep}")
+            else:
+                save_img = py.join(experiments_dir, name, f"test_images_{ep}")
         else:
             save_img = False
         A_dataset, A_dataset_test, B_dataset, B_dataset_test = load_test_data()
