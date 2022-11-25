@@ -8,7 +8,9 @@ python3 -m experiment \
   --adversarial_loss_weight 1 \
   --cycle_loss_weight 5 \
   --counterfactual_loss_weight 1 \
-  --identity_loss_weight 1 \
+  --identity_loss_weight 0 \
   --generator resnet \
-  --clf_name alexnet
+  --clf_name alexnet \
+  --start_attention_epoch 10 \
+  --discriminator patch-gan-attention
 
