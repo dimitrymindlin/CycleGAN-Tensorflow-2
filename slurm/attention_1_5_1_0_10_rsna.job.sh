@@ -12,5 +12,5 @@ python3 -m experiment \
   --generator resnet \
   --clf_name alexnet \
   --start_attention_epoch 10 \
-  --discriminator patch-gan-attention
+  --discriminator patch_gan_attention
 

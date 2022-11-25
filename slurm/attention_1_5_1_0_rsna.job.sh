@@ -10,5 +10,5 @@ python3 -m experiment \
   --counterfactual_loss_weight 1 \
   --identity_loss_weight 0 \
   --generator resnet \
-  --discriminator patch-gan-attention
+  --discriminator patch_gan_attention
 
