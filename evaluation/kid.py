@@ -153,7 +153,7 @@ def calc_KID_for_model_batched(translated_images, img_shape, dataset, batch_size
             kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
             kid.reset_state()
             if len(tmp_samples_tensor) > 50 and len(translated_images_tmp) > 50:
-                smaller_size = np.min(len(translated_images_tmp), len(tmp_samples_tensor))
+                smaller_size = np.min((len(translated_images_tmp), len(tmp_samples_tensor)))
                 kid.update_state(tmp_samples_tensor[:smaller_size], translated_images_tmp[:smaller_size])
 
     print_kid_output(kid_value_list)
