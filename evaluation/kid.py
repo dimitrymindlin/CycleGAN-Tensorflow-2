@@ -148,6 +148,8 @@ def calc_KID_for_model_batched(translated_images, img_shape, dataset, batch_size
             translated_images_tmp = translated_images[current_batch * batch_size:]
 
         if (batch_i + 1) % iterations_per_kid_value != 0:
+            print(
+                f"Batch {batch_i} and sizes: {tf.shape(tmp_samples_tensor[:len(translated_images_tmp)])}, {tf.shape(translated_images_tmp)}")
             kid.update_state(tmp_samples_tensor[:len(translated_images_tmp)], translated_images_tmp)
         else:
             kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
