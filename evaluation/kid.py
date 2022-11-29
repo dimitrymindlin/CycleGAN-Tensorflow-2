@@ -129,6 +129,7 @@ def calc_KID_for_model_batched(translated_images, img_shape, dataset, batch_size
     images_length = len(translated_images)
     kid_splits = 5
     iterations_per_kid_value = ceil(images_length / batch_size)
+    min_amount_for_kid_calculation = 50
 
     translated_images = img_to_3_channel_tf_tensor(translated_images)  # 3 channel images needed for KID
     img_shape = (img_shape[0], img_shape[1], 3)
@@ -148,11 +149,14 @@ def calc_KID_for_model_batched(translated_images, img_shape, dataset, batch_size
             translated_images_tmp = translated_images[current_batch * batch_size:]
 
         if (batch_i + 1) % iterations_per_kid_value != 0:
-            kid.update_state(tmp_samples_tensor[:len(translated_images_tmp)], translated_images_tmp)
+            smaller_size = np.min((len(translated_images_tmp), len(tmp_samples_tensor)))
+            if smaller_size > min_amount_for_kid_calculation:
+                kid.update_state(tmp_samples_tensor[:smaller_size], translated_images_tmp[:smaller_size])
         else:
             kid_value_list.append(float("{0:.3f}".format(kid.result().numpy())))
             kid.reset_state()
-            if len(tmp_samples_tensor) > 50 and len(translated_images_tmp) > 50:
+            if len(tmp_samples_tensor) > min_amount_for_kid_calculation and len(
+                    translated_images_tmp) > min_amount_for_kid_calculation:
                 smaller_size = np.min((len(translated_images_tmp), len(tmp_samples_tensor)))
                 kid.update_state(tmp_samples_tensor[:smaller_size], translated_images_tmp[:smaller_size])
 
