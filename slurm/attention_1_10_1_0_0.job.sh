@@ -13,4 +13,5 @@ python3 -m experiment \
   --generator resnet \
   --clf_name inception \
   --start_attention_epoch 0 \
+  --discriminator patch_gan_attention
 

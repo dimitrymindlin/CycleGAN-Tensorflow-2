@@ -11,5 +11,6 @@ python3 -m experiment \
   --identity_loss_weight 0 \
   --generator resnet \
   --clf_name alexnet \
-  --start_attention_epoch 10
+  --start_attention_epoch 10 \
+  --discriminator patch_gan_attention
 

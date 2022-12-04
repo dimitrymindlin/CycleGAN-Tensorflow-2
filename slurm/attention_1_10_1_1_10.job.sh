@@ -11,4 +11,5 @@ python3 -m experiment \
   --identity_loss_weight 1 \
   --generator resnet \
   --start_attention_epoch 10 \
+  --discriminator patch_gan_attention
 
