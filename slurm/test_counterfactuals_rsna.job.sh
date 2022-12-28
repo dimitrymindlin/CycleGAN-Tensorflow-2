@@ -5,10 +5,10 @@ cd /media/compute/homes/dmindlin/CycleGAN-Tensorflow-2
 
 python3 -m test_counterfactuals \
 --dataset rsna \
---tcv_os True \
---ssim_psnr True \
---kid True \
---save_img False
+--tcv_os False \
+--ssim_psnr False \
+--kid False \
+--save_img True
 
 
 
