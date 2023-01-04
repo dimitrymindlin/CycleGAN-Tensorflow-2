@@ -66,6 +66,7 @@ elif args.dataset == "apple2orange":
     args.clf_name = "inception"
 else:  # h2z
     args.clf_ckp_name = "2022-06-04--00.00"
+    args.clf_name = "inception"
 
 # Create new output dir if new experiment
 if not args.load_checkpoint:
