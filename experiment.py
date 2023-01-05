@@ -58,9 +58,9 @@ elif args.dataset == "rsna":
     args.sample_interval = 2
     # args.clf_ckp_name = "2022-10-12--10.37" # Inception
     if args.clf_name == "alexnet":
-        args.clf_ckp_name = "2022-10-13--13.03"  # alexnet
+        args.clf_ckp_name = "2022-10-13--13.03"
     if args.clf_name == "inception":
-        args.clf_ckp_name = "2022-10-12--10.37"  # inception
+        args.clf_ckp_name = "2022-10-12--10.37"
 elif args.dataset == "apple2orange":
     args.clf_ckp_name = "2022-09-23--15.18"
     args.clf_name = "inception"
