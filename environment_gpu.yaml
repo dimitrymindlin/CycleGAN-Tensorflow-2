@@ -15,3 +15,5 @@ dependencies:
       - kaggle
       - tensorflow-addons[tensorflow]
       - tf-keras-vis
+      - git+https://github.com/dimitrymindlin/tfds-rsna
+      - git+https://github.com/dimitrymindlin/tfds-mura
