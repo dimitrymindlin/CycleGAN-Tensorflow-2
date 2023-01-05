@@ -164,6 +164,70 @@ def save_images_with_attention(A_holder, A2B, B_holder, B2A, clf, dataset,
             print(e)
 
 
+def save_images_single_class(imgs_list, save_path: str, class_label: str, batch_count: int, ep_cnt=0,
+                             clf_predictions=None):
+    """
+    Saves img to specified path
+    Parameters
+    ----------
+    imgs_list list of imgs in value range [-1.0, 1.0]
+    save_path Path where images should be saved
+    batch_count batch number
+    ep_cnt epoch number
+    clf_predictions list of predictions (class label as int {0, 1}) for each img in img list. EG. [0,1,1] for 3 images
+    -------
+    """
+    # Make img grid
+    img = immerge(np.concatenate(imgs_list, axis=0), n_rows=1)
+    # Make img name with clf_predictions if available
+    if clf_predictions:
+        # img_name = f"ep:{ep_cnt}_batch:{batch_count}_predictions:{'_'.join(clf_predictions)}.png"
+        save_imgs_with_predictions(img, 1, clf_predictions, class_label, save_path, )
+    else:
+        img_name = f"ep:{ep_cnt}_batch:{batch_count}.png"
+    # Save
+    try:
+        imwrite(img, save_path + "/" + img_name)
+    except (AssertionError, AttributeError, OSError) as e:
+        print(f"Wasn't able to print image {ep_cnt}_{batch_count}")
+        print(e)
+
+
+def save_imgs_with_predictions(imgs, rows, predictions, class_label, img_path, grayscale=True):
+    r, c = rows, len(imgs)
+    titles = ['Original', 'Counterfactual']
+    fig, axs = plt.subplots(r, c, figsize=(30, 20))
+    cnt = 0
+    for i in range(r):
+        for j in range(c):
+            if grayscale:
+                axs[i, j].imshow(imgs[cnt][:, :, 0], cmap='gray')
+            else:
+                axs[i, j].imshow(imgs[cnt][:, :, 0])  # H2Z, A2O ...
+            if j in [0, 3]:
+                axs[i, j].set_title(
+                    f'CLF: {predictions[cnt]}')
+            else:
+                axs[i, j].set_title(f'{titles[j]}')
+            axs[i, j].axis('off')
+            cnt += 1
+    img_name = f"{class_label}"
+    os.makedirs(img_path, exist_ok=True)
+    # fig.savefig(f"{img_path}/%d_%d.png" % (ep_cnt, batch_count))
+    fig.savefig(f"{img_path}/{img_name}")
+    plt.close()
+
+
+def save_images_two_classes(img_list, dataset, execution_id, ep_cnt, batch_count, save_path, clf_predictions=None):
+    img = immerge(np.concatenate(img_list, axis=0), n_rows=2)
+    img_folder = f'{save_path}/{execution_id}/images'
+    try:
+        imwrite(img, f"{img_folder}/%d_%d.png" % (ep_cnt, batch_count))
+    except (AssertionError, AttributeError, OSError) as e:
+        print(f"Wasn't able to print image {ep_cnt}_{batch_count}")
+        print(e)
+
+
 def imread(path, as_gray=False, **kwargs):
     """Return a float64 image in [-1.0, 1.0]."""
     image = iio.imread(path, as_gray, **kwargs)
