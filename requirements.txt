@@ -1,0 +1,13 @@
+pandas
+pip
+tensorboard
+seaborn
+scikit-image
+tensorflow==2.6
+tensorflow-datasets==4.4.0
+kaggle
+tensorflow-addons[tensorflow]
+tqdm
+tf-keras-vis
+git+https://github.com/dimitrymindlin/tfds-rsna
+git+https://github.com/dimitrymindlin/tfds-mura
