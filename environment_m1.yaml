@@ -1,0 +1,25 @@
+name: CycleGAN-tf2-m1
+channels:
+  - apple
+  - conda-forge
+  - defaults
+dependencies:
+  - tensorflow-deps
+  - pandas
+  - seaborn
+  - pip=21.1.2
+  - scikit-learn
+  - scipy
+  - matplotlib
+  - pillow
+  - tqdm
+  - h5py
+  - typeguard
+  - pip:
+      - tensorflow-macos==2.5.0
+      - tensorflow-datasets
+      - kaggle
+      - keras-tuner
+      - lime
+      - tf-explain
+      - imutils
