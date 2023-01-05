@@ -2,14 +2,12 @@ import os
 
 import numpy as np
 from PIL import Image
-from matplotlib import pyplot as plt
 from skimage.metrics import structural_similarity, peak_signal_noise_ratio
-import pylib as py
 import tqdm
 
 from attention_strategies.attention_gan import attention_gan_single
 from attention_strategies.no_attention import no_attention_single
-from imlib import immerge, imwrite, generate_image, save_images_with_attention
+from imlib import immerge, imwrite
 from imlib.image_holder import ImageHolder
 import tensorflow as tf
 
@@ -29,6 +27,10 @@ def get_predicted_class_label(args, img, clf):
 
 def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, return_images,
                          training=False, save_img=False):
+    """
+    Method uses generators to translate images to new domain and uses the classifier to predict the label of the
+    translated image.
+    """
     if args.attention_type != "none":
         use_attention = True
     else:
