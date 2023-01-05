@@ -7,7 +7,7 @@ from mura import get_mura_ds_by_body_part_split_class
 import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
-import tf2lib as tl
+import tf2lib_local as tl
 import tf2gan as gan
 import tqdm
 from imlib import generate_image

@@ -8,7 +8,7 @@ import imlib as im
 import numpy as np
 import pylib as py
 import tensorflow as tf
-import tf2lib as tl
+import tf2lib_local as tl
 import module
 
 # ==============================================================================

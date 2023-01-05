@@ -9,14 +9,14 @@ import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
 import standard_datasets_loading
-import tf2lib as tl
+import tf2lib_local as tl
 import tf2gan as gan
 import tqdm
 import module
 from attention_strategies.spa_gan import spa_gan_step, spa_gan_step_fm
 from imlib import generate_image
 from imlib.image_holder import get_img_holders
-from tf2lib.data.item_pool import ItemPool
+from tf2lib_local.data.item_pool import ItemPool
 
 py.arg('--dataset', default='horse2zebra')
 py.arg('--datasets_dir', default='datasets')
