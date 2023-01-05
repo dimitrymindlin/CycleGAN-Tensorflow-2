@@ -42,7 +42,6 @@ def apply_gradcam(img, gradcam, class_index, args, attention_intensity=1, attent
     else:
         cam = gradcam(CategoricalScore(class_index), img_tmp, penultimate_layer=-1)
     if np.max(cam) == 0 and np.min(cam) == 0:
-        print(f"Found image without attention...")
         cam = tf.ones(shape=cam.shape)
     cam = tf.math.divide(cam, tf.reduce_max(cam))
 
