@@ -8,7 +8,7 @@ from tf2lib_local.image import img_to_3_channel_tf_tensor
 
 
 def print_kid_output(kid_value_list):
-    print(kid_value_list)
+    #print(kid_value_list)
     mean = float("{0:.3f}".format(np.mean(kid_value_list) * 100))
     std = float("{0:.3f}".format(np.std(kid_value_list, dtype=np.float64) * 100))
     print("KID mean", mean)
