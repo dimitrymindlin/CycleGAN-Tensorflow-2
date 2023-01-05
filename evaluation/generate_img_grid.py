@@ -67,7 +67,7 @@ def plot_img_grid(original_imgs_list, translated_imgs_list, attention_maps_list,
             if y_counter == 0:
                 axs[y_counter][x_counter].set_title(titles_list[x_counter])
     if last_model:
-        plt.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0.1)
+        plt.subplots_adjust(left=0, right=1, top=0.9, bottom=0, wspace=0, hspace=0.1)
         plt.show()
         print("Hey")
     else:
