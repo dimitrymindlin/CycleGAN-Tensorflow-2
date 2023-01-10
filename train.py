@@ -102,7 +102,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
         args.clf_input_channel = clf.layers[0].input_shape[0][-1]
 
     # save settings
-    if args.checkpoint_dir:
+    if args.load_checkpoint is not None:
         settings_name = "settings_continue.yml"
     else:
         settings_name = "settings.yml"
