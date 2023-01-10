@@ -357,7 +357,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                 tl.utils.summary({'learning rate': G_lr_scheduler.current_learning_rate}, step=G_optimizer.iterations,
                                  name='learning rate')
 
-                # sample
+                """# sample
                 if ep == 0 or ep % args.sample_interval == 0:
                     if G_optimizer.iterations.numpy() % 1000 == 0 or G_optimizer.iterations.numpy() == 1:
                         try:
@@ -388,7 +388,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                                        A_holder=A_holder,
                                        B_holder=B_holder,
                                        A2B2A=A2B2A,
-                                       B2A2B=B2A2B)
+                                       B2A2B=B2A2B)"""
 
             if (ep > (args.epochs / 2) and ep % args.sample_interval == 0) or ep == (args.epochs - 1):
                 print("Saving CKP")
