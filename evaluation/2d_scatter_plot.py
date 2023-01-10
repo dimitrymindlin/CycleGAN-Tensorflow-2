@@ -2,22 +2,30 @@ import matplotlib.pyplot as plt
 
 from evaluation.data_transformation import create_lists_from_df, get_results_df_from_dataset
 
-datasets = ["rsna"]
+new_names = ["ABC-GAN", "GANterfactual", "CycleGAN"]
+datasets = ["mura", "mura"]
 directions = ["averages"]
-marker_list = ["o"]
+marker_list = [">", "<"]
 averages = True
 
 # Create a figure and 2D subplot
 fig, ax = plt.subplots()
 for idx, (dataset, direction, marker) in enumerate(zip(datasets, directions, marker_list)):
     lists_dict = create_lists_from_df(get_results_df_from_dataset(dataset, direction))
-    names = lists_dict["Name"]
+    # names = lists_dict["Name"]
+    names = new_names
     TCV = lists_dict["TCV"]
     SSIM = lists_dict["SSIM"]
     KID = lists_dict["KID"]
 
     # Plot the data as a 2D scatterplot
     scatter = ax.scatter(TCV, KID, c=SSIM, vmin=0.5, vmax=1, marker=marker, label=f"{dataset}_{direction}")
+
+    try:
+        KID_STD = lists_dict["KID_STD"]
+        ax.errorbar(TCV, KID, xerr=KID_STD, fmt='none', ecolor='black')
+    except KeyError:
+        pass  # Averages doesn't have this field
 
     # Add the names of the models to the points in the plot
     for i, name in enumerate(names):

@@ -20,24 +20,16 @@ from tf2lib_local.utils import is_ganterfactual_repo
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-py.arg('--dataset', default='rsna', choices=['horse2zebra', 'mura', 'apple2orange', 'rsna'])
+py.arg('--dataset', default='mura', choices=['horse2zebra', 'mura', 'apple2orange', 'rsna'])
 py.arg('--save_img', type=bool, default=True)
 py.arg('--body_parts', default=["XR_WRIST"])
-py.arg('--save_only_translated_img', type=bool, default=False)
-py.arg('--tcv_os', type=bool, default=False)
-py.arg('--ssim_psnr', type=bool, default=False)
-py.arg('--kid', type=bool, default=False)
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 
 test_args = py.args()
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
 experiments_dir = f"{ROOT_DIR}/checkpoints/gans/{test_args.dataset}/"  # CycleGAN experiment results folder
 TFDS_PATH = f"{ROOT_DIR}/../tensorflow_datasets"  # Path to datasets
-KID = test_args.kid
-TCV = test_args.tcv_os
-SSIM = test_args.ssim_psnr
 SAVE_IMG = test_args.save_img
-SAVE_ONLY_TRANSLATED_IMG = test_args.save_only_translated_img
 print(TFDS_PATH)
 
 
@@ -60,7 +52,7 @@ def get_abc_gan_generators(G_A2B, G_B2A, timestamp_id, ep, args):
     return G_A2B, G_B2A
 
 
-def get_ganterfactual_generators(name, ep, args):
+def get_ganterfactual_generators(G_A2B, G_B2A, name, ep, args):
     cyclegan_folder = f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{name}/{ep}"
     custom_objects = {"InstanceNormalization": InstanceNormalization}
     G_A2B = tf.keras.models.load_model(os.path.join(cyclegan_folder, 'generator_np.h5'),
@@ -182,11 +174,7 @@ def load_args(name, test_args):
     except FileNotFoundError:  # From GANterfacfual
         args = set_ganterfactual_repo_args(test_args)
 
-    args.kid = KID
-    args.tcv_os = TCV
-    args.ssim_psnr = SSIM
     args.save_img = SAVE_IMG
-    args.save_only_translated_img = SAVE_ONLY_TRANSLATED_IMG
     return args
 
 
@@ -234,6 +222,7 @@ for name, ep in zip(config[test_args.dataset]["model_names"], config[test_args.d
     # Load args from trained model
     test_args = py.args()
     args = load_args(name, test_args)
+
     # Load all models
     G_A2B, G_B2A, clf, gradcam = load_models(name, ep, args)
 
@@ -246,7 +235,9 @@ for name, ep in zip(config[test_args.dataset]["model_names"], config[test_args.d
             print(len(A_dataset))
         except NameError:
             A_dataset, A_dataset_test, B_dataset, B_dataset_test = load_test_data(args)
-            ds_to_eval = B_dataset_test.take(20).repeat(len(config[test_args.dataset]["model_names"]))
+            B_dataset_test.shuffle(buffer_size=500)
+            # ds_to_eval = B_dataset_test.take(20).repeat(len(config[test_args.dataset]["model_names"]))
+            ds_to_eval = B_dataset_test.skip(30).repeat(len(config[test_args.dataset]["model_names"]))
         save_img = get_save_img(args)
         if name == config[test_args.dataset]["model_names"][-1]:
             last_model = True

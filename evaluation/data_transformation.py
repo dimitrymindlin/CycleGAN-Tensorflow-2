@@ -4,7 +4,8 @@ import pandas as pd
 column_names = ['Name', 'TCV_B2A', 'TCV_A2B', 'TCV_Avg', 'KID_B2A', 'KID_A2B', 'KID_Avg', 'SSIM_B2A',
                 'SSIM_A2B', 'SSIM_Avg', 'PSNR_B2A', 'PSNR_A2B', 'PSNR_Avg']
 
-simplified_col_names = ['Name', 'TCV', 'KID', 'SSIM', 'PSNR']
+simplified_col_names = ['Name', 'TCV', 'KID', 'KID_STD', 'SSIM', 'PSNR']
+simplified_avg_col_names = ['Name', 'TCV', 'KID', 'SSIM', 'PSNR']
 
 mura = """
 2022-11-28--10.48_18	0,963	0,975	0,97	0,18	0,36	0,27	0,915	0,886	0,90	29,331	27,466	28,40
@@ -96,8 +97,14 @@ def df_to_tuples(df: pd.DataFrame) -> list:
     return tuples
 
 
+root_file = "/Users/dimitrymindlin/UniProjects/CycleGAN-Tensorflow-2/checkpoints/gans/"
+
+
 def get_results_df_from_dataset(dataset, direction):
-    if dataset == "mura":
+    # Try reading CSV:
+    df = pd.read_csv(root_file + f'{dataset}/experiment_results_{dataset}.csv')
+
+    """if dataset == "mura":
         data = mura
         name_mapping = mura_name_mapping
     else:
@@ -106,14 +113,14 @@ def get_results_df_from_dataset(dataset, direction):
 
     df = pd.DataFrame([x.split('\t') for x in data.strip().split('\n')], columns=column_names)
     # Replace the comma with a dot and turn the string into a float
-    df.iloc[:, 1:] = df.iloc[:, 1:].applymap(lambda x: x.replace(',', '.')).astype(float)
+    df.iloc[:, 1:] = df.iloc[:, 1:].applymap(lambda x: x.replace(',', '.')).astype(float)"""
 
-    # Replace the values in the Name column using the mapping
-    df['Name'] = df['Name'].map(name_mapping)
+    """# Replace the values in the Name column using the mapping
+    df['Name'] = df['Name'].map(name_mapping)"""
 
     # Create separate DataFrames for the A2B and B2A data
-    df_a2b = df[['Name', 'TCV_A2B', 'KID_A2B', 'SSIM_A2B', 'PSNR_A2B']]
-    df_b2a = df[['Name', 'TCV_B2A', 'KID_B2A', 'SSIM_B2A', 'PSNR_B2A']]
+    df_a2b = df[['Name', 'TCV_A2B', 'KID_A2B', 'KID_STD_A2B', 'SSIM_A2B', 'PSNR_A2B']]
+    df_b2a = df[['Name', 'TCV_B2A', 'KID_B2A', 'KID_STD_B2A', 'SSIM_B2A', 'PSNR_B2A']]
 
     # Create DF for the avgs
     df_avgs = df[['Name', 'TCV_Avg', 'KID_Avg', 'SSIM_Avg', 'PSNR_Avg']]
@@ -121,14 +128,14 @@ def get_results_df_from_dataset(dataset, direction):
     # Rename the columns to remove the A2B and B2A suffixes
     df_a2b.columns = simplified_col_names
     df_b2a.columns = simplified_col_names
-    df_avgs.columns = simplified_col_names
+    df_avgs.columns = simplified_avg_col_names
 
     # Convert the TCV, SSIM, PSNR, and KID columns to float
 
     df_a2b = df_a2b.copy()
     df_b2a = df_b2a.copy()
     for df in [df_a2b, df_b2a, df_avgs]:
-        df[list(df_avgs.columns)[1:]] = df[list(df.columns)[1:]].apply(pd.to_numeric, errors='coerce', downcast='float')
+        df[list(df.columns)[1:]] = df[list(df.columns)[1:]].apply(pd.to_numeric, errors='coerce', downcast='float')
 
     if direction == "normal2abnormal":
         return df_a2b
