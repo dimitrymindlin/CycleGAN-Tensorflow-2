@@ -367,8 +367,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                             test_iter = iter(A_B_dataset_test)
                             A, B = next(test_iter)
 
-                        A_holder, B_holder = get_img_holders(A, B, args.current_attention_type, args.attention,
-                                                             gradcam=gradcam)
+                        A_holder, B_holder = get_img_holders(A, B, args, gradcam=gradcam)
 
                         if args.current_attention_type == "none":
                             A2B, B2A, A2B2A, B2A2B = sample_no_attention(A_holder.img, B_holder.img)
