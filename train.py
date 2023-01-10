@@ -17,6 +17,7 @@ import module
 from attention_strategies.attention_gan import attention_gan_step, attention_gan_discriminator_step
 from attention_strategies.no_attention import no_attention_step
 from imlib.image_holder import get_img_holders
+from pylib import load_args
 from tf2lib_local.data.item_pool import ItemPool
 from tf2lib_local.utils import is_normal_run
 
@@ -24,26 +25,9 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Ro
 
 
 def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
-    """try:
-        # Correct necessary settings for SPA-GAN
-        if args.feature_map_loss_weight > 0:
-            args.generator = "resnet-attention"
-            args.current_attention_type = args.attention_type
-        if args.attention_type == "spa-gan":
-            feature_map_loss_fn = gan.get_feature_map_loss_fn()
-            gradcam = None
-            gradcam_D_A = None
-            gradcam_D_B = None
-    except AttributeError:
-        pass  # Spa-GAN not implemented yet"""
-
     # ==============================================================================
     # =                                    data                                    =
     # ==============================================================================
-    args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
-    A2B_pool = ItemPool(args.pool_size)
-    B2A_pool = ItemPool(args.pool_size)
-
     if args.clf_name != "densenet":
         special_normalisation = tf.keras.applications.inception_v3.preprocess_input
     else:
@@ -70,6 +54,9 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
         A_B_dataset, A_B_dataset_test, len_dataset_train = standard_datasets_loading.load_tfds_dataset(args.dataset,
                                                                                                        args.crop_size)
 
+    args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
+    A2B_pool = ItemPool(args.pool_size)
+    B2A_pool = ItemPool(args.pool_size)
     # ==============================================================================
     # =                                   models                                   =
     # ==============================================================================
@@ -315,14 +302,14 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
 
     # checkpoint
     checkpoint = tl.utils.Checkpoint(dict(G_A2B=G_A2B,
-                                    G_B2A=G_B2A,
-                                    D_A=D_A,
-                                    D_B=D_B,
-                                    G_optimizer=G_optimizer,
-                                    D_optimizer=D_optimizer,
-                                    ep_cnt=ep_cnt),
-                               py.join(output_dir, 'checkpoints'))
-    try:  # restore checkpoint including the epoch counter
+                                          G_B2A=G_B2A,
+                                          D_A=D_A,
+                                          D_B=D_B,
+                                          G_optimizer=G_optimizer,
+                                          D_optimizer=D_optimizer,
+                                          ep_cnt=ep_cnt),
+                                     py.join(output_dir, 'checkpoints'))
+    try:  # checkpoint including the epoch counter
         checkpoint.restore().assert_existing_objects_matched()
         print("restored checkpoint...")
         print(f"continuing with epoch {ep_cnt.numpy()}")
@@ -363,7 +350,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                 tl.utils.summary(G_loss_dict, step=G_optimizer.iterations, name='G_losses')
                 tl.utils.summary(D_loss_dict, step=G_optimizer.iterations, name='D_losses')
                 tl.utils.summary({'learning rate': G_lr_scheduler.current_learning_rate}, step=G_optimizer.iterations,
-                           name='learning rate')
+                                 name='learning rate')
 
                 # sample
                 """if ep == 0 or ep % args.sample_interval == 0:
