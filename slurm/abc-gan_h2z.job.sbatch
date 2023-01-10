@@ -6,4 +6,4 @@
 #SBATCH --mail-user=dmindlin@techfak.uni-bielefeld.de
 #SBATCH --mail-type=END
 
-srun abc_gan_h2z.job.sh
+srun abc-gan_h2z.job.sh
