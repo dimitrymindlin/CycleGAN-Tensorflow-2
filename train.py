@@ -16,6 +16,7 @@ import tqdm
 import module
 from attention_strategies.attention_gan import attention_gan_step, attention_gan_discriminator_step
 from attention_strategies.no_attention import no_attention_step
+from imlib import generate_image
 from imlib.image_holder import get_img_holders
 from pylib import load_args
 from tf2lib_local.data.item_pool import ItemPool
@@ -101,7 +102,11 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
         args.clf_input_channel = clf.layers[0].input_shape[0][-1]
 
     # save settings
-    py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
+    if args.checkpoint_dir:
+        settings_name = "settings_continue.yml"
+    else:
+        settings_name = "settings.yml"
+    py.args_to_yaml(py.join(output_dir, settings_name), args)
 
     if args.attention_type == "attention-gan-original":
         gradcam = GradcamPlusPlus(clf, clone=True)
@@ -353,7 +358,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                                  name='learning rate')
 
                 # sample
-                """if ep == 0 or ep % args.sample_interval == 0:
+                if ep == 0 or ep % args.sample_interval == 0:
                     if G_optimizer.iterations.numpy() % 1000 == 0 or G_optimizer.iterations.numpy() == 1:
                         try:
                             A, B = next(test_iter)
@@ -384,7 +389,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                                        A_holder=A_holder,
                                        B_holder=B_holder,
                                        A2B2A=A2B2A,
-                                       B2A2B=B2A2B)"""
+                                       B2A2B=B2A2B)
 
             if (ep > (args.epochs / 2) and ep % args.sample_interval == 0) or ep == (args.epochs - 1):
                 print("Saving CKP")
