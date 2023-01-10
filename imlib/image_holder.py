@@ -76,13 +76,13 @@ class ImageHolder():
 
 def get_img_holders(A, B, args, attention_intensity=1, gradcam=None, gradcam_D_A=None,
                     gradcam_D_B=None):
+    print(args)
     if args.attention_type == "none":
         A_holder = ImageHolder(A, args, 0, use_attention=False)
         B_holder = ImageHolder(B, args, 1, use_attention=False)
     else:  # attention gan or spa-gan with clf attention
         A_holder = ImageHolder(A, args, 0, gradcam, attention_intensity=attention_intensity)
         B_holder = ImageHolder(B, args, 1, gradcam, attention_intensity=attention_intensity)
-
 
     """elif args.attention_type == "spa-gan": Remove spa-gan for now
         if args.attention == "discriminator":
