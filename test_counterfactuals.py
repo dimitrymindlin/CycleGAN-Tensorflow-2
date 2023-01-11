@@ -18,24 +18,6 @@ from tensorflow_addons.layers import InstanceNormalization
 
 from tf2lib_local.utils import is_ganterfactual_repo
 
-
-def set_ganterfactual_repo_args():
-    args.ganterfactual_repo = True
-    args.crop_size = 512
-    if args.dataset == "rsna":
-        args.img_channels = 1  # Old Models with UNET and Alexnet -> 1 channel
-        args.clf_name = "alexnet"
-        args.clf_ckp_name = "2022-10-13--13.03"
-    else:  # For MURA
-        args.img_channels = 3  # Old Models with UNET and Alexnet -> 1 channel
-        args.clf_name = "inception"
-        args.clf_ckp_name = "2022-06-04--00.05"
-        args.body_parts = "XR_WRIST"
-    args.attention_type = "none"
-    args.batch_size = 1
-    args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
-
-
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
