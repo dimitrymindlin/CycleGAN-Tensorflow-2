@@ -11,7 +11,7 @@ import tensorflow as tf
 import tensorflow.keras as keras
 
 import standard_datasets_loading
-from classifiers.domain_to_domain_model import Domain2DomainModel, CatsVSDogsModel
+from classifiers.classifier_models import Domain2DomainModel, CatsVSDogsModel
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
 execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
