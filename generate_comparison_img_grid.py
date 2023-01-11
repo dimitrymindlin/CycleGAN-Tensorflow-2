@@ -163,21 +163,6 @@ def set_ganterfactual_repo_args(args):
     return args
 
 
-def load_args(name, test_args):
-    try:
-        args = py.args_from_yaml(py.join(experiments_dir, name, 'settings.yml'))
-        args.__dict__.update(test_args.__dict__)  # Save test_args to loaded args
-        try:
-            args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
-        except AttributeError:
-            args.img_shape = (args.crop_size, args.crop_size, 3)  # ABC-GANs images have always 3 channels.
-    except FileNotFoundError:  # From GANterfacfual
-        args = set_ganterfactual_repo_args(test_args)
-
-    args.save_img = SAVE_IMG
-    return args
-
-
 def load_models(name, ep, args):
     # Get Generators
     load_generators = get_load_generators(args)
