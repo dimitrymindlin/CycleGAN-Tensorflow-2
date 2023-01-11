@@ -89,8 +89,8 @@ def load_args(experiments_dir, test_args=None):
         if test_args is None:
             args = py.args_from_yaml(py.join(experiments_dir, 'settings.yml'))
         else:
-            # Add args from testing script.
             args = py.args_from_yaml(py.join(experiments_dir, 'settings.yml'))
+            # Override args from testing script.
             args.__dict__.update(test_args.__dict__)  # Save test_args to loaded args
         try:
             args.img_shape = (args.crop_size, args.crop_size, args.img_channels)

@@ -50,7 +50,8 @@ def get_abc_gan_generators(timestamp_id, ep):
         if os.path.exists(py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}/checkpoints")):
             # New runs will keep checkpoints in checkpoints folder
             tl.utils.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A),
-                                py.join(f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}/checkpoints")).restore(
+                                py.join(
+                                    f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}/checkpoints")).restore(
                 save_path=f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{timestamp_id}/checkpoints/ckpt-{ep}')
         else:
             tl.utils.Checkpoint(dict(G_A2B=G_A2B, G_B2A=G_B2A),
@@ -150,7 +151,7 @@ def evaluate_current_model(G_A2B, G_B2A, A_dataset, A_dataset_test, B_dataset, B
 
 
 for name, ep in zip(config[args.dataset]["model_names"], config[args.dataset]["epochs"]):
-    args = load_args(args, py.join(experiments_dir, name))
+    args = load_args(py.join(experiments_dir, name), args)
     args.kid = KID
     args.tcv_os = TCV
     args.ssim_psnr = SSIM
@@ -171,7 +172,7 @@ for name, ep in zip(config[args.dataset]["model_names"], config[args.dataset]["e
         gradcam = GradcamPlusPlus(clf, clone=True)
     else:
         gradcam = None
-    # Set clf input shape if not done:
+        # Set clf input shape if not done:
     try:
         args.clf_input_channel
     except AttributeError:
