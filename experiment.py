@@ -11,7 +11,6 @@ def create_new_experiment(root_dir):
     execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
     # output_dir
     try:
-        # output_dir = py.join(f'output_{args.dataset}/{execution_id}')
         output_dir = py.join(f"{root_dir}/checkpoints/gans/{args.dataset}/{execution_id}")
     except FileExistsError:
         time.sleep(60)
