@@ -73,7 +73,7 @@ py.arg('--counterfactual_loss_weight', type=float, default=1)
 py.arg('--identity_loss_weight', type=float, default=1)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
-py.arg('--clf_name', type=str, default="inception", choices=['alexnet', 'inception'])
+py.arg('--clf_name', type=str, default="inception", choices=['alexnet', 'inception', 'simplenet'])
 py.arg('--clf_ckp_name', type=str,
        default="2022-06-04--00.00")  # Mura: 2022-06-04--00.05, H2Z: 2022-06-04--00.00 A2O: 2022-09-23--15.18
 py.arg('--attention_type', type=str, default="attention-gan-original",
