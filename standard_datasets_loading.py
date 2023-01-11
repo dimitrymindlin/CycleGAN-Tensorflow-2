@@ -1,8 +1,8 @@
 import tensorflow as tf
-import tf2lib_local as tl
-import tensorflow_addons as tfa
 import pylib as py
 import tensorflow_datasets as tfds
+
+from tf2lib_local.data import disk_image_batch_dataset
 
 
 def make_dataset(img_paths, batch_size, load_size, crop_size, training, drop_remainder=True, shuffle=True, repeat=1,
@@ -35,7 +35,7 @@ def make_dataset(img_paths, batch_size, load_size, crop_size, training, drop_rem
                 return img, label
             return img
 
-    return tl.disk_image_batch_dataset(img_paths,
+    return disk_image_batch_dataset(img_paths,
                                        batch_size,
                                        drop_remainder=drop_remainder,
                                        map_fn=_map_fn,
