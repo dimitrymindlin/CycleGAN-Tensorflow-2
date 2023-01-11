@@ -1,5 +1,9 @@
 import tensorflow as tf
 from keras import regularizers
+from keras.models import Sequential
+from keras.layers import Conv2D, MaxPooling2D, \
+    Dropout, Flatten, Dense, Activation, \
+    BatchNormalization
 
 
 class Domain2DomainModel(tf.keras.Model):
@@ -31,3 +35,36 @@ class Domain2DomainModel(tf.keras.Model):
         x = tf.keras.layers.Dropout(0.4)(x)
         predictions = self.classifier(x)
         return tf.keras.Model(inputs=self.img_input, outputs=predictions)
+
+
+class CatsVSDogsModel(tf.keras.Model):
+    def __init__(self, img_shape=(512, 512, 3)):
+        super(CatsVSDogsModel, self).__init__(name='CatsVSDogsModel')
+        self.img_shape = img_shape
+
+    def model(self):
+        model = Sequential()
+        model.add(Conv2D(32, (3, 3), activation='relu', input_shape=self.img_shape))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(Dropout(0.25))
+
+        model.add(Conv2D(64, (3, 3), activation='relu'))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(Dropout(0.25))
+
+        model.add(Conv2D(128, (3, 3), activation='relu'))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(Dropout(0.25))
+
+        model.add(Flatten())
+        model.add(Dense(512, activation='relu'))
+        model.add(BatchNormalization())
+        model.add(Dropout(0.5))
+        model.add(Dense(2, activation='softmax'))
+
+        model.compile(loss='categorical_crossentropy',
+                      optimizer='rmsprop', metrics=['accuracy'])
+        return model
