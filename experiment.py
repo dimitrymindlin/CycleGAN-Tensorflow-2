@@ -95,9 +95,9 @@ if args.load_checkpoint:
     # For loading checkpoint if continuation of experiment
     print(f"Setting {args.load_checkpoint} as checkpoint.")
     execution_id = args.load_checkpoint
-    output_dir = py.join(f'checkpoints/gans/{args.dataset}/{execution_id}')
+    output_dir = py.join(f'{ROOT_DIR}/checkpoints/gans/{args.dataset}/{execution_id}')
     new_epoch_count = args.epochs
-    args = load_args(execution_id, args, output_dir, training=True)
+    args = load_args(output_dir)
     args.epochs = new_epoch_count
 else:
     output_dir, execution_id = create_new_experiment(ROOT_DIR)

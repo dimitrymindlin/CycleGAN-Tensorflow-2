@@ -3,6 +3,7 @@ import sys
 
 from mura.tfds_from_disc import get_mura_test_ds_by_body_part_split_class
 
+from pylib import load_args
 from test_config import config
 from rsna import get_rsna_TEST_ds_split_class
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
@@ -167,16 +168,7 @@ def evaluate_current_model(G_A2B, G_B2A, A_dataset, A_dataset_test, B_dataset, B
 
 
 for name, ep in zip(config[args.dataset]["model_names"], config[args.dataset]["epochs"]):
-    try:
-        args = py.args_from_yaml(py.join(experiments_dir, name, 'settings.yml'))
-        args.__dict__.update(args.__dict__)
-        try:
-            args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
-        except AttributeError:
-            args.img_shape = (args.crop_size, args.crop_size, 3)  # ABC-GANs images have always 3 channels.
-    except FileNotFoundError:  # From GANterfacfual
-        set_ganterfactual_repo_args()
-
+    args = load_args(args, py.join(experiments_dir, name))
     args.kid = KID
     args.tcv_os = TCV
     args.ssim_psnr = SSIM

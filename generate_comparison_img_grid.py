@@ -221,7 +221,8 @@ last_model = False
 for name, ep in zip(config[test_args.dataset]["model_names"], config[test_args.dataset]["epochs"]):
     # Load args from trained model
     test_args = py.args()
-    args = load_args(name, test_args)
+    args = py.load_args(py.join(experiments_dir, name), test_args=test_args)
+    args.save_img = SAVE_IMG
 
     # Load all models
     G_A2B, G_B2A, clf, gradcam = load_models(name, ep, args)

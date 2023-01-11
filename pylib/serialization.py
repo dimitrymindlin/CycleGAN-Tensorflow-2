@@ -83,14 +83,14 @@ def set_ganterfactual_repo_args(args):
     return args
 
 
-def load_args(name, test_args, experiments_dir, training=False):
+def load_args(experiments_dir, test_args=None):
     # Load the args from the experiment directory
     try:
-        if training:
-            args = py.args_from_yaml(py.join(experiments_dir, name, 'settings.yml'))
+        if test_args is None:
+            args = py.args_from_yaml(py.join(experiments_dir, 'settings.yml'))
         else:
             # Add args from testing script.
-            args = py.args_from_yaml(py.join(experiments_dir, name, 'settings.yml'))
+            args = py.args_from_yaml(py.join(experiments_dir, 'settings.yml'))
             args.__dict__.update(test_args.__dict__)  # Save test_args to loaded args
         try:
             args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
