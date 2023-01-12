@@ -43,8 +43,7 @@ def setup_args_for_experiment():
             args.clf_ckp_name = "2022-10-12--10.37"
     elif args.dataset == "apple2orange":
         args.clf_ckp_name = "2022-09-23--15.18"
-    else:  # h2z
-        args.clf_ckp_name = "2022-06-04--00.00"
+        # h2z "2022-06-04--00.00"
 
     if args.discriminator == "patch_gan_attention":
         # Remove instance norm as suggested in 'Unsupervised Attention-guided Image-to-Image Translation'
