@@ -11,6 +11,7 @@ python3 -m experiment \
   --identity_loss_weight 0 \
   --generator resnet \
   --clf_name simplenet \
+  --clf_ckp_name 2023-01-11--21.01 \
   --start_attention_epoch 100 \
   --discriminator patch_gan_attention
 
