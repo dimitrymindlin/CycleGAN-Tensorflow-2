@@ -43,10 +43,8 @@ def setup_args_for_experiment():
             args.clf_ckp_name = "2022-10-12--10.37"
     elif args.dataset == "apple2orange":
         args.clf_ckp_name = "2022-09-23--15.18"
-        args.clf_name = "inception"
     else:  # h2z
         args.clf_ckp_name = "2022-06-04--00.00"
-        args.clf_name = "inception"
 
     if args.discriminator == "patch_gan_attention":
         # Remove instance norm as suggested in 'Unsupervised Attention-guided Image-to-Image Translation'
@@ -73,14 +71,14 @@ py.arg('--counterfactual_loss_weight', type=float, default=1)
 py.arg('--identity_loss_weight', type=float, default=1)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam', 'gradcam-plus-plus'])
-py.arg('--clf_name', type=str, default="inception", choices=['alexnet', 'inception', 'simplenet'])
+py.arg('--clf_name', type=str, default="alexnet", choices=['alexnet', 'inception', 'simplenet'])
 py.arg('--clf_ckp_name', type=str,
        default="2022-06-04--00.00")  # Mura: 2022-06-04--00.05, H2Z: 2022-06-04--00.00 A2O: 2022-09-23--15.18
 py.arg('--attention_type', type=str, default="attention-gan-original",
        choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
 py.arg('--current_attention_type', type=str, default="none")
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
-py.arg('--discriminator', type=str, default="patch-gan", choices=['classic', 'patch-gan', 'patch_gan_attention'])
+py.arg('--discriminator', type=str, default="patch_gan_attention", choices=['classic', 'patch-gan', 'patch_gan_attention'])
 py.arg('--disc_norm', type=str, default="instance_norm", choices=['instance_norm', 'none', 'batch_norm', 'layer_norm'])
 py.arg('--load_checkpoint', type=str, default=None)
 py.arg('--start_attention_epoch', type=int, default=0)
