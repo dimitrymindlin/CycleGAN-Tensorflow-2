@@ -98,8 +98,10 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
         clf = tf.keras.models.load_model(
             f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
             compile=False)
-
-        args.clf_input_channel = clf.layers[0].input_shape[0][-1]
+        try:
+            args.clf_input_channel = clf.layers[0].input_shape[0][-1]
+        except TypeError:
+            args.clf_input_channel = 3  # simplenet
 
     # save settings
     if args.load_checkpoint is not None:
