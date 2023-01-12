@@ -392,7 +392,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                                        A2B2A=A2B2A,
                                        B2A2B=B2A2B)"""
 
-            if (ep > (args.epochs / 2) and ep % args.sample_interval == 0) or ep == (args.epochs - 1):
+            if (ep > (args.epochs / 2) and ep % args.sample_interval == 0) or ep == (args.epochs - 1) or ep == 0:
                 print("Saving CKP")
                 checkpoint.save(ep)
                 """kid_A2B_mean, kid_A2B_std = calc_KID_for_model(A2B_pool.items, "A2B", args.img_shape, train_horses,
