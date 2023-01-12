@@ -1,7 +1,9 @@
 ### Attention Gan Original
 # From "Attention-GAN for Object Transfiguration in Wild Images"
+from attention_maps import shift_values_above_intensity, threshold_img
 from imlib.image_holder import add_images, multiply_images
 import tensorflow as tf
+
 
 def attention_gan_image_fusion(transformed, attention, background):
     # Combine new transformed image with attention -> Crop important part from transformed img
@@ -39,4 +41,7 @@ def attention_gan_discriminator_step(img, img_translated, img_attention):
     # Apply attention to img and to translated img for attentive-discriminator
     attended_img = multiply_images(img, img_attention)
     attended_translated = multiply_images(img_translated, img_attention)
+    # Threshold new imgs to explude weak areas as suggested in Mejjati.etal.2022
+    attended_img = threshold_img(attended_img)
+    attended_translated = threshold_img(attended_translated)
     return attended_img, attended_translated

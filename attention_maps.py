@@ -6,13 +6,23 @@ from tf_keras_vis.utils.scores import CategoricalScore
 from imlib import scale_between_zero_one, scale_between_minus_one_one, plot_any_img
 
 
-def shift_values_above_intensity(cam, attention_intensity: float):
+def shift_values_above_intensity(img, attention_intensity: float):
     """
     makes sure all values are above attention_intensity value.
     """
-    cam += attention_intensity
-    cam = tf.math.divide(cam, tf.reduce_max(cam))
-    return cam
+    img += attention_intensity
+    img = tf.math.divide(img, tf.reduce_max(img))
+    return img
+
+
+def threshold_img(img, threshold_value=0.1):
+    """
+    Thresholds an image to a certain value.
+    """
+    img = scale_between_zero_one(img)
+    img = tf.where(img < threshold_value, tf.zeros_like(img), img)
+    img = scale_between_minus_one_one(img)
+    return img
 
 
 def apply_attention_on_img(img, attention_map):
