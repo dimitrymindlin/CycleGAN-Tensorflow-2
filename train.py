@@ -333,7 +333,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
 
     # main loop
     with train_summary_writer.as_default():
-        for ep in args.epochs:
+        for ep in range(args.epochs):
             if ep < ep_cnt:
                 continue
 
