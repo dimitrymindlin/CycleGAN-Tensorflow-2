@@ -333,7 +333,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
 
     # main loop
     with train_summary_writer.as_default():
-        for ep in tqdm.trange(args.epochs, desc='Epoch Loop'):
+        for ep in args.epochs:
             if ep < ep_cnt:
                 continue
 
@@ -341,8 +341,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
             ep_cnt.assign_add(1)
 
             # train for an epoch
-            for batch_count, (A, B) in enumerate(
-                    tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset_train)):
+            for batch_count, (A, B) in enumerate(A_B_dataset):
                 # Select attention type
                 if ep < args.start_attention_epoch:
                     args.current_attention_type = "none"
@@ -391,9 +390,9 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                                        B_holder=B_holder,
                                        A2B2A=A2B2A,
                                        B2A2B=B2A2B)"""
-
+            print(f"Epoch {ep} done")
             if (ep > (args.epochs / 2) and ep % args.sample_interval == 0) or ep == (args.epochs - 1) or ep == 0:
-                print("Saving CKP")
+                print(f"Saving CKP {ep}")
                 checkpoint.save(ep)
                 """kid_A2B_mean, kid_A2B_std = calc_KID_for_model(A2B_pool.items, "A2B", args.img_shape, train_horses,
                                                                train_zebras)
