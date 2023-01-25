@@ -1,15 +1,15 @@
 import os
 
 import numpy as np
+import tensorflow as tf
+import tqdm
 from PIL import Image
 from skimage.metrics import structural_similarity, peak_signal_noise_ratio
-import tqdm
 
 from attention_strategies.attention_gan import attention_gan_single
 from attention_strategies.no_attention import no_attention_single
 from imlib import immerge, imwrite
 from imlib.image_holder import ImageHolder
-import tensorflow as tf
 
 
 def only_save_imgs(args):

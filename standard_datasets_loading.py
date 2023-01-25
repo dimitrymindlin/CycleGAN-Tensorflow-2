@@ -1,7 +1,7 @@
 import tensorflow as tf
-import pylib as py
 import tensorflow_datasets as tfds
 
+import pylib as py
 from tf2lib_local.data import disk_image_batch_dataset
 
 

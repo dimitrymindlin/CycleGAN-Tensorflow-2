@@ -1,7 +1,4 @@
-import numpy as np
-from matplotlib.patches import Rectangle
 from skimage.color import rgb2gray
-import matplotlib.pyplot as plt
 from skimage.util import compare_images
 
 from imlib import scale_between_minus_one_one

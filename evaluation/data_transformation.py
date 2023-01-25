@@ -104,20 +104,6 @@ def get_results_df_from_dataset(dataset, direction):
     # Try reading CSV:
     df = pd.read_csv(root_file + f'{dataset}/experiment_results_{dataset}.csv')
 
-    """if dataset == "mura":
-        data = mura
-        name_mapping = mura_name_mapping
-    else:
-        data = rsna
-        name_mapping = rna_name_mapping
-
-    df = pd.DataFrame([x.split('\t') for x in data.strip().split('\n')], columns=column_names)
-    # Replace the comma with a dot and turn the string into a float
-    df.iloc[:, 1:] = df.iloc[:, 1:].applymap(lambda x: x.replace(',', '.')).astype(float)"""
-
-    """# Replace the values in the Name column using the mapping
-    df['Name'] = df['Name'].map(name_mapping)"""
-
     # Create separate DataFrames for the A2B and B2A data
     df_a2b = df[['Name', 'TCV_A2B', 'KID_A2B', 'KID_STD_A2B', 'SSIM_A2B', 'PSNR_A2B']]
     df_b2a = df[['Name', 'TCV_B2A', 'KID_B2A', 'KID_STD_B2A', 'SSIM_B2A', 'PSNR_B2A']]

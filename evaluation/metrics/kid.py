@@ -1,9 +1,10 @@
-from math import ceil, floor
+from math import ceil
 
+import numpy as np
 import tensorflow as tf
 import tensorflow.keras as keras
 import tensorflow.keras.layers as layers
-import numpy as np
+
 from tf2lib_local.image import img_to_3_channel_tf_tensor
 
 

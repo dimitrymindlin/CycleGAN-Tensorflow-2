@@ -1,31 +1,23 @@
-import tqdm
-import tensorflow as tf
-import numpy as np
-from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
+import tqdm
+from matplotlib.patches import Rectangle
+
 from attention_strategies.attention_gan import attention_gan_single
 from attention_strategies.no_attention import no_attention_single
-from evaluation.tcv_os import get_predicted_class_label
-from imlib.image_holder import ImageHolder
 from evaluation.compute_img_difference import get_difference_img
+from evaluation.metrics.tcv_os import get_predicted_class_label
+from imlib.image_holder import ImageHolder
 
-titles_list = ["Original", "ABC-GAN", "Diff", "Attention", "GTF", "Diff", "CycleGAN", "Diff"]
-
-
-def get_empty_x_coordinate(axs, fig):
-    # Get a list of the images in the figure
-    images = [image for ax in axs.flat for image in ax.get_images()]
-
-    # Get the indices of the subplots that do not have an image
-    empty_subplot_indices = [ax.index for ax in axs.flat if ax not in images]
-
-    # Get the 2D coordinates of the subplots that do not have an image
-    empty_subplot_coords = [fig.subplot_index(index) for index in empty_subplot_indices]
-    return empty_subplot_coords[0][0]
+titles_list = ["Original", "Attention",
+               "ABC-GAN", "Diff",
+               "GTF", "Diff",
+               "CycleGAN", "Diff"]
 
 
-def plot_img_grid(original_imgs_list, translated_imgs_list, attention_maps_list, is_counterfactual_list,
-                  last_model=False, axs=None):
+def plot_img_grid(model_idx, original_imgs_list, translated_imgs_list, attention_maps_list, is_counterfactual_list,
+                  axs=None):
     if axs is None:
         fig, axs = plt.subplots(len(original_imgs_list), 4 + 4)
     for y_counter, (original, translated, attention_map, is_counterfactual) in enumerate(
@@ -34,42 +26,43 @@ def plot_img_grid(original_imgs_list, translated_imgs_list, attention_maps_list,
 
         # Compute SSIM between the two images
         difference = get_difference_img(original, translated)
-        grid_row = [original, translated, difference, attention_map]
+        grid_row = [original, attention_map,
+                    translated, difference]
 
         for idx, img in enumerate(grid_row):
             ### Tweaking x_position of images to add images to the axs object.
             x_counter = idx
-            if last_model:
-                if idx == 0:
+            if model_idx == 1:
+                if idx < 2:
                     continue
-                x_counter += 5  # last model
+                x_counter += 2
+            elif model_idx == 2:
+                if idx < 2:
+                    continue
+                x_counter += 4  # last model
                 if x_counter == 8:
                     break
-
-            elif attention_map is None:
-                if idx == 0:
-                    continue
-                x_counter += 3  # middle model (ganterfactual has no attention)
-
             try:
                 img = tf.squeeze(img)
             except ValueError:
+                print("ValueError")
                 continue  # when img is none (e.g. no attention img)
             # Convert [-1,1] array to [0,255] int array.
             img = img.numpy()
             img = ((img * 0.5 + 0.5) * 255).astype("uint8")
+            print(f"Plotting img on {x_counter}, {y_counter}")
             axs[y_counter][x_counter].imshow(img, cmap='gray', vmin=np.min(img), vmax=np.max(img))
-            if idx == 1:
+            axs[y_counter][x_counter].axis("off")
+            if idx == 2:
                 color = "green" if is_counterfactual else "red"
                 rect = Rectangle((0, 0), *img.shape[:2], fill=False, edgecolor=color, linewidth=4)
                 axs[y_counter][x_counter].add_patch(rect)
-            axs[y_counter][x_counter].axis("off")
+
             if y_counter == 0:
                 axs[y_counter][x_counter].set_title(titles_list[x_counter])
-    if last_model:
+    if model_idx == 2:
         plt.subplots_adjust(left=0, right=1, top=0.9, bottom=0, wspace=0, hspace=0.1)
         plt.show()
-        print("Hey")
     else:
         return axs
 
@@ -90,17 +83,15 @@ def translate_and_predict(img_holder, generator, args, clf, training, class_labe
     return translated_img, if_counterfactual
 
 
-def generate_images_for_grid(args, dataset, clf, generator, gradcam, class_label,
-                             training=False, num_images=6, last_model=False, axs=None):
+def generate_images_for_grid(model_idx, args, dataset, clf, generator, gradcam, class_label,
+                             training=False, num_images=6, axs=None):
     """
     Method uses generators to translate images to new domain and uses the classifier to predict the label of the
     translated image. Then saves the translated images along with the attention map and the notion whether it is a
     counterfactual or not.
     """
-    if args.attention_type != "none":
-        use_attention = True
-    else:
-        use_attention = False
+
+    use_attention = True
 
     original_images = []
     translated_images = []
@@ -110,7 +101,7 @@ def generate_images_for_grid(args, dataset, clf, generator, gradcam, class_label
     for batch_i, img_batch in enumerate(tqdm.tqdm(dataset, desc='Translating images')):
         # Save img when enough images are collected
         if len(translated_images) == num_images:
-            axs = plot_img_grid(original_images, translated_images, attention_maps, is_counterfactual_list, last_model,
+            axs = plot_img_grid(model_idx, original_images, translated_images, attention_maps, is_counterfactual_list,
                                 axs=axs)
             original_images = []
             translated_images = []
