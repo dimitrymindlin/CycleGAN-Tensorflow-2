@@ -1,22 +1,19 @@
-import os
 import sys
 
+import numpy as np
+import tensorflow as tf
 import tqdm
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 
 import imlib as im
-import numpy as np
-import pylib as py
-import tensorflow as tf
-import tf2lib_local as tl
 import module
-
+import pylib as py
+import tf2lib_local as tl
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-from evaluation.kid import calc_KID_for_model_target_source
-from evaluation.load_test_data import load_tfds_test_data
-
+from evaluation.metrics.kid import calc_KID_for_model_target_source
+from evaluation.utils.load_test_data import load_tfds_test_data
 from imlib.image_holder import ImageHolder
 
 gan_model_ts = "2022-05-26--15.51"

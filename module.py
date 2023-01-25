@@ -1,6 +1,6 @@
 import tensorflow as tf
-import tensorflow_addons as tfa
 import tensorflow.keras as keras
+import tensorflow_addons as tfa
 
 
 # ==============================================================================

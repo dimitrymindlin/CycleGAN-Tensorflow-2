@@ -1,18 +1,19 @@
-from datetime import datetime
 import time
+from datetime import datetime
 
 import numpy as np
-from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
-from tf_keras_vis.gradcam import Gradcam
-from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
-import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
-import standard_datasets_loading
-import tf2lib_local as tl
-import tf2gan as gan
 import tqdm
+from tf_keras_vis.gradcam import Gradcam
+from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
+from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
+
 import module
+import pylib as py
+import standard_datasets_loading
+import tf2gan as gan
+import tf2lib_local as tl
 from attention_strategies.spa_gan import spa_gan_step, spa_gan_step_fm
 from imlib import generate_image
 from imlib.image_holder import get_img_holders

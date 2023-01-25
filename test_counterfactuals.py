@@ -1,21 +1,21 @@
 import os
 import sys
 
+import tensorflow as tf
 from mura.tfds_from_disc import get_mura_test_ds_by_body_part_split_class
+from rsna import get_rsna_TEST_ds_split_class
+from tensorflow_addons.layers import InstanceNormalization
+from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 
+import module
+import pylib as py
+import tf2lib_local as tl
+from config import ROOT_DIR
+from evaluation.metrics.kid import calc_KID_for_model_batched, calc_KID_for_model_target_source_batched
+from evaluation.metrics.tcv_os import calculate_ssim_psnr, calculate_tcv, translate_images_clf
+from evaluation.utils.load_test_data import load_tfds_test_data
 from pylib import load_args
 from test_config import config
-from rsna import get_rsna_TEST_ds_split_class
-from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
-import pylib as py
-import tensorflow as tf
-import tf2lib_local as tl
-import module
-from evaluation.kid import calc_KID_for_model_batched, calc_KID_for_model_target_source_batched
-from evaluation.load_test_data import load_tfds_test_data
-from evaluation.tcv_os import calculate_ssim_psnr, calculate_tcv, translate_images_clf
-from tensorflow_addons.layers import InstanceNormalization
-
 from tf2lib_local.utils import is_ganterfactual_repo
 
 # ==============================================================================
@@ -30,7 +30,6 @@ py.arg('--kid', type=bool, default=True)
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 
 args = py.args()
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
 experiments_dir = f"{ROOT_DIR}/checkpoints/gans/{args.dataset}/"  # CycleGAN experiment results folder
 TFDS_PATH = f"{ROOT_DIR}/../tensorflow_datasets"  # Path to datasets
 KID = args.kid

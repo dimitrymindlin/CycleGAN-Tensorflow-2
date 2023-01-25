@@ -1,19 +1,18 @@
 import json
-import os
 from datetime import datetime
 
 import numpy as np
-from rsna.tfds_from_disc import get_rsna_ds_for_clf
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-import tensorflow_addons as tfa
-import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
+import tensorflow_addons as tfa
+from rsna.tfds_from_disc import get_rsna_ds_for_clf
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
+import pylib as py
 import standard_datasets_loading
 from classifiers.classifier_models import Domain2DomainModel, CatsVSDogsModel
+from config import ROOT_DIR
 
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
 execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
 dataset = "horse2zebra"
 img_size = 512

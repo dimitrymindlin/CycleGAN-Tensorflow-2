@@ -1,6 +1,7 @@
+import os
+
 import numpy as np
 import skimage.io as iio
-import os
 import tensorflow as tf
 from matplotlib import pyplot as plt
 

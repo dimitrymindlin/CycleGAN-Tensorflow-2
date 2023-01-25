@@ -4,7 +4,6 @@ import json
 
 from pylib import serialization
 
-
 GLOBAL_COMMAND_PARSER = argparse.ArgumentParser()
 
 

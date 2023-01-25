@@ -1,7 +1,7 @@
 import datetime
 import fnmatch
-import os
 import glob as _glob
+import os
 import sys
 
 

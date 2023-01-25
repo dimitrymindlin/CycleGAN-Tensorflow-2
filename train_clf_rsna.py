@@ -1,11 +1,11 @@
-import pylib as py
-import sklearn
 import numpy as np
+import sklearn
 import tensorflow as tf
 import tensorflow.keras as keras
-import os
-import standard_datasets_loading
 from classifiers.rsna_model import RSNA_Net
+
+import pylib as py
+import standard_datasets_loading
 
 tensorboard_callback = keras.callbacks.TensorBoard(log_dir="log")
 np.random.seed(1000)

@@ -1,9 +1,8 @@
 import tensorflow as tf
 from keras import regularizers
-from keras.models import Sequential
 from keras.layers import Conv2D, MaxPooling2D, \
-    Dropout, Flatten, Dense, Activation, \
-    BatchNormalization
+    Dropout, Flatten, Dense, BatchNormalization
+from keras.models import Sequential
 
 
 class Domain2DomainModel(tf.keras.Model):

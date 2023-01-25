@@ -1,28 +1,23 @@
-import os
-
 import numpy as np
-from rsna import get_rsna_ds_split_class
-from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
-from tf_keras_vis.gradcam import Gradcam
-from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
-import pylib as py
 import tensorflow as tf
 import tensorflow.keras as keras
 from mura import get_mura_ds_by_body_part_split_class
-import standard_datasets_loading
-import tf2lib_local as tl
-import tf2gan as gan
-import tqdm
+from rsna import get_rsna_ds_split_class
+from tf_keras_vis.gradcam import Gradcam
+from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
+from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
+
 import module
+import pylib as py
+import standard_datasets_loading
+import tf2gan as gan
+import tf2lib_local as tl
 from attention_strategies.attention_gan import attention_gan_step, attention_gan_discriminator_step
 from attention_strategies.no_attention import no_attention_step
-from imlib import generate_image
+from config import ROOT_DIR
 from imlib.image_holder import get_img_holders
-from pylib import load_args
 from tf2lib_local.data.item_pool import ItemPool
 from tf2lib_local.utils import is_normal_run
-
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
 
 
 def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
@@ -348,7 +343,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                 else:
                     args.current_attention_type = args.attention_type
 
-                A_holder, B_holder = get_img_holders(A, B, args, gradcam=gradcam)
+                A_holder, B_holder = get_img_holders(A, B, args, gradcam=gradcam, model=clf)
 
                 G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
 

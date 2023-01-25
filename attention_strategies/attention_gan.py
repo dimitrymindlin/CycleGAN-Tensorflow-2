@@ -1,8 +1,7 @@
 ### Attention Gan Original
 # From "Attention-GAN for Object Transfiguration in Wild Images"
-from attention_maps import shift_values_above_intensity, threshold_img
+from attention_maps import threshold_img
 from imlib.image_holder import add_images, multiply_images
-import tensorflow as tf
 
 
 def attention_gan_image_fusion(transformed, attention, background):
