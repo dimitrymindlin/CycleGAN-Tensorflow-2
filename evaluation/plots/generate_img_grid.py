@@ -6,7 +6,7 @@ from matplotlib.patches import Rectangle
 
 from attention_strategies.attention_gan import attention_gan_single
 from attention_strategies.no_attention import no_attention_single
-from evaluation.compute_img_difference import get_difference_img
+from evaluation.utils.compute_img_difference import get_difference_img
 from evaluation.metrics.tcv_os import get_predicted_class_label
 from imlib.image_holder import ImageHolder
 

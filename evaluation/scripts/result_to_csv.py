@@ -1,5 +1,6 @@
-import os
 import csv
+import glob
+import os
 
 
 def create_json(input_string):
@@ -46,32 +47,33 @@ def write_to_row(writer, data):
 
 
 # List of file paths
-dataset = "mura"
-# experiments = ["2023-01-02--11.30", "2023-01-04--09.48", "2022-10-24--11.27"] #a2o
-# experiments = ["2023-01-05--09.51", "2022-11-02--16.45", "2022-11-18--11.14"] #rsna
-# experiments = ["2023-01-04--15.18", "2023-01-04--15.24", "2023-01-06--09.37"]  #h2z
-experiments = ["2022-12-06--07.00", "2022-11-06--18.19", "2022-11-22--13.19", ]  # mura
-file_names = ['test_metrics_16.txt', 'test_metrics_18.txt']
+dataset = "rsna"
+# experiments = ["2022-10-24--11.27", "2023-01-04--09.48", "2023-01-02--11.30"]  # a2o
+# experiments = ["2023-01-06--09.37", "2023-01-04--15.24", "2023-01-04--15.18"] # h2z
+# experiments = ["2022-11-22--13.19", "2022-11-06--18.19", "2022-12-06--07.00"] # mura
+# experiments = ["2022-11-18--11.14", "2022-11-02--16.45", "2023-01-05--09.51", "2023-01-10--05.30", "2023-01-10--05.32"] #rsna
+# experiments = ["2022-11-28--10.48", "2022-11-30--10.29", "2022-11-30--10.45", "2022-12-03--16.29", "2022-12-06--07.00",
+#               "2022-12-06--07.03", "2022-12-07--05.20", "2022-12-08--01.00"]
+
 
 output_csv_name = f'../experiment_results_{dataset}.csv'
 root_path = r"/Users/dimitrymindlin/UniProjects/CycleGAN-Tensorflow-2/checkpoints/gans/" + dataset
 
 # Loop over the list of file paths
-for experiment_path in experiments:
+for experiment_path in glob.glob(root_path + "/*"):
+    # Check if the experiment is a directory
+    if not os.path.isdir(experiment_path):
+        continue
     # Navigate to the folder
-    os.chdir(
-        root_path + "/" + experiment_path)
+    print(experiment_path)
+    os.chdir(experiment_path)
 
     # Open the file
-    for idx, file_name in enumerate(file_names):
+    input_files = []
+    for idx, file_name in enumerate(glob.glob("*.txt")):
         with open(file_name, 'r') as file:
             # Read the contents of the file into a string
-            if idx == 0:
-                file_180 = file.read()
-            else:
-                file_195 = file.read()
-
-    input_files = [file_180, file_195]
+            input_files.append(file.read())
 
     for input in input_files:
         # Create JSON data from string

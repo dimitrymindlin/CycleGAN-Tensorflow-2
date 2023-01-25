@@ -1,19 +1,18 @@
 import matplotlib.pyplot as plt
 
-from evaluation.data_transformation import create_lists_from_df, get_results_df_from_dataset
+from evaluation.scripts.data_transformation import create_lists_from_df, get_results_df_from_dataset
 
 new_names = ["ABC-GAN", "GANterfactual", "CycleGAN"]
-datasets = ["mura", "mura"]
-directions = ["averages"]
-marker_list = [">", "<"]
-averages = True
+datasets = ["rsna"]
+directions = ["averages", "normal2abnormal", "abnormal2normal", ]
+marker_list = [">", "<", "o"]
 
 # Create a figure and 2D subplot
 fig, ax = plt.subplots()
 for idx, (dataset, direction, marker) in enumerate(zip(datasets, directions, marker_list)):
     lists_dict = create_lists_from_df(get_results_df_from_dataset(dataset, direction))
-    # names = lists_dict["Name"]
-    names = new_names
+    names = lists_dict["Name"]
+    #names = new_names
     TCV = lists_dict["TCV"]
     SSIM = lists_dict["SSIM"]
     KID = lists_dict["KID"]

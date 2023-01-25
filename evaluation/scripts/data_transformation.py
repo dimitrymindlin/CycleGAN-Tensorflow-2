@@ -97,7 +97,7 @@ def df_to_tuples(df: pd.DataFrame) -> list:
     return tuples
 
 
-root_file = "/Users/dimitrymindlin/UniProjects/CycleGAN-Tensorflow-2/checkpoints/gans/"
+root_file = "/checkpoints/gans/"
 
 
 def get_results_df_from_dataset(dataset, direction):
