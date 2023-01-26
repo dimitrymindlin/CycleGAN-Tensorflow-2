@@ -89,3 +89,9 @@ def scale_between_zero_one(img):
 def scale_between_minus_one_one(img):
     shifted = tf.math.subtract(tf.math.multiply(2.0, img), 1)
     return tf.clip_by_value(shifted, -1, 1)
+
+
+def batched_tf_img_to_2d_numpy(img):
+    if tf.shape(img)[-1] == 1:
+        img = tf.image.grayscale_to_rgb(img)
+    return tf.squeeze(img).numpy()
