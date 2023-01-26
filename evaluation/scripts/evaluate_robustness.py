@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from cleverhans.tf2.attacks.fast_gradient_method import fast_gradient_method
-from skimage.metrics import structural_similarity
 from tqdm import tqdm
 
 import pylib as py
