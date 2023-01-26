@@ -31,10 +31,7 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
     Method uses generators to translate images to new domain and uses the classifier to predict the label of the
     translated image.
     """
-    if args.attention_type != "none":
-        use_attention = True
-    else:
-        use_attention = False
+    use_attention = True if args.attention_type != "none" else False
     translated_images = []
     y_pred_translated = []
     len_dataset = 0

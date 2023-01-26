@@ -1,15 +1,17 @@
-import os
 import sys
 
-import tqdm
 import numpy as np
-import pylib as py
 import tensorflow as tf
 import tf2lib as tl
+import tqdm
+
 import module
-from evaluation.kid import calc_KID_for_model_target_source
-from evaluation.load_test_data import load_tfds_test_data
-#from evaluation.tcv_os import calculate_tcv_os
+import pylib as py
+from config import ROOT_DIR
+from evaluation.metrics.kid import calc_KID_for_model_target_source
+from evaluation.utils.load_test_data import load_tfds_test_data
+
+#from evaluation_.tcv_os import calculate_tcv_os
 
 # ==============================================================================
 # =                                   param                                    =
@@ -22,7 +24,6 @@ py.arg('--img_channels', type=int, default=256)
 py.arg('--gan_model_ts', type=str, default=None)
 args = py.args()
 args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) + "/.."  # This is your Project Root
 
 # ==============================================================================
 # =                                    test                                    =
