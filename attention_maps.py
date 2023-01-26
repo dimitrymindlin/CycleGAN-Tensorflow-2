@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from lime import lime_image
+#from lime import lime_image
 from tf_keras_vis.utils.scores import CategoricalScore
 
 from imlib import scale_between_zero_one, scale_between_minus_one_one, plot_any_img
@@ -71,8 +71,8 @@ def apply_gradcam(img, gradcam, class_index, args, attention_intensity=1, attent
     return img, cam  # [-1,1]
 
 
-def apply_lime(img, model, class_index):
-    """Applies LIME XAI Method to the image to obtain the attention map."""
+"""def apply_lime(img, model, class_index):
+    #Applies LIME XAI Method to the image to obtain the attention map.
     # Define explainer
     explainer = lime_image.LimeImageExplainer()
 
@@ -85,3 +85,4 @@ def apply_lime(img, model, class_index):
     plot_any_img(attention_map)
     plot_any_img(img)
     return attention_map, image
+"""
