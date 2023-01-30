@@ -37,7 +37,7 @@ def translate_images_clf(args, dataset, clf, generator, gradcam, class_label, re
     len_dataset = 0
 
     for batch_i, img_batch in enumerate(tqdm.tqdm(dataset, desc='Translating images')):
-        img_holder = ImageHolder(img_batch, args, class_label, gradcam=gradcam, use_attention=use_attention)
+        img_holder = ImageHolder(img_batch, args, class_label, attention_func=gradcam, use_attention=use_attention)
         class_label_name = "A" if class_label == 0 else "B"
         target_class_name = "B" if class_label == 0 else "A"
         # Generate Images (only batch of 1 img supported at the moment)

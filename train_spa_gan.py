@@ -342,7 +342,7 @@ with train_summary_writer.as_default():
         batch_count = 0
         for A, B in tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset_train):
             A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention, args.attention_intensity,
-                                                 gradcam=gradcam, gradcam_D_A=gradcam_D_A, gradcam_D_B=gradcam_D_B)
+                                                 attention_func=gradcam, gradcam_D_A=gradcam_D_A, gradcam_D_B=gradcam_D_B)
 
             G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
 
@@ -364,7 +364,7 @@ with train_summary_writer.as_default():
                     # Get images
                     A_holder, B_holder = get_img_holders(A, B, args.attention_type, args.attention,
                                                          args.attention_intensity,
-                                                         gradcam=gradcam, gradcam_D_A=gradcam_D_A,
+                                                         attention_func=gradcam, gradcam_D_A=gradcam_D_A,
                                                          gradcam_D_B=gradcam_D_B)
 
                     A2B, B2A, A_enhanced, B_enhanced = sample_method(A_holder.img, B_holder.img, A_holder.attention,

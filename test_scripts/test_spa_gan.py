@@ -76,10 +76,10 @@ def calculate_tcv_os(dataset, translation_name):
     for img_batch in tqdm.tqdm(dataset):
         if translation_name == "A2B":
             # Get images
-            img_holder = ImageHolder(tf.squeeze(img_batch), 0, gradcam=gradcam, attention_type="spa-gan")
+            img_holder = ImageHolder(tf.squeeze(img_batch), 0, attention_func=gradcam, attention_type="spa-gan")
             translated_img_batch, cycled_img_batch = sample_A2B(img_holder.enhanced_img)
         else:
-            img_holder = ImageHolder(tf.squeeze(img_batch), 1, gradcam=gradcam, attention_type="spa-gan")
+            img_holder = ImageHolder(tf.squeeze(img_batch), 1, attention_func=gradcam, attention_type="spa-gan")
             translated_img_batch, cycled_img_batch = sample_B2A(img_holder.enhanced_img)
 
 

@@ -1,8 +1,9 @@
+import numpy as np
 import tensorflow as tf
+from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 
 import attention_maps
 from imlib import scale_between_zero_one, scale_between_minus_one_one
-import numpy as np
 
 
 def add_images(foreground, background):
@@ -44,23 +45,31 @@ def multiply_images(img1, img2):
 
 
 class ImageHolder():
-    def __init__(self, img, args, class_label=None, gradcam=None, use_attention=True,
-                 attention_intensity=1, attention_source="clf"):
+    def __init__(self, img, args, class_label=None, attention_func=None, use_attention=True,
+                 attention_intensity=1, attention_source="clf", model=None):
         self.img = img  # original image
         self.attention = None  # heatmap [-1, 1]
         self.foreground = None  # original image + heatmap
         self.background = None  # original image - heatmap
         self.enhanced_img = None  # original image * (heatmap + intensity)
         self.transformed_part = None  # depending on strategy, the part that should be transformed
+        self.model = model
         if use_attention:
-            self.get_attention(class_label, gradcam, args, attention_intensity, attention_source)
+            self.get_attention(class_label, attention_func, args, attention_intensity, attention_source)
             self.split_fore_and_background_by_attention()
 
-    def get_attention(self, class_label, gradcam, args, attention_intensity, attention_source):
-        enhanced_img, attention = attention_maps.apply_gradcam(self.img, gradcam, class_label,
-                                                               args,
-                                                               attention_intensity=attention_intensity,
-                                                               attention_source=attention_source)
+    def get_attention(self, class_label, attention_func, args, attention_intensity, attention_source):
+        # enhanced_img, attention = attention_maps.apply_lime(self.img, self.model, class_index=class_label)
+        if attention_func.isinstance(GradcamPlusPlus):
+            enhanced_img, attention = attention_maps.apply_gradcam(self.img, attention_func, class_label,
+                                                                   args,
+                                                                   attention_intensity=attention_intensity,
+                                                                   attention_source=attention_source)
+        else:
+            enhanced_img, attention = attention_maps.apply_occlusion_sensitivity(self.img, attention_func, class_label,
+                                                                                 args,
+                                                                                 attention_intensity=attention_intensity,
+                                                                                 attention_source=attention_source)
 
         self.enhanced_img = enhanced_img
         self.attention = attention
@@ -74,14 +83,14 @@ class ImageHolder():
         self.background = get_background(img, attention)
 
 
-def get_img_holders(A, B, args, attention_intensity=1, gradcam=None, gradcam_D_A=None,
-                    gradcam_D_B=None):
+def get_img_holders(A, B, args, attention_intensity=1, attention_func=None, gradcam_D_A=None,
+                    gradcam_D_B=None, model=None):
     if args.attention_type == "none":
         A_holder = ImageHolder(A, args, 0, use_attention=False)
         B_holder = ImageHolder(B, args, 1, use_attention=False)
     else:  # attention gan or spa-gan with clf attention
-        A_holder = ImageHolder(A, args, 0, gradcam, attention_intensity=attention_intensity)
-        B_holder = ImageHolder(B, args, 1, gradcam, attention_intensity=attention_intensity)
+        B_holder = ImageHolder(B, args, 1, attention_func, attention_intensity=attention_intensity, model=model)
+        A_holder = ImageHolder(A, args, 0, attention_func, attention_intensity=attention_intensity, model=model)
 
     """elif args.attention_type == "spa-gan": Remove spa-gan for now
         if args.attention == "discriminator":

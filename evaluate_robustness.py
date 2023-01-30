@@ -13,7 +13,6 @@ from config import ROOT_DIR
 from evaluation.metrics.calc_ssim import calc_ssim
 from evaluation.utils.load_test_data import load_test_data_from_args
 from evaluation.utils.load_testing_models import load_models_for_testing
-from imlib import plot_any_img
 from imlib.image_holder import ImageHolder
 from test_config import config
 
@@ -71,8 +70,8 @@ for model_idx, (name, ep) in enumerate(tqdm(
                 # Apply Perturbations
                 img_fgsm = apply_perturbations(img, clf, eps=epsilon)
                 # Get img holders
-                img_holder = ImageHolder(img, args, class_label, gradcam=gradcam, use_attention=use_attention)
-                img_holder_fgsm = ImageHolder(img_fgsm, args, class_label, gradcam=gradcam, use_attention=use_attention)
+                img_holder = ImageHolder(img, args, class_label, attention_func=gradcam, use_attention=use_attention)
+                img_holder_fgsm = ImageHolder(img_fgsm, args, class_label, attention_func=gradcam, use_attention=use_attention)
                 # Generate Counterfactuals
                 if args.attention_type == "attention-gan-original":
                     translated_img, _ = attention_gan_single(img_holder.img, generator, None, img_holder.attention,
