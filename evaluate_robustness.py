@@ -19,7 +19,7 @@ from test_config import config
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-py.arg('--dataset', default='mura', choices=['horse2zebra', 'mura', 'apple2orange', 'rsna'])
+py.arg('--dataset', default='rsna', choices=['horse2zebra', 'mura', 'apple2orange', 'rsna'])
 py.arg('--body_parts', default=["XR_WRIST"])
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 
@@ -35,7 +35,9 @@ def apply_perturbations(img, model, eps=0.1):
     """
     Applys FGSM to an image and returns the heatmap as well as the enhanced img.
     """
-    img_fgsm = fast_gradient_method(model, img, eps, np.inf)
+
+    img_tmp = tf.image.rgb_to_grayscale(img) if tf.shape(img)[-1] == 3 else img
+    img_fgsm = fast_gradient_method(model, img_tmp, eps, np.inf)
     img_fgsm = tf.clip_by_value(img_fgsm, -1, 1)
     return img_fgsm
 
@@ -81,7 +83,9 @@ for model_idx, (name, ep) in enumerate(tqdm(
                                                                   img_holder_fgsm.background, training)
                 else:
                     translated_img = no_attention_single(img_holder.img, generator, None, training)
-                    translated_img_fgsm = no_attention_single(img_holder_fgsm.img, generator, None, training)
+                    if tf.shape(img_holder_fgsm.img)[-1] == 1:
+                        img_holder_fgsm.img = tf.image.grayscale_to_rgb(img_holder_fgsm.img)
+                    translated_img_fsgm = no_attention_single(img_holder_fgsm.img, generator, None, training)
 
                 # Calc SSIM similarity
                 diff_value = 1 - calc_ssim(translated_img, translated_img_fsgm)
