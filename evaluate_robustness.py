@@ -19,7 +19,7 @@ from test_config import config
 # ==============================================================================
 # =                                   param                                    =
 # ==============================================================================
-py.arg('--dataset', default='rsna', choices=['horse2zebra', 'mura', 'apple2orange', 'rsna'])
+py.arg('--dataset', default='apple2orange', choices=['horse2zebra', 'mura', 'apple2orange', 'rsna'])
 py.arg('--body_parts', default=["XR_WRIST"])
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
 
@@ -35,10 +35,18 @@ def apply_perturbations(img, model, eps=0.1):
     """
     Applys FGSM to an image and returns the heatmap as well as the enhanced img.
     """
-
-    img_tmp = tf.image.rgb_to_grayscale(img) if tf.shape(img)[-1] == 3 else img
-    img_fgsm = fast_gradient_method(model, img_tmp, eps, np.inf)
+    if args.dataset == "rsna":
+        img = tf.image.rgb_to_grayscale(img) if tf.shape(img)[-1] == 3 else img
+    if args.dataset == "apple2orange":
+        img = tf.image.resize(img, [512, 512], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR) if model.input_shape[
+                                                                                                     1] == 512 else img
+    img = tf.expand_dims(img, axis=0) if len(tf.shape(img)) == 3 else img
+    img_fgsm = fast_gradient_method(model, img, eps, np.inf)
     img_fgsm = tf.clip_by_value(img_fgsm, -1, 1)
+    if args.dataset == "apple2orange":
+        img_fgsm = tf.image.resize(img_fgsm, [256, 256], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR) if \
+        model.input_shape[
+            1] == 512 else img
     return img_fgsm
 
 
@@ -73,14 +81,16 @@ for model_idx, (name, ep) in enumerate(tqdm(
                 img_fgsm = apply_perturbations(img, clf, eps=epsilon)
                 # Get img holders
                 img_holder = ImageHolder(img, args, class_label, attention_func=gradcam, use_attention=use_attention)
-                img_holder_fgsm = ImageHolder(img_fgsm, args, class_label, attention_func=gradcam, use_attention=use_attention)
+                img_holder_fgsm = ImageHolder(img_fgsm, args, class_label, attention_func=gradcam,
+                                              use_attention=use_attention)
                 # Generate Counterfactuals
                 if args.attention_type == "attention-gan-original":
                     translated_img, _ = attention_gan_single(img_holder.img, generator, None, img_holder.attention,
                                                              img_holder.background, training)
-                    translated_img_fsgm, _ = attention_gan_single(img_holder_fgsm.img, generator, None,
-                                                                  img_holder_fgsm.attention,
-                                                                  img_holder_fgsm.background, training)
+                    if args.dataset == "apple2orange":
+                        translated_img_fsgm, _ = attention_gan_single(img_holder_fgsm.img, generator, None,
+                                                                      img_holder_fgsm.attention,
+                                                                      img_holder_fgsm.background, training)
                 else:
                     translated_img = no_attention_single(img_holder.img, generator, None, training)
                     if tf.shape(img_holder_fgsm.img)[-1] == 1:
