@@ -60,17 +60,16 @@ class ImageHolder():
 
     def get_attention(self, class_label, attention_func, args, attention_intensity, attention_source):
         # enhanced_img, attention = attention_maps.apply_lime(self.img, self.model, class_index=class_label)
-        if attention_func.isinstance(GradcamPlusPlus):
-            enhanced_img, attention = attention_maps.apply_gradcam(self.img, attention_func, class_label,
-                                                                   args,
-                                                                   attention_intensity=attention_intensity,
-                                                                   attention_source=attention_source)
-        else:
+        enhanced_img, attention = attention_maps.apply_gradcam(self.img, attention_func, class_label,
+                                                               args,
+                                                               attention_intensity=attention_intensity,
+                                                               attention_source=attention_source)
+        """else:
             enhanced_img, attention = attention_maps.apply_occlusion_sensitivity(self.img, attention_func, class_label,
                                                                                  args,
                                                                                  attention_intensity=attention_intensity,
                                                                                  attention_source=attention_source)
-
+"""
         self.enhanced_img = enhanced_img
         self.attention = attention
 
