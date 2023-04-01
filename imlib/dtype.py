@@ -82,12 +82,22 @@ def im2cv(images):
 
 
 def scale_between_zero_one(img):
+    """Scales [-1,1] image to range [0,1]"""
+    if np.max(img) == 255 or np.max(img) == 255.0:
+        img = img / 255.0
     shifted = tf.math.add(tf.math.multiply(0.5, img), 0.5)
     return tf.clip_by_value(shifted, 0, 1)
 
 
 def scale_between_minus_one_one(img):
-    shifted = tf.math.subtract(tf.math.multiply(2.0, img), 1)
+    """Scales [0,1] image to range [-1,1]"""
+    if np.max(img) == 255 or np.max(img) == 255.0:
+        img = img / 255
+    try:
+        shifted = tf.math.subtract(tf.math.multiply(2.0, img), 1)
+    except TypeError:  # Multiply by 2.0 not working with dtype int
+        img = tf.cast(img, dtype=tf.float32)
+        shifted = tf.math.subtract(tf.math.multiply(2.0, img), 1.0)
     return tf.clip_by_value(shifted, -1, 1)
 
 
