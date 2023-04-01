@@ -14,9 +14,9 @@ from classifiers.classifier_models import Domain2DomainModel, CatsVSDogsModel
 from config import ROOT_DIR
 
 execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
-dataset = "horse2zebra"
-img_size = 512
-clf_name = "alexnet"
+dataset = "cup2bottle"
+img_size = 256
+clf_name = "inception"
 TF_LOG_DIR = f"logs/{dataset}_clf_{img_size}/{execution_id}"
 TFDS_PATH = f"{ROOT_DIR}/../tensorflow_datasets"
 
@@ -34,11 +34,12 @@ args = py.args()
 # ==============================================================================
 special_normalisation = tf.keras.applications.inception_v3.preprocess_input
 
-if args.dataset in ["horse2zebra", "apple2orange"]:
-    A_img_paths = py.glob(py.join(TFDS_PATH, args.dataset, 'trainA'), '*.jpg')
-    B_img_paths = py.glob(py.join(TFDS_PATH, args.dataset, 'trainB'), '*.jpg')
-    A_img_paths_test = py.glob(py.join(TFDS_PATH, args.dataset, 'testA'), '*.jpg')
-    B_img_paths_test = py.glob(py.join(TFDS_PATH, args.dataset, 'testB'), '*.jpg')
+if args.dataset in ["horse2zebra", "apple2orange", "cup2bottle"]:
+    # *g for jpg and png
+    A_img_paths = py.glob(py.join(TFDS_PATH, args.dataset, 'trainA'), '*g')
+    B_img_paths = py.glob(py.join(TFDS_PATH, args.dataset, 'trainB'), '*g')
+    A_img_paths_test = py.glob(py.join(TFDS_PATH, args.dataset, 'testA'), '*g')
+    B_img_paths_test = py.glob(py.join(TFDS_PATH, args.dataset, 'testB'), '*g')
 
     A_B_dataset, len_dataset = standard_datasets_loading.make_concat_dataset(A_img_paths[200:], B_img_paths[200:],
                                                                              args.batch_size, args.load_size,
@@ -63,7 +64,7 @@ elif args.dataset == "rsna":
                                                                                               args.load_size,
                                                                                               special_normalisation,
                                                                                               channels=1)
-else:  # Mura
+else:  # Mura training is handled in different repo
     pass
 
 
@@ -101,10 +102,10 @@ if args.load_checkpoint is not None:
     print(json.dumps(result))
     quit()
 else:
-    if dataset in ["horse2zebra", "apple2orange"]:
+    """if dataset in ["horse2zebra", "apple2orange", "cup2bottle"]:
         model = CatsVSDogsModel(img_shape=(args.crop_size, args.crop_size, 3)).model()
-    else:
-        model = Domain2DomainModel(img_shape=(args.crop_size, args.crop_size, 3)).model()
+    else:"""
+    model = Domain2DomainModel(img_shape=(args.crop_size, args.crop_size, 3)).model()
 
     checkpoint_path_name = f"checkpoints/{clf_name}_{dataset}/{execution_id}/"
 
