@@ -1,5 +1,9 @@
+import numpy as np
+import pandas as pd
 import tensorflow as tf
 import tensorflow_datasets as tfds
+from matplotlib import pyplot as plt
+from sklearn.model_selection import train_test_split
 
 import pylib as py
 from tf2lib_local.data import disk_image_batch_dataset
@@ -12,8 +16,12 @@ def make_dataset(img_paths, batch_size, load_size, crop_size, training, drop_rem
         def _map_fn(img, label=None):  # preprocessing
             img = tf.cast(img, tf.float32)
             img = tf.image.random_flip_left_right(img)
-            img = tf.image.resize_with_pad(img, load_size, load_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-            img = tf.image.random_crop(img, [crop_size, crop_size, tf.shape(img)[-1]])
+            if np.shape(load_size)[0] > 1:
+                img = tf.image.resize(img, (load_size[0], load_size[1]), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+                img = tf.image.random_crop(img, [crop_size[0], crop_size[1], tf.shape(img)[-1]])
+            else:
+                img = tf.image.resize_with_pad(img, load_size, load_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+                img = tf.image.random_crop(img, [crop_size, crop_size, tf.shape(img)[-1]])
             if not special_normalisation:
                 img = img / 255.0 * 2 - 1
             else:
@@ -26,7 +34,10 @@ def make_dataset(img_paths, batch_size, load_size, crop_size, training, drop_rem
         def _map_fn(img, label=None):  # preprocessing
             img = tf.cast(img, tf.float32)
             # img = tfa.image.equalize(img)
-            img = tf.image.resize_with_pad(img, crop_size, crop_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+            if np.shape(crop_size)[0] > 1:
+                img = tf.image.random_crop(img, [crop_size[0], crop_size[1], tf.shape(img)[-1]])
+            else:
+                img = tf.image.resize_with_pad(img, crop_size, crop_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
             if not special_normalisation:
                 img = img / 255.0 * 2 - 1
             else:
@@ -36,12 +47,12 @@ def make_dataset(img_paths, batch_size, load_size, crop_size, training, drop_rem
             return img
 
     return disk_image_batch_dataset(img_paths,
-                                       batch_size,
-                                       drop_remainder=drop_remainder,
-                                       map_fn=_map_fn,
-                                       shuffle=shuffle,
-                                       repeat=repeat,
-                                       labels=labels)
+                                    batch_size,
+                                    drop_remainder=drop_remainder,
+                                    map_fn=_map_fn,
+                                    shuffle=shuffle,
+                                    repeat=repeat,
+                                    labels=labels)
 
 
 def make_zip_dataset(A_img_paths, B_img_paths, batch_size, load_size, crop_size, training, shuffle=False, repeat=False):
@@ -92,7 +103,7 @@ def load_tfds_dataset(dataset_name, img_size):
     dataset, metadata = tfds.load(f'cycle_gan/{dataset_name}',
                                   with_info=True, as_supervised=True)
 
-    A_train, B_train = dataset['trainA'], dataset['trainB'] # A=horses, B=zebras
+    A_train, B_train = dataset['trainA'], dataset['trainB']  # A=horses, B=zebras
     A_test, B_test = dataset['testA'], dataset['testB']
     BUFFER_SIZE = 1000
     len_dataset_train = max(len(B_train), len(A_train))
@@ -156,3 +167,22 @@ def load_tfds_dataset(dataset_name, img_size):
     A_B_dataset_test = tf.data.Dataset.zip(((A_test, B_test)))
 
     return A_B_dataset, A_B_dataset_test, len_dataset_train
+
+
+def get_celeba_smiling_non_smiling_paths(TFDS_PATH):
+    # Here we import dataset to python and assign it to data variable
+    data = pd.read_csv(f"{TFDS_PATH}/celeba/list_attr_celeba.csv")
+
+    # We make list of smiling and non-smiling celebrities.
+    smiling = []
+    non_smiling = []
+    for value, img_id in zip(data.Smiling.values, data.image_id.values):
+        if value == 1:
+            smiling.append(img_id)
+        else:
+            non_smiling.append(img_id)
+
+    # extend both lists to have full img path
+    smiling = [f"{TFDS_PATH}/celeba/img_align_celeba/img_align_celeba/{img_id}" for img_id in smiling]
+    non_smiling = [f"{TFDS_PATH}/celeba/img_align_celeba/img_align_celeba/{img_id}" for img_id in non_smiling]
+    return smiling, non_smiling

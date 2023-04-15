@@ -7,6 +7,7 @@ import tensorflow.keras as keras
 import tensorflow_addons as tfa
 from rsna.tfds_from_disc import get_rsna_ds_for_clf
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.model_selection import train_test_split
 
 import pylib as py
 import standard_datasets_loading
@@ -14,15 +15,17 @@ from classifiers.classifier_models import Domain2DomainModel, CatsVSDogsModel
 from config import ROOT_DIR
 
 execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
-dataset = "cup2bottle"
-img_size = 256
+dataset = "celeba"
+img_width = 178
+img_height = 218
+img_size = (img_width, img_height)
 clf_name = "inception"
 TF_LOG_DIR = f"logs/{dataset}_clf_{img_size}/{execution_id}"
 TFDS_PATH = f"{ROOT_DIR}/../tensorflow_datasets"
 
 py.arg('--dataset', default=dataset)
 py.arg('--datasets_dir', default='tensorflow_datasets')
-py.arg('--load_size', type=int, default=img_size + 30)  # load image to this size
+py.arg('--load_size', type=int, default=img_size)  # load image to this size
 py.arg('--crop_size', type=int, default=img_size)  # then crop to this size
 py.arg('--batch_size', type=int, default=32)
 py.arg('--epochs', type=int, default=40)
@@ -34,12 +37,17 @@ args = py.args()
 # ==============================================================================
 special_normalisation = tf.keras.applications.inception_v3.preprocess_input
 
-if args.dataset in ["horse2zebra", "apple2orange", "cup2bottle"]:
+if args.dataset in ["horse2zebra", "apple2orange", "cup2bottle", "celeba"]:
     # *g for jpg and png
-    A_img_paths = py.glob(py.join(TFDS_PATH, args.dataset, 'trainA'), '*g')
-    B_img_paths = py.glob(py.join(TFDS_PATH, args.dataset, 'trainB'), '*g')
-    A_img_paths_test = py.glob(py.join(TFDS_PATH, args.dataset, 'testA'), '*g')
-    B_img_paths_test = py.glob(py.join(TFDS_PATH, args.dataset, 'testB'), '*g')
+    if args.dataset != "celeba":
+        A_img_paths = py.glob(py.join(TFDS_PATH, args.dataset, 'trainA'), '*g')
+        B_img_paths = py.glob(py.join(TFDS_PATH, args.dataset, 'trainB'), '*g')
+        A_img_paths_test = py.glob(py.join(TFDS_PATH, args.dataset, 'testA'), '*g')
+        B_img_paths_test = py.glob(py.join(TFDS_PATH, args.dataset, 'testB'), '*g')
+    else:
+        img_paths_A, img_paths_B = standard_datasets_loading.get_celeba_smiling_non_smiling_paths(TFDS_PATH)
+        A_img_paths, A_img_paths_test = train_test_split(img_paths_A, test_size=0.2, random_state=42)
+        B_img_paths, B_img_paths_test = train_test_split(img_paths_B, test_size=0.2, random_state=42)
 
     A_B_dataset, len_dataset = standard_datasets_loading.make_concat_dataset(A_img_paths[200:], B_img_paths[200:],
                                                                              args.batch_size, args.load_size,
@@ -64,6 +72,7 @@ elif args.dataset == "rsna":
                                                                                               args.load_size,
                                                                                               special_normalisation,
                                                                                               channels=1)
+
 else:  # Mura training is handled in different repo
     pass
 
@@ -105,7 +114,10 @@ else:
     """if dataset in ["horse2zebra", "apple2orange", "cup2bottle"]:
         model = CatsVSDogsModel(img_shape=(args.crop_size, args.crop_size, 3)).model()
     else:"""
-    model = Domain2DomainModel(img_shape=(args.crop_size, args.crop_size, 3)).model()
+    if np.shape(args.crop_size)[0] > 1:
+        model = Domain2DomainModel(img_shape=(args.crop_size[0], args.crop_size[1], 3)).model()
+    else:
+        model = Domain2DomainModel(img_shape=(args.crop_size, args.crop_size, 3)).model()
 
     checkpoint_path_name = f"checkpoints/{clf_name}_{dataset}/{execution_id}/"
 
