@@ -17,7 +17,8 @@ def make_dataset(img_paths, batch_size, load_size, crop_size, training, drop_rem
             img = tf.cast(img, tf.float32)
             img = tf.image.random_flip_left_right(img)
             if np.shape(load_size)[0] > 1:
-                img = tf.image.resize(img, (load_size[0], load_size[1]), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+                img = tf.image.resize_with_pad(img, load_size[0], load_size[1],
+                                               method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
                 img = tf.image.random_crop(img, [crop_size[0], crop_size[1], tf.shape(img)[-1]])
             else:
                 img = tf.image.resize_with_pad(img, load_size, load_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
@@ -186,3 +187,15 @@ def get_celeba_smiling_non_smiling_paths(TFDS_PATH):
     smiling = [f"{TFDS_PATH}/celeba/img_align_celeba/img_align_celeba/{img_id}" for img_id in smiling]
     non_smiling = [f"{TFDS_PATH}/celeba/img_align_celeba/img_align_celeba/{img_id}" for img_id in non_smiling]
     return smiling, non_smiling
+
+
+def get_calaba_zip_dataset(TFDS_PATH, crop_size):
+    # A is smiling, B is non smiling
+    smiling_paths, non_smiling_paths = get_celeba_smiling_non_smiling_paths(TFDS_PATH)
+    A_img_paths, A_img_paths_test = train_test_split(smiling_paths, test_size=0.2, random_state=42)
+    B_img_paths, B_img_paths_test = train_test_split(non_smiling_paths, test_size=0.2, random_state=42)
+    A_B_datset_train, len_dataset_train = make_zip_dataset(A_img_paths, B_img_paths, 1, crop_size, crop_size, True,
+                                                           shuffle=False, repeat=False)
+    A_B_datset_test, _ = make_zip_dataset(A_img_paths_test, B_img_paths_test, 1, crop_size, crop_size, True,
+                                          shuffle=False, repeat=False)
+    return A_B_datset_train, A_B_datset_test, len_dataset_train
