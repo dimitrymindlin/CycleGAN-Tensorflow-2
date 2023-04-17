@@ -350,7 +350,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                 else:
                     args.current_attention_type = args.attention_type
 
-                A_holder, B_holder = get_img_holders(A, B, args, gradcam=gradcam, model=clf)
+                A_holder, B_holder = get_img_holders(A, B, args, attention_func=gradcam, model=clf)
 
                 G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
 
