@@ -115,7 +115,7 @@ def generate_images_for_grid(model_idx, args, dataset, clf, generator, gradcam, 
         if original_prediction != class_label:
             continue
 
-        img_holder = ImageHolder(img_batch, args, class_label, gradcam=gradcam, use_attention=use_attention)
+        img_holder = ImageHolder(img_batch, args, class_label, attention_func=gradcam, use_attention=use_attention)
         attention_maps.append(img_holder.attention)
         original_images.append(img_holder.img)
         translated_img, if_counterfactual = translate_and_predict(img_holder, generator, args, clf, training,
