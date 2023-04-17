@@ -1,9 +1,9 @@
 from datetime import datetime
 import time
 import pylib as py
+from config import ROOT_DIR
 from pylib import load_args
 from train import run_training
-import os
 
 
 def create_new_experiment(root_dir):
@@ -83,8 +83,6 @@ py.arg('--load_checkpoint', type=str, default=None)
 py.arg('--start_attention_epoch', type=int, default=0)
 py.arg('--sample_interval', type=int, default=5)
 args = py.args()
-
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
 
 print(f"Using {args.dataset} dataset.")
 if args.load_checkpoint:
