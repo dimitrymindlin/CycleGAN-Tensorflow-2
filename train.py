@@ -21,6 +21,28 @@ from tf2lib_local.utils import is_normal_run
 
 
 def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
+    if not is_normal_run(args):
+        clf = tf.keras.models.load_model(
+            f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
+            compile=False)
+        try:
+            args.clf_input_channel = clf.layers[0].input_shape[0][-1]
+        except TypeError:
+            args.clf_input_channel = 3  # simplenet
+
+    if args.attention_type == "attention-gan-original":
+        gradcam = GradcamPlusPlus(clf, clone=True)
+    elif args.attention_type == "spa-gan":
+        if args.attention == "clf":
+            gradcam = GradcamPlusPlus(clf, clone=True)
+        else:  # discriminator attention
+            args.counterfactual_loss_weight = 0
+            gradcam_D_A = Gradcam(D_A, model_modifier=ReplaceToLinear(), clone=True)
+            gradcam_D_B = Gradcam(D_B, model_modifier=ReplaceToLinear(), clone=True)
+            # ... Implement SPA-GAN completely?
+    else:
+        gradcam = None
+
     # ==============================================================================
     # =                                    data                                    =
     # ==============================================================================
