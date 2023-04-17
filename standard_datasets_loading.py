@@ -36,7 +36,8 @@ def make_dataset(img_paths, batch_size, load_size, crop_size, training, drop_rem
             img = tf.cast(img, tf.float32)
             # img = tfa.image.equalize(img)
             if np.shape(crop_size)[0] > 1:
-                img = tf.image.random_crop(img, [crop_size[0], crop_size[1], tf.shape(img)[-1]])
+                img = tf.image.resize_with_pad(img, crop_size[0], crop_size[1],
+                                               method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
             else:
                 img = tf.image.resize_with_pad(img, crop_size, crop_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
             if not special_normalisation:
@@ -109,8 +110,12 @@ def load_tfds_dataset(dataset_name, img_size):
     BUFFER_SIZE = 1000
     len_dataset_train = max(len(B_train), len(A_train))
     BATCH_SIZE = 1
-    IMG_WIDTH = img_size
-    IMG_HEIGHT = img_size
+    if np.shape(img_size)[0] > 1:
+        IMG_HEIGHT = img_size[0]
+        IMG_WIDTH = img_size[1]
+    else:
+        IMG_WIDTH = img_size
+        IMG_HEIGHT = img_size
 
     def random_crop(image):
         cropped_image = tf.image.random_crop(
