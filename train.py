@@ -70,7 +70,8 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
 
     elif args.dataset in ["horse2zebra", "apple2orange"]:  # Load Horse2Zebra / Apple2Orange
         A_B_dataset, A_B_dataset_test, len_dataset_train = standard_datasets_loading.load_tfds_dataset(args.dataset,
-                                                                                                       args.crop_size)
+                                                                                                       args.crop_size,
+                                                                                                       clf, gradcam)
     else:
         A_B_dataset, A_B_dataset_test, len_dataset_train = standard_datasets_loading.get_calaba_zip_dataset(TFDS_PATH,
                                                                                                             args.crop_size)
@@ -118,34 +119,12 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     train_D_A_acc = tf.keras.metrics.BinaryAccuracy()
     train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 
-    if not is_normal_run(args):
-        clf = tf.keras.models.load_model(
-            f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
-            compile=False)
-        try:
-            args.clf_input_channel = clf.layers[0].input_shape[0][-1]
-        except TypeError:
-            args.clf_input_channel = 3  # simplenet
-
     # save settings
     if args.load_checkpoint is not None:
         settings_name = "settings_continue.yml"
     else:
         settings_name = "settings.yml"
     py.args_to_yaml(py.join(output_dir, settings_name), args)
-
-    if args.attention_type == "attention-gan-original":
-        gradcam = GradcamPlusPlus(clf, clone=True)
-    elif args.attention_type == "spa-gan":
-        if args.attention == "clf":
-            gradcam = GradcamPlusPlus(clf, clone=True)
-        else:  # discriminator attention
-            args.counterfactual_loss_weight = 0
-            gradcam_D_A = Gradcam(D_A, model_modifier=ReplaceToLinear(), clone=True)
-            gradcam_D_B = Gradcam(D_B, model_modifier=ReplaceToLinear(), clone=True)
-            # ... Implement SPA-GAN completely?
-    else:
-        gradcam = None
 
     # ==============================================================================
     # =                                 train step                                 =
