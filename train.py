@@ -46,11 +46,18 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                                                                                                       special_normalisation,
                                                                                                       channels=args.img_channels)
 
-    else:  # Load Horse2Zebra / Apple2Orange
+    elif args.dataset in ["horse2zebra", "apple2orange"]:  # Load Horse2Zebra / Apple2Orange
         A_B_dataset, A_B_dataset_test, len_dataset_train = standard_datasets_loading.load_tfds_dataset(args.dataset,
                                                                                                        args.crop_size)
+    else:
+        A_B_dataset, A_B_dataset_test, len_dataset_train = standard_datasets_loading.get_calaba_zip_dataset(TFDS_PATH,
+                                                                                                            args.crop_size)
 
-    args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
+    if np.shape(args.crop_size)[0] > 1:
+        args.img_shape = (args.crop_size[0], args.crop_size[1], args.img_channels)
+    else:
+        args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
+
     A2B_pool = ItemPool(args.pool_size)
     B2A_pool = ItemPool(args.pool_size)
     # ==============================================================================
