@@ -16,9 +16,7 @@ from config import ROOT_DIR
 
 execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
 dataset = "celeba"
-img_width = 178
-img_height = 218
-img_size = (img_height, img_width)
+img_size = 218
 clf_name = "inception"
 TF_LOG_DIR = f"logs/{dataset}_clf_{img_size}/{execution_id}"
 TFDS_PATH = f"{ROOT_DIR}/../tensorflow_datasets"
@@ -28,8 +26,8 @@ py.arg('--datasets_dir', default='tensorflow_datasets')
 py.arg('--load_size', type=int, default=img_size)  # load image to this size
 py.arg('--crop_size', type=int, default=img_size)  # then crop to this size
 py.arg('--batch_size', type=int, default=32)
-py.arg('--epochs', type=int, default=40)
-py.arg('--load_checkpoint', type=str, default=None)
+py.arg('--epochs', type=int, default=60)
+py.arg('--load_checkpoint', type=str)
 args = py.args()
 
 # ==============================================================================
@@ -112,8 +110,7 @@ if args.load_checkpoint is not None:
     quit()
 else:
     """if dataset in ["horse2zebra", "apple2orange", "cup2bottle"]:
-        model = CatsVSDogsModel(img_shape=(args.crop_size, args.crop_size, 3)).model()
-    else:"""
+        model = CatsVSDogsModel(img_shape=(args.crop_size, args.crop_size, 3)).model()"""
     if np.shape(args.crop_size)[0] > 1:
         model = Domain2DomainModel(img_shape=(args.crop_size[0], args.crop_size[1], 3)).model()
     else:
