@@ -42,8 +42,12 @@ def setup_args_for_experiment():
         if args.clf_name == "inception":
             args.clf_ckp_name = "2022-10-12--10.37"
     elif args.dataset == "apple2orange":
-        args.clf_ckp_name = "2022-09-23--15.18"
+        args.clf_ckp_name = "2023-04-17--15.53"  # 2022-09-23--15.18
         # h2z "2022-06-04--00.00"
+    elif args.dataset == "celeba":
+        args.crop_size = (218, 178)
+        args.clf_ckp_name = "2023-04-17--12.58"  # 2022-09-23--15.18
+        args.clf_name = "inception"
 
     if args.discriminator == "patch_gan_attention":
         # Remove instance norm as suggested in 'Unsupervised Attention-guided Image-to-Image Translation'
@@ -52,7 +56,7 @@ def setup_args_for_experiment():
 
 
 ### Define Experiment Settings
-py.arg('--dataset', default='rsna', choices=['horse2zebra', 'mura', 'apple2orange', "rsna"])
+py.arg('--dataset', default='celeba', choices=['horse2zebra', 'mura', 'apple2orange', "rsna", "celeba"])
 py.arg('--body_parts', default=["XR_WRIST"])  # Only used in Mura dataset. Body part of x-ray images
 py.arg('--datasets_dir', default='datasets')
 py.arg('--load_size', type=int, default=286)  # load image to this size
@@ -65,7 +69,7 @@ py.arg('--lr', type=float, default=0.0002)
 py.arg('--beta_1', type=float, default=0.5)
 py.arg('--adversarial_loss_mode', default='gan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
 py.arg('--adversarial_loss_weight', type=float, default=1)
-py.arg('--cycle_loss_weight', type=float, default=5)
+py.arg('--cycle_loss_weight', type=float, default=10)
 py.arg('--counterfactual_loss_weight', type=float, default=1)
 py.arg('--identity_loss_weight', type=float, default=1)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
