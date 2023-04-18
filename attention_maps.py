@@ -90,3 +90,39 @@ def get_clf_attention_img(img, gradcam, class_index, attention_type, attention_i
     plot_any_img(attention_map)
     plot_any_img(img)
     return attention_map, image"""
+
+
+def add_attention_maps_to_single_ds(dataset, gradcam, label_index, img_height, img_width):
+    attention_maps = []
+
+    # normalizing the images to [-1, 1]
+    def normalize(image):
+        image = tf.cast(image, tf.float32)
+        image = tf.image.resize(image, [img_height, img_width],
+                                method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        image = (image / 127.5) - 1
+        return image
+
+    for img, _ in dataset:
+        img_tmp = np.copy(img)
+        img_tmp = np.expand_dims(normalize(img_tmp), axis=0)
+        img_tmp = tf.convert_to_tensor(img_tmp)
+        _, cam = get_clf_attention_img(img_tmp, gradcam, label_index,
+                                       "attention-gan-original",
+                                       attention_intensity=1,
+                                       attention_source="clf")
+        # remove batch dimension (first)
+        cam = tf.squeeze(cam, axis=0)
+        attention_maps.append(cam)
+    # Turn list to tensor slices
+    attention_maps = tf.convert_to_tensor(attention_maps)
+    attention_ds = tf.data.Dataset.from_tensor_slices(attention_maps)
+    # zip dataset and attention_ds
+    dataset = tf.data.Dataset.zip((dataset, attention_ds))
+    return dataset
+
+
+def add_attention_maps(A_train, B_train, gradcam, img_height, img_width):
+    A_train = add_attention_maps_to_single_ds(A_train, gradcam, 0, img_height, img_width)
+    B_train = add_attention_maps_to_single_ds(B_train, gradcam, 1, img_height, img_width)
+    return A_train, B_train

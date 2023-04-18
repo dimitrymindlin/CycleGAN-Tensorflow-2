@@ -2,11 +2,10 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split
 
 import pylib as py
-from attention_maps import get_clf_attention_img
+from attention_maps import add_attention_maps
 from tf2lib_local.data import disk_image_batch_dataset
 
 
@@ -158,41 +157,7 @@ def load_tfds_dataset(dataset_name, img_size, clf=None, gradcam=None):
         image = normalize(image)
         return image
 
-    # Generate gradcam attention maps for A_train and B_train
-    A_attention_maps = []
-    B_attention_maps = []
-    if clf:
-        for img, _ in A_train:
-            img_tmp = np.copy(img)
-            img_tmp = np.expand_dims(normalize(img_tmp), axis=0)
-            img_tmp = tf.convert_to_tensor(img_tmp)
-            _, cam = get_clf_attention_img(img_tmp, gradcam, 0,
-                                           "attention-gan-original",
-                                           attention_intensity=1,
-                                           attention_source="clf")
-            # remove batch dimension (first)
-            cam = tf.squeeze(cam, axis=0)
-            A_attention_maps.append(cam)
-        # Turn list to tensor slices
-        A_attention_maps = tf.convert_to_tensor(A_attention_maps)
-        A_attention_ds = tf.data.Dataset.from_tensor_slices(A_attention_maps)
-        # zip A_train and A_attention_ds
-        A_train = tf.data.Dataset.zip((A_train, A_attention_ds))
-
-        for img, _ in B_train:
-            img_tmp = np.copy(img)
-            img_tmp = np.expand_dims(normalize(img_tmp), axis=0)
-            img_tmp = tf.convert_to_tensor(img_tmp)
-            _, cam = get_clf_attention_img(img_tmp, gradcam, 1,
-                                           "attention-gan-original",
-                                           attention_intensity=1,
-                                           attention_source="clf")
-            B_attention_maps.append(cam)
-        # Turn list to tensor slices
-        B_attention_maps = tf.convert_to_tensor(B_attention_maps)
-        B_attention_ds = tf.data.Dataset.from_tensor_slices(B_attention_maps)
-        # zip B_attention_ds and B_train
-        B_train = tf.data.Dataset.zip((B_train, B_attention_ds))
+    A_train, B_train = add_attention_maps(A_train, B_train, gradcam, IMG_HEIGHT, IMG_WIDTH)
 
     A_train = A_train.cache().map(
         preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
