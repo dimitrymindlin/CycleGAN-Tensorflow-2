@@ -46,7 +46,7 @@ def setup_args_for_experiment():
         args.clf_name = "simplenet"
         # h2z "2022-06-04--00.00"
     elif args.dataset == "celeba":
-        args.crop_size = (218, 178)
+        args.crop_size = 218
         args.clf_ckp_name = "2023-04-17--12.58"  # 2022-09-23--15.18
         args.clf_name = "inception"
 
@@ -57,11 +57,11 @@ def setup_args_for_experiment():
 
 
 ### Define Experiment Settings
-py.arg('--dataset', default='celeba', choices=['horse2zebra', 'mura', 'apple2orange', "rsna", "celeba"])
+py.arg('--dataset', default='apple2orange', choices=['horse2zebra', 'mura', 'apple2orange', "rsna", "celeba"])
 py.arg('--body_parts', default=["XR_WRIST"])  # Only used in Mura dataset. Body part of x-ray images
 py.arg('--datasets_dir', default='datasets')
-py.arg('--load_size', type=int, default=(256, 256))  # load image to this size
-py.arg('--crop_size', type=int, default=(256, 256))  # then crop to this size
+py.arg('--load_size', type=int, default=256)  # load image to this size
+py.arg('--crop_size', type=int, default=256)  # then crop to this size
 py.arg('--img_channels', type=int, default=3)
 py.arg('--batch_size', type=int, default=1)
 py.arg('--epochs', type=int, default=200)
