@@ -16,13 +16,9 @@ def make_dataset(img_paths, batch_size, load_size, crop_size, training, drop_rem
         def _map_fn(img, label=None):  # preprocessing
             img = tf.cast(img, tf.float32)
             img = tf.image.random_flip_left_right(img)
-            if np.shape(load_size)[0] > 1:
-                img = tf.image.resize_with_pad(img, load_size[0], load_size[1],
-                                               method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-                img = tf.image.random_crop(img, [crop_size[0], crop_size[1], tf.shape(img)[-1]])
-            else:
-                img = tf.image.resize_with_pad(img, load_size, load_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-                img = tf.image.random_crop(img, [crop_size, crop_size, tf.shape(img)[-1]])
+
+            img = tf.image.resize_with_pad(img, load_size, load_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+            img = tf.image.random_crop(img, [crop_size, crop_size, tf.shape(img)[-1]])
             if not special_normalisation:
                 img = img / 255.0 * 2 - 1
             else:
@@ -35,11 +31,7 @@ def make_dataset(img_paths, batch_size, load_size, crop_size, training, drop_rem
         def _map_fn(img, label=None):  # preprocessing
             img = tf.cast(img, tf.float32)
             # img = tfa.image.equalize(img)
-            if np.shape(crop_size)[0] > 1:
-                img = tf.image.resize_with_pad(img, crop_size[0], crop_size[1],
-                                               method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-            else:
-                img = tf.image.resize_with_pad(img, crop_size, crop_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+            img = tf.image.resize_with_pad(img, crop_size, crop_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
             if not special_normalisation:
                 img = img / 255.0 * 2 - 1
             else:
@@ -111,12 +103,8 @@ def load_tfds_dataset(dataset_name, img_size, clf=None, gradcam=None):
     BUFFER_SIZE = 1000
     len_dataset_train = max(len(B_train), len(A_train))
     BATCH_SIZE = 1
-    if np.shape(img_size)[0] > 1:
-        IMG_HEIGHT = img_size[0]
-        IMG_WIDTH = img_size[1]
-    else:
-        IMG_WIDTH = img_size
-        IMG_HEIGHT = img_size
+    IMG_WIDTH = img_size
+    IMG_HEIGHT = img_size
 
     def random_crop(image):
         cropped_image = tf.image.random_crop(
