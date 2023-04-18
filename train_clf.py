@@ -111,10 +111,8 @@ if args.load_checkpoint is not None:
 else:
     """if dataset in ["horse2zebra", "apple2orange", "cup2bottle"]:
         model = CatsVSDogsModel(img_shape=(args.crop_size, args.crop_size, 3)).model()"""
-    if np.shape(args.crop_size)[0] > 1:
-        model = Domain2DomainModel(img_shape=(args.crop_size[0], args.crop_size[1], 3)).model()
-    else:
-        model = Domain2DomainModel(img_shape=(args.crop_size, args.crop_size, 3)).model()
+
+    model = Domain2DomainModel(img_shape=(args.crop_size, args.crop_size, 3)).model()
 
     checkpoint_path_name = f"checkpoints/{clf_name}_{dataset}/{execution_id}/"
 
