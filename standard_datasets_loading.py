@@ -146,16 +146,18 @@ def load_tfds_dataset(dataset_name, img_size, clf=None, gradcam=None):
 
         return image
 
-    def preprocess_image_train(image, label):
+    def preprocess_image_train(ds_tuple, mask):
         # image = random_jitter(image)
-        image = normalize(image)
-        return image
+        # normalize img and return img + mask (drop label)
+        img = ds_tuple[0]
+        img = normalize(img)
+        final_tuple = (img, mask)
+        return final_tuple
 
     def preprocess_image_test(image, label):
         image = normalize(image)
         return image
 
-    A_train = A_train.take(5)
     # Generate gradcam attention maps for A_train and B_train
     A_attention_maps = []
     B_attention_maps = []
@@ -168,12 +170,14 @@ def load_tfds_dataset(dataset_name, img_size, clf=None, gradcam=None):
                                            "attention-gan-original",
                                            attention_intensity=1,
                                            attention_source="clf")
+            # remove batch dimension (first)
+            cam = tf.squeeze(cam, axis=0)
             A_attention_maps.append(cam)
         # Turn list to tensor slices
         A_attention_maps = tf.convert_to_tensor(A_attention_maps)
         A_attention_ds = tf.data.Dataset.from_tensor_slices(A_attention_maps)
         # zip A_train and A_attention_ds
-        A_train = tf.data.Dataset.zip(((A_train, A_attention_ds)))
+        A_train = tf.data.Dataset.zip((A_train, A_attention_ds))
 
         for img, _ in B_train:
             img_tmp = np.copy(img)
@@ -188,7 +192,7 @@ def load_tfds_dataset(dataset_name, img_size, clf=None, gradcam=None):
         B_attention_maps = tf.convert_to_tensor(B_attention_maps)
         B_attention_ds = tf.data.Dataset.from_tensor_slices(B_attention_maps)
         # zip B_attention_ds and B_train
-        B_train = tf.data.Dataset.zip(((B_train, B_attention_ds)))
+        B_train = tf.data.Dataset.zip((B_train, B_attention_ds))
 
     A_train = A_train.cache().map(
         preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
@@ -240,4 +244,5 @@ def get_calaba_zip_dataset(TFDS_PATH, crop_size):
                                                            shuffle=False, repeat=False)
     A_B_datset_test, _ = make_zip_dataset(A_img_paths_test, B_img_paths_test, 1, crop_size, crop_size, True,
                                           shuffle=False, repeat=False)
+
     return A_B_datset_train, A_B_datset_test, len_dataset_train
