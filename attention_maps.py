@@ -40,7 +40,6 @@ def get_clf_attention_img(img, gradcam, class_index, attention_type, attention_i
     """
     # Generate cam map
     img_tmp = img
-    # measure time to compute cam
     cam = gradcam(CategoricalScore(class_index), img_tmp, penultimate_layer=-1)
     if np.max(cam) == 0 and np.min(cam) == 0:
         cam = tf.ones(shape=cam.shape)
@@ -103,9 +102,10 @@ def add_attention_maps_to_single_ds(dataset, gradcam, label_index, img_height, i
         image = (image / 127.5) - 1
         return image
 
-    for img, _ in dataset:
+    for img in dataset:
         img_tmp = np.copy(img)
-        img_tmp = np.expand_dims(normalize(img_tmp), axis=0)
+        if len(np.shape(img)) < 4:
+            img_tmp = np.expand_dims(normalize(img_tmp), axis=0)
         img_tmp = tf.convert_to_tensor(img_tmp)
         _, cam = get_clf_attention_img(img_tmp, gradcam, label_index,
                                        "attention-gan-original",
