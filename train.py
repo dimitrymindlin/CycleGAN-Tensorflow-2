@@ -4,7 +4,7 @@ import tensorflow.keras as keras
 from mura import get_mura_ds_by_body_part_split_class
 from rsna import get_rsna_ds_split_class
 from tf_keras_vis.gradcam import Gradcam
-from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
+from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus as attention_technique
 from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
 
 import module
@@ -25,16 +25,18 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
         clf = tf.keras.models.load_model(
             f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
             compile=False)
+        print(f"Loaded classifier from {args.clf_ckp_name}")
+
         try:
             args.clf_input_channel = clf.layers[0].input_shape[0][-1]
         except TypeError:
             args.clf_input_channel = 3  # simplenet
 
     if args.attention_type == "attention-gan-original":
-        gradcam = GradcamPlusPlus(clf, clone=True)
+        gradcam = attention_technique(clf, clone=True)
     elif args.attention_type == "spa-gan":
         if args.attention == "clf":
-            gradcam = GradcamPlusPlus(clf, clone=True)
+            gradcam = attention_technique(clf, clone=True)
         else:  # discriminator attention
             args.counterfactual_loss_weight = 0
             gradcam_D_A = Gradcam(D_A, model_modifier=ReplaceToLinear(), clone=True)
@@ -71,9 +73,10 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     elif args.dataset in ["horse2zebra", "apple2orange"]:  # Load Horse2Zebra / Apple2Orange
         A_B_dataset, A_B_dataset_test, len_dataset_train = sdl.load_tfds_dataset(args.dataset, args.crop_size, gradcam)
     else:
-        A_B_dataset, A_B_dataset_test, len_dataset_train = sdl.get_calaba_zip_dataset_with_attention(TFDS_PATH,
-                                                                                                     args.crop_size,
-                                                                                                     gradcam)
+        A_B_dataset, A_B_dataset_test, len_dataset_train = sdl.get_calaba_zip_dataset(TFDS_PATH,
+                                                                                      args.crop_size,
+                                                                                      img_size=args.crop_size,
+                                                                                      gradcam=gradcam)
 
     args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
 
