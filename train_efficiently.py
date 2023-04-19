@@ -9,13 +9,13 @@ from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
 
 import module
 import pylib as py
-import standard_datasets_loading
+import standard_datasets_loading as sdl
 import tf2gan as gan
 import tf2lib_local as tl
 from attention_strategies.attention_gan import attention_gan_step, attention_gan_discriminator_step
 from attention_strategies.no_attention import no_attention_step
 from config import ROOT_DIR
-from imlib.image_holder import get_img_holders, get_img_holders_precomputed_attention
+from imlib.image_holder import get_img_holders_precomputed_attention
 from tf2lib_local.data.item_pool import ItemPool
 from tf2lib_local.utils import is_normal_run
 
@@ -69,12 +69,11 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                                                                                                       channels=args.img_channels)
 
     elif args.dataset in ["horse2zebra", "apple2orange"]:  # Load Horse2Zebra / Apple2Orange
-        A_B_dataset, A_B_dataset_test, len_dataset_train = standard_datasets_loading.load_tfds_dataset(args.dataset,
-                                                                                                       args.crop_size,
-                                                                                                       clf, gradcam)
+        A_B_dataset, A_B_dataset_test, len_dataset_train = sdl.load_tfds_dataset(args.dataset, args.crop_size, gradcam)
     else:
-        A_B_dataset, A_B_dataset_test, len_dataset_train = standard_datasets_loading.get_calaba_zip_dataset(TFDS_PATH,
-                                                                                                            args.crop_size)
+        A_B_dataset, A_B_dataset_test, len_dataset_train = sdl.get_calaba_zip_dataset_with_attention(TFDS_PATH,
+                                                                                                     args.crop_size,
+                                                                                                     gradcam)
 
     if np.shape(args.crop_size)[0] > 1:
         args.img_shape = (args.crop_size[0], args.crop_size[1], args.img_channels)

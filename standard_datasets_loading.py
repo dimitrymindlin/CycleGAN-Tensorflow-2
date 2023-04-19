@@ -91,84 +91,7 @@ def get_dataset_paths(args):
     return A_img_paths, B_img_paths, A_img_paths_test, B_img_paths_test
 
 
-def load_tfds_dataset_with_attention(dataset_name, img_size, gradcam=None):
-    AUTOTUNE = tf.data.AUTOTUNE
-    dataset, metadata = tfds.load(f'cycle_gan/{dataset_name}',
-                                  with_info=True, as_supervised=True)
-
-    A_train, B_train = dataset['trainA'], dataset['trainB']  # A=horses, B=zebras
-    A_test, B_test = dataset['testA'], dataset['testB']
-
-    BUFFER_SIZE = 1000
-    len_dataset_train = max(len(B_train), len(A_train))
-    BATCH_SIZE = 1
-    IMG_WIDTH = img_size
-    IMG_HEIGHT = img_size
-
-    def random_crop(image):
-        cropped_image = tf.image.random_crop(
-            image, size=[IMG_HEIGHT, IMG_WIDTH, 3])
-
-        return cropped_image
-
-    # normalizing the images to [-1, 1]
-    def normalize(image):
-        image = tf.cast(image, tf.float32)
-        image = tf.image.resize(image, [IMG_HEIGHT, IMG_WIDTH],
-                                method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-        image = (image / 127.5) - 1
-        return image
-
-    def random_jitter(image):
-        # resizing to 286 x 286 x 3
-        image = tf.image.resize(image, [IMG_HEIGHT + 30, IMG_WIDTH + 30],
-                                method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-
-        # randomly cropping to 256 x 256 x 3
-        image = random_crop(image)
-
-        # random mirroring
-        image = tf.image.random_flip_left_right(image)
-
-        return image
-
-    def preprocess_image_train(ds_tuple, mask):
-        # image = random_jitter(image)
-        # normalize img and return img + mask (drop label)
-        img = ds_tuple[0]
-        img = normalize(img)
-        final_tuple = (img, mask)
-        return final_tuple
-
-    def preprocess_image_test(image, label):
-        image = normalize(image)
-        return image
-
-    A_train, B_train = add_attention_maps(A_train, B_train, gradcam, IMG_HEIGHT, IMG_WIDTH)
-
-    A_train = A_train.cache().map(
-        preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
-        BUFFER_SIZE).batch(BATCH_SIZE)
-
-    B_train = B_train.cache().map(
-        preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
-        BUFFER_SIZE).batch(BATCH_SIZE)
-
-    A_test = A_test.map(
-        preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
-        BUFFER_SIZE).batch(BATCH_SIZE)
-
-    B_test = B_test.map(
-        preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
-        BUFFER_SIZE).batch(BATCH_SIZE)
-
-    A_B_dataset = tf.data.Dataset.zip(((A_train, B_train)))
-    A_B_dataset_test = tf.data.Dataset.zip(((A_test, B_test)))
-
-    return A_B_dataset, A_B_dataset_test, len_dataset_train
-
-
-def load_tfds_dataset(dataset_name, img_size):
+def load_tfds_dataset(dataset_name, img_size, gradcam=None):
     AUTOTUNE = tf.data.AUTOTUNE
     dataset, metadata = tfds.load(f'cycle_gan/{dataset_name}',
                                   with_info=True, as_supervised=True)
@@ -204,6 +127,9 @@ def load_tfds_dataset(dataset_name, img_size):
     def preprocess_image_test(image, label):
         image = normalize(image)
         return image
+
+    if gradcam is not None:
+        A_train, B_train = add_attention_maps(A_train, B_train, gradcam, IMG_HEIGHT, IMG_WIDTH)
 
     A_train = A_train.cache().map(
         preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
@@ -246,14 +172,27 @@ def get_celeba_smiling_non_smiling_paths(TFDS_PATH):
     return smiling, non_smiling
 
 
-def get_calaba_zip_dataset(TFDS_PATH, crop_size):
+def get_calaba_zip_dataset_with_attention(TFDS_PATH, crop_size, img_size=None, gradcam=None):
+    batch_size = 1
     # A is smiling, B is non smiling
     smiling_paths, non_smiling_paths = get_celeba_smiling_non_smiling_paths(TFDS_PATH)
     A_img_paths, A_img_paths_test = train_test_split(smiling_paths, test_size=0.2, random_state=42)
     B_img_paths, B_img_paths_test = train_test_split(non_smiling_paths, test_size=0.2, random_state=42)
-    A_B_datset_train, len_dataset_train = make_zip_dataset(A_img_paths, B_img_paths, 1, crop_size, crop_size, True,
-                                                           shuffle=False, repeat=False)
+
+    A_dataset = make_dataset(A_img_paths, batch_size, crop_size, crop_size, True, shuffle=False, repeat=False)
+    B_dataset = make_dataset(B_img_paths, batch_size, crop_size, crop_size, True, shuffle=False, repeat=False)
+
+    if gradcam is not None:
+        img_height = img_size
+        img_width = img_size
+        A_dataset, B_dataset = add_attention_maps(A_dataset, B_dataset, gradcam, img_height, img_width)
+        A_B_dataset_train = tf.data.Dataset.zip((A_dataset, B_dataset))
+    else:
+        A_B_dataset_train = make_zip_dataset(A_img_paths, B_img_paths, batch_size, crop_size, crop_size, True)
+
+    len_dataset_train = max(len(A_img_paths), len(B_img_paths)) // batch_size
+
     A_B_datset_test, _ = make_zip_dataset(A_img_paths_test, B_img_paths_test, 1, crop_size, crop_size, True,
                                           shuffle=False, repeat=False)
 
-    return A_B_datset_train, A_B_datset_test, len_dataset_train
+    return A_B_dataset_train, A_B_datset_test, len_dataset_train
