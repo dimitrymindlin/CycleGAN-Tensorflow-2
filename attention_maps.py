@@ -96,6 +96,9 @@ def add_attention_maps_to_single_ds(dataset, gradcam, label_index, img_height, i
 
     # normalizing the images to [-1, 1]
     def normalize(image):
+        # check if image is numpy array and if so, convert to tensor
+        if isinstance(image, np.ndarray):
+            image = tf.convert_to_tensor(image)
         image = tf.cast(image, tf.float32)
         image = tf.image.resize(image, [img_height, img_width],
                                 method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
