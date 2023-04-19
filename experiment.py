@@ -44,6 +44,7 @@ def setup_args_for_experiment():
     elif args.dataset == "apple2orange":
         args.clf_ckp_name = "2023-04-17--15.53"  # 2022-09-23--15.18
         args.clf_name = "simplenet"
+        args.crop_size = 256
         # h2z "2022-06-04--00.00"
     elif args.dataset == "celeba":
         args.crop_size = 218
