@@ -46,7 +46,7 @@ def multiply_images(img1, img2):
 
 class ImageHolder():
     def __init__(self, img, args, class_label=None, attention_func=None, use_attention=True,
-                 attention_intensity=1, attention_source="clf", model=None):
+                 attention_intensity=1, attention_source="clf", model=None, attention=None):
         self.img = img  # original image
         self.attention = None  # heatmap [-1, 1]
         self.foreground = None  # original image + heatmap
@@ -55,7 +55,11 @@ class ImageHolder():
         self.transformed_part = None  # depending on strategy, the part that should be transformed
         self.model = model
         if use_attention:
-            self.get_attention(class_label, attention_func, args, attention_intensity, attention_source)
+            if attention is None:
+                self.get_attention(class_label, attention_func, args, attention_intensity, attention_source)
+            else:
+                self.attention = attention
+                self.enhanced_img = attention_maps.apply_attention_on_img(img, attention)
             self.split_fore_and_background_by_attention()
 
     def get_attention(self, class_label, attention_func, args, attention_intensity, attention_source):
@@ -104,4 +108,14 @@ def get_img_holders(A, B, args, attention_intensity=1, attention_func=None, grad
             A_holder = ImageHolder(A, 0, gradcam, args.attention_type, attention_intensity=attention_intensity)
             B_holder = ImageHolder(B, 1, gradcam, args.attention_type, attention_intensity=attention_intensity)"""
 
+    return A_holder, B_holder
+
+
+def get_img_holders_precomputed_attention(A, A_attention, B, B_attention, args):
+    if args.attention_type == "none":
+        A_holder = ImageHolder(A, args, 0, use_attention=False)
+        B_holder = ImageHolder(B, args, 1, use_attention=False)
+    else:  # attention gan or spa-gan with clf attention
+        B_holder = ImageHolder(B, args, 1, attention=B_attention)
+        A_holder = ImageHolder(A, args, 0, attention=A_attention)
     return A_holder, B_holder
