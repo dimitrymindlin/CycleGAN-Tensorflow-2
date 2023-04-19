@@ -145,10 +145,10 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                     A2B_clf = A2B
                     B2A_clf = B2A
                 A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
-                                                                 clf(tf.image.resize(A2B_clf, [512, 512],
+                                                                 clf(tf.image.resize(A2B_clf, [args.crop_size, args.crop_size],
                                                                                      method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
                 B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth,
-                                                                 clf(tf.image.resize(B2A_clf, [512, 512],
+                                                                 clf(tf.image.resize(B2A_clf, [args.crop_size, args.crop_size],
                                                                                      method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
 
             else:
@@ -331,7 +331,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     train_summary_writer = tf.summary.create_file_writer(py.join(TF_LOG_DIR + execution_id))
 
     # sample
-    #test_iter = iter(A_B_dataset_test)
+    # test_iter = iter(A_B_dataset_test)
     sample_dir = py.join(output_dir, 'images')
     py.mkdir(sample_dir)
 
