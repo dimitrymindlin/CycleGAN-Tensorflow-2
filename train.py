@@ -25,7 +25,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
         clf = tf.keras.models.load_model(
             f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
             compile=False)
-        print(f"Loaded classifier from {args.clf_ckp_name}")
+        print(f"Loaded classifier {args.clf_name} from {args.clf_ckp_name}")
 
         try:
             args.clf_input_channel = clf.layers[0].input_shape[0][-1]
