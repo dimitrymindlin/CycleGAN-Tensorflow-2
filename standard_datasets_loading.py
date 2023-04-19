@@ -91,7 +91,7 @@ def get_dataset_paths(args):
     return A_img_paths, B_img_paths, A_img_paths_test, B_img_paths_test
 
 
-def load_tfds_dataset(dataset_name, img_size, clf=None, gradcam=None):
+def load_tfds_dataset_with_attention(dataset_name, img_size, gradcam=None):
     AUTOTUNE = tf.data.AUTOTUNE
     dataset, metadata = tfds.load(f'cycle_gan/{dataset_name}',
                                   with_info=True, as_supervised=True)
@@ -145,6 +145,65 @@ def load_tfds_dataset(dataset_name, img_size, clf=None, gradcam=None):
         return image
 
     A_train, B_train = add_attention_maps(A_train, B_train, gradcam, IMG_HEIGHT, IMG_WIDTH)
+
+    A_train = A_train.cache().map(
+        preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
+        BUFFER_SIZE).batch(BATCH_SIZE)
+
+    B_train = B_train.cache().map(
+        preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
+        BUFFER_SIZE).batch(BATCH_SIZE)
+
+    A_test = A_test.map(
+        preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
+        BUFFER_SIZE).batch(BATCH_SIZE)
+
+    B_test = B_test.map(
+        preprocess_image_test, num_parallel_calls=AUTOTUNE).cache().shuffle(
+        BUFFER_SIZE).batch(BATCH_SIZE)
+
+    A_B_dataset = tf.data.Dataset.zip(((A_train, B_train)))
+    A_B_dataset_test = tf.data.Dataset.zip(((A_test, B_test)))
+
+    return A_B_dataset, A_B_dataset_test, len_dataset_train
+
+
+def load_tfds_dataset(dataset_name, img_size):
+    AUTOTUNE = tf.data.AUTOTUNE
+    dataset, metadata = tfds.load(f'cycle_gan/{dataset_name}',
+                                  with_info=True, as_supervised=True)
+
+    A_train, B_train = dataset['trainA'], dataset['trainB']  # A=horses, B=zebras
+    A_test, B_test = dataset['testA'], dataset['testB']
+
+    BUFFER_SIZE = 1000
+    len_dataset_train = max(len(B_train), len(A_train))
+    BATCH_SIZE = 1
+    IMG_WIDTH = img_size
+    IMG_HEIGHT = img_size
+
+    def random_crop(image):
+        cropped_image = tf.image.random_crop(
+            image, size=[IMG_HEIGHT, IMG_WIDTH, 3])
+
+        return cropped_image
+
+    # normalizing the images to [-1, 1]
+    def normalize(image):
+        image = tf.cast(image, tf.float32)
+        image = tf.image.resize(image, [IMG_HEIGHT, IMG_WIDTH],
+                                method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        image = (image / 127.5) - 1
+        return image
+
+    def preprocess_image_train(img, label):
+        # image = random_jitter(image)
+        img = normalize(img)
+        return img
+
+    def preprocess_image_test(image, label):
+        image = normalize(image)
+        return image
 
     A_train = A_train.cache().map(
         preprocess_image_train, num_parallel_calls=AUTOTUNE).shuffle(
