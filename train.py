@@ -329,7 +329,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     train_summary_writer = tf.summary.create_file_writer(py.join(TF_LOG_DIR + execution_id))
 
     # sample
-    test_iter = iter(A_B_dataset_test)
+    #test_iter = iter(A_B_dataset_test)
     sample_dir = py.join(output_dir, 'images')
     py.mkdir(sample_dir)
 
