@@ -105,7 +105,11 @@ def add_attention_maps_to_single_ds(dataset, gradcam, label_index, img_height, i
         image = (image / 127.5) - 1
         return image
 
-    for img in dataset:
+    for sample in dataset:
+        if isinstance(sample, tuple):
+            img = sample[0]
+        else:
+            img = sample
         img_tmp = np.copy(img)
         if len(np.shape(img)) < 4:
             img_tmp = np.expand_dims(normalize(img_tmp), axis=0)
