@@ -119,9 +119,12 @@ def load_tfds_dataset(dataset_name, img_size, gradcam=None):
         image = (image / 127.5) - 1
         return image
 
-    def preprocess_image_train(img, label):
+    def preprocess_image_train(img, mask=None):
         # image = random_jitter(image)
+        img = img[0]
         img = normalize(img)
+        if mask is not None:
+            return img, mask
         return img
 
     def preprocess_image_test(image, label):
