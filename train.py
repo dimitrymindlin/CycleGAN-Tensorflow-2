@@ -75,10 +75,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                                                                                                      args.crop_size,
                                                                                                      gradcam)
 
-    if np.shape(args.crop_size)[0] > 1:
-        args.img_shape = (args.crop_size[0], args.crop_size[1], args.img_channels)
-    else:
-        args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
+    args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
 
     A2B_pool = ItemPool(args.pool_size)
     B2A_pool = ItemPool(args.pool_size)
