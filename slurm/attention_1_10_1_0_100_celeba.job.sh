@@ -13,4 +13,5 @@ python3 -m experiment \
   --epoch_decay 100 \
   --start_attention_epoch 100 \
   --discriminator patch-gan \
+  --precompute_attention True
 

@@ -88,6 +88,7 @@ py.arg('--disc_norm', type=str, default="instance_norm", choices=['instance_norm
 py.arg('--load_checkpoint', type=str, default=None)
 py.arg('--start_attention_epoch', type=int, default=0)
 py.arg('--sample_interval', type=int, default=5)
+py.arg('--precompute_attention', type=bool, default=False)
 args = py.args()
 
 print(f"Using {args.dataset} dataset.")
