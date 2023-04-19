@@ -3,7 +3,7 @@ import time
 import pylib as py
 from config import ROOT_DIR
 from pylib import load_args
-from train_efficiently import run_training
+from train import run_training
 
 
 def create_new_experiment(root_dir):

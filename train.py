@@ -9,18 +9,40 @@ from tf_keras_vis.utils.model_modifiers import ReplaceToLinear
 
 import module
 import pylib as py
-import standard_datasets_loading
+import standard_datasets_loading as sdl
 import tf2gan as gan
 import tf2lib_local as tl
 from attention_strategies.attention_gan import attention_gan_step, attention_gan_discriminator_step
 from attention_strategies.no_attention import no_attention_step
 from config import ROOT_DIR
-from imlib.image_holder import get_img_holders
+from imlib.image_holder import get_img_holders, get_img_holders_precomputed_attention
 from tf2lib_local.data.item_pool import ItemPool
 from tf2lib_local.utils import is_normal_run
 
 
 def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
+    if not is_normal_run(args):
+        clf = tf.keras.models.load_model(
+            f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
+            compile=False)
+        try:
+            args.clf_input_channel = clf.layers[0].input_shape[0][-1]
+        except TypeError:
+            args.clf_input_channel = 3  # simplenet
+
+    if args.attention_type == "attention-gan-original":
+        gradcam = GradcamPlusPlus(clf, clone=True)
+    elif args.attention_type == "spa-gan":
+        if args.attention == "clf":
+            gradcam = GradcamPlusPlus(clf, clone=True)
+        else:  # discriminator attention
+            args.counterfactual_loss_weight = 0
+            gradcam_D_A = Gradcam(D_A, model_modifier=ReplaceToLinear(), clone=True)
+            gradcam_D_B = Gradcam(D_B, model_modifier=ReplaceToLinear(), clone=True)
+            # ... Implement SPA-GAN completely?
+    else:
+        gradcam = None
+
     # ==============================================================================
     # =                                    data                                    =
     # ==============================================================================
@@ -47,8 +69,11 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                                                                                                       channels=args.img_channels)
 
     elif args.dataset in ["horse2zebra", "apple2orange"]:  # Load Horse2Zebra / Apple2Orange
-        A_B_dataset, A_B_dataset_test, len_dataset_train = standard_datasets_loading.load_tfds_dataset(args.dataset,
-                                                                                                       args.crop_size)
+        A_B_dataset, A_B_dataset_test, len_dataset_train = sdl.load_tfds_dataset(args.dataset, args.crop_size, gradcam)
+    else:
+        A_B_dataset, A_B_dataset_test, len_dataset_train = sdl.get_calaba_zip_dataset_with_attention(TFDS_PATH,
+                                                                                                     args.crop_size,
+                                                                                                     gradcam)
 
     if np.shape(args.crop_size)[0] > 1:
         args.img_shape = (args.crop_size[0], args.crop_size[1], args.img_channels)
@@ -60,27 +85,6 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
     # ==============================================================================
     # =                                   models                                   =
     # ==============================================================================
-    if not is_normal_run(args):
-        clf = tf.keras.models.load_model(
-            f"{ROOT_DIR}/checkpoints/{args.clf_name}_{args.dataset}/{args.clf_ckp_name}/model",
-            compile=False)
-        try:
-            args.clf_input_channel = clf.layers[0].input_shape[0][-1]
-        except TypeError:
-            args.clf_input_channel = 3  # simplenet
-
-    if args.attention_type == "attention-gan-original":
-        gradcam = GradcamPlusPlus(clf, clone=True)
-    elif args.attention_type == "spa-gan":
-        if args.attention == "clf":
-            gradcam = GradcamPlusPlus(clf, clone=True)
-        else:  # discriminator attention
-           """ args.counterfactual_loss_weight = 0
-            gradcam_D_A = Gradcam(D_A, model_modifier=ReplaceToLinear(), clone=True)
-            gradcam_D_B = Gradcam(D_B, model_modifier=ReplaceToLinear(), clone=True)
-            # ... Implement SPA-GAN completely?"""
-    else:
-        gradcam = None
 
     if args.generator == "resnet-attention":
         G_A2B = module.ResnetAttentionGenerator(input_shape=args.img_shape)
@@ -339,14 +343,19 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
             ep_cnt.assign_add(1)
 
             # train for an epoch
-            for batch_count, (A, B) in enumerate(A_B_dataset):
+            for batch_count, data_tuple in enumerate(A_B_dataset):
+                if args.precompute_attention:
+                    (A, A_attention), (B, B_attention) = data_tuple
+                    A_holder, B_holder = get_img_holders_precomputed_attention(A, A_attention, B, B_attention, args)
+                else:
+                    A, B = data_tuple
+                    A_holder, B_holder = get_img_holders(A, B, args, attention_func=gradcam, model=clf)
+
                 # Select attention type
                 if ep < args.start_attention_epoch:
                     args.current_attention_type = "none"
                 else:
                     args.current_attention_type = args.attention_type
-
-                A_holder, B_holder = get_img_holders(A, B, args, attention_func=gradcam, model=clf)
 
                 G_loss_dict, D_loss_dict = train_step(A_holder, B_holder)
 
