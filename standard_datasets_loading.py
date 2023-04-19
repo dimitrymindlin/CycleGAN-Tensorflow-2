@@ -172,25 +172,25 @@ def get_celeba_smiling_non_smiling_paths(TFDS_PATH):
     return smiling, non_smiling
 
 
-def get_calaba_zip_dataset_with_attention(TFDS_PATH, crop_size, img_size=None, gradcam=None):
+def get_calaba_zip_dataset(TFDS_PATH, crop_size, img_size=None, gradcam=None):
     batch_size = 1
     # A is smiling, B is non smiling
     smiling_paths, non_smiling_paths = get_celeba_smiling_non_smiling_paths(TFDS_PATH)
     A_img_paths, A_img_paths_test = train_test_split(smiling_paths, test_size=0.2, random_state=42)
     B_img_paths, B_img_paths_test = train_test_split(non_smiling_paths, test_size=0.2, random_state=42)
 
-    A_dataset = make_dataset(A_img_paths, batch_size, crop_size, crop_size, True, shuffle=False, repeat=False)
-    B_dataset = make_dataset(B_img_paths, batch_size, crop_size, crop_size, True, shuffle=False, repeat=False)
+    A_dataset = make_dataset(A_img_paths, batch_size, crop_size, crop_size, True, shuffle=False, repeat=1)
+    B_dataset = make_dataset(B_img_paths, batch_size, crop_size, crop_size, True, shuffle=False, repeat=1)
 
     if gradcam is not None:
         img_height = img_size
         img_width = img_size
         A_dataset, B_dataset = add_attention_maps(A_dataset, B_dataset, gradcam, img_height, img_width)
         A_B_dataset_train = tf.data.Dataset.zip((A_dataset, B_dataset))
+        len_dataset_train = len(A_B_dataset_train)
     else:
-        A_B_dataset_train = make_zip_dataset(A_img_paths, B_img_paths, batch_size, crop_size, crop_size, True)
-
-    len_dataset_train = max(len(A_img_paths), len(B_img_paths)) // batch_size
+        A_B_dataset_train, len_dataset_train = make_zip_dataset(A_img_paths, B_img_paths, batch_size, crop_size,
+                                                                crop_size, True)
 
     A_B_datset_test, _ = make_zip_dataset(A_img_paths_test, B_img_paths_test, 1, crop_size, crop_size, True,
                                           shuffle=False, repeat=False)
