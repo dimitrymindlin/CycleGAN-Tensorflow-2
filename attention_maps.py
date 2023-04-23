@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+from scipy.ndimage import gaussian_filter
 from tf_keras_vis.utils.scores import CategoricalScore
 from imlib import scale_between_zero_one, scale_between_minus_one_one, plot_any_img
 
@@ -45,22 +46,14 @@ def get_clf_attention_img(img, gradcam, class_index, attention_type, attention_i
         cam = tf.ones(shape=cam.shape)
     # Normalise cam map
     cam = tf.math.divide(cam, tf.reduce_max(cam))
-    # Threshold low values
-    cam = threshold_img(cam, threshold_value=0.1)
 
-    # Dilate the cam map to indluce more context of the img
-    # Define the size of the neighborhood
-    neighborhood_size = 20
-    from scipy.ndimage.filters import maximum_filter
-    # Perform dilation on the tensor
-    # Define a wrapper function to apply maximum_filter to the input tensor
-    def apply_maximum_filter(x):
-        return maximum_filter(x, size=neighborhood_size)
-
-    dilated_arr = tf.numpy_function(func=apply_maximum_filter, inp=[cam], Tout=tf.float32)
-
-    # Turn to batched channeled array and make compatible with img
-    cam = tf.expand_dims(dilated_arr, axis=-1)
+    # Define the standard deviation of the Gaussian filter
+    sigma = 75
+    # Apply the Gaussian filter to the attention map
+    blurred_map = gaussian_filter(cam, sigma=sigma)
+    # Normalize the blurred map to have values between 0 and 1
+    normalized_map = (blurred_map - blurred_map.min()) / (blurred_map.max() - blurred_map.min())
+    cam = threshold_img(normalized_map, threshold_value=0.1)
 
     if img.get_shape()[-2] == 256 and attention_source != "discriminator":
         cam = tf.image.resize(cam, [256, 256], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
