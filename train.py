@@ -78,8 +78,7 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
         A_B_dataset, A_B_dataset_test, len_dataset_train = sdl.get_calaba_zip_dataset(TFDS_PATH,
                                                                                       args.crop_size,
                                                                                       img_size=args.crop_size,
-                                                                                      gradcam=gradcam,
-                                                                                      clf=clf)
+                                                                                      gradcam=gradcam)
 
     args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
 
