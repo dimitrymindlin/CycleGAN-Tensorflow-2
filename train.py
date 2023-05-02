@@ -31,6 +31,8 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
             args.clf_input_channel = clf.layers[0].input_shape[0][-1]
         except TypeError:
             args.clf_input_channel = 3  # simplenet
+    else:
+        clf = None
 
     if args.attention_type == "attention-gan-original":
         gradcam = attention_technique(clf, clone=True)
@@ -76,7 +78,8 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
         A_B_dataset, A_B_dataset_test, len_dataset_train = sdl.get_calaba_zip_dataset(TFDS_PATH,
                                                                                       args.crop_size,
                                                                                       img_size=args.crop_size,
-                                                                                      gradcam=gradcam)
+                                                                                      gradcam=gradcam,
+                                                                                      clf=clf)
 
     args.img_shape = (args.crop_size, args.crop_size, args.img_channels)
 
@@ -145,10 +148,12 @@ def run_training(args, TFDS_PATH, TF_LOG_DIR, output_dir, execution_id):
                     A2B_clf = A2B
                     B2A_clf = B2A
                 A2B_counterfactual_loss = counterfactual_loss_fn(class_B_ground_truth,
-                                                                 clf(tf.image.resize(A2B_clf, [args.crop_size, args.crop_size],
+                                                                 clf(tf.image.resize(A2B_clf,
+                                                                                     [args.crop_size, args.crop_size],
                                                                                      method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
                 B2A_counterfactual_loss = counterfactual_loss_fn(class_A_ground_truth,
-                                                                 clf(tf.image.resize(B2A_clf, [args.crop_size, args.crop_size],
+                                                                 clf(tf.image.resize(B2A_clf,
+                                                                                     [args.crop_size, args.crop_size],
                                                                                      method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)))
 
             else:
