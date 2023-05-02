@@ -1,11 +1,23 @@
+import tensorflow as tf
+
+
 def no_attention_single(img, G, G_cycle, training):
     forward_mapping = G(img, training=training)
+    # resize to original size
+    forward_mapping = tf.image.resize_with_pad(forward_mapping, tf.shape(img)[1], tf.shape(img)[2],
+                                               method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
     # Cycle
     if G_cycle:
         cycled = G_cycle(forward_mapping, training=training)
+        # resize to original size
+        cycled = tf.image.resize_with_pad(cycled, tf.shape(img)[1], tf.shape(img)[2],
+                                          method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
     if training:
         # ID
         id_mapping = G_cycle(img, training)
+        # resize to original size
+        id_mapping = tf.image.resize_with_pad(id_mapping, tf.shape(img)[1], tf.shape(img)[2],
+                                              method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
         return forward_mapping, cycled, id_mapping
     else:
         if G_cycle:
