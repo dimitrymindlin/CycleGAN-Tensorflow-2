@@ -82,8 +82,8 @@ py.args_to_yaml(py.join(output_dir, 'settings.yml'), args)
 A2B_pool = ItemPool(args.pool_size)
 B2A_pool = ItemPool(args.pool_size)
 
-A_B_dataset, A_B_dataset_test, len_dataset_train = standard_datasets_loading.load_tfds_dataset(args.dataset,
-                                                                                               args.crop_size)
+A_B_dataset, A_B_dataset_test, len_dataset_train = standard_datasets_loading.load_tfds_dataset_with_attention(args.dataset,
+                                                                                                              args.crop_size)
 
 # ==============================================================================
 # =                                   models                                   =
