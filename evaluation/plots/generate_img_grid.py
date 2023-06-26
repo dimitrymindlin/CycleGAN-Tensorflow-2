@@ -107,7 +107,7 @@ def generate_images_for_grid(model_idx, args, dataset, clf, generator, gradcam, 
             translated_images = []
             attention_maps = []
             is_counterfactual_list = []
-            if batch_i >= 6:  # Only make 1 plot
+            if batch_i >= num_images:  # Only make 1 plot
                 return axs
         # Only use samples where the clf prediction is correct for the input img.
         original_img_batched = tf.expand_dims(tf.image.resize(img_batch[0], [512, 512]), axis=0)
