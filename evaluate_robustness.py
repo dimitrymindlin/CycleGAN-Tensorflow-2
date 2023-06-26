@@ -87,6 +87,9 @@ for model_idx, (name, ep) in enumerate(tqdm(
                 if args.attention_type == "attention-gan-original":
                     translated_img, _ = attention_gan_single(img_holder.img, generator, None, img_holder.attention,
                                                              img_holder.background, training)
+                    translated_img_fsgm = attention_gan_single(img_holder_fgsm.img, generator, None,
+                                                               img_holder_fgsm.attention,
+                                                               img_holder_fgsm.background, training)
                     if args.dataset == "apple2orange":
                         translated_img_fsgm, _ = attention_gan_single(img_holder_fgsm.img, generator, None,
                                                                       img_holder_fgsm.attention,
