@@ -48,7 +48,7 @@ def setup_args_for_experiment():
         # h2z "2022-06-04--00.00"
     elif args.dataset == "celeba":
         args.crop_size = 218
-        args.clf_ckp_name = "2023-04-19--03.34"  # 2022-09-23--15.18
+        args.clf_ckp_name = "2023-04-20--12.00"  # 2022-09-23--15.18
         args.clf_name = "inception"
 
     if args.discriminator == "patch_gan_attention":
@@ -61,8 +61,8 @@ def setup_args_for_experiment():
 py.arg('--dataset', default='celeba', choices=['horse2zebra', 'mura', 'apple2orange', "rsna", "celeba"])
 py.arg('--body_parts', default=["XR_WRIST"])  # Only used in Mura dataset. Body part of x-ray images
 py.arg('--datasets_dir', default='datasets')
-py.arg('--load_size', type=int, default=256)  # load image to this size
-py.arg('--crop_size', type=int, default=256)  # then crop to this size
+py.arg('--load_size', type=int, default=218)  # load image to this size
+py.arg('--crop_size', type=int, default=218)  # then crop to this size
 py.arg('--img_channels', type=int, default=3)
 py.arg('--batch_size', type=int, default=1)
 py.arg('--epochs', type=int, default=200)
@@ -79,7 +79,7 @@ py.arg('--attention', type=str, default="gradcam-plus-plus", choices=['gradcam',
 py.arg('--clf_name', type=str, default="simplenet", choices=['alexnet', 'inception', 'simplenet'])
 py.arg('--clf_ckp_name', type=str,
        default="2023-04-17--15.53")  # Mura: 2022-06-04--00.05, H2Z: 2022-06-04--00.00 A2O: 2022-09-23--15.18 RSNA: "2022-06-04--00.00 Celeba: 2023-04-16--17.02
-py.arg('--attention_type', type=str, default="attention-gan-original",
+py.arg('--attention_type', type=str, default="none",
        choices=['attention-gan-foreground', 'none', 'attention-gan-original'])
 py.arg('--current_attention_type', type=str, default="none")
 py.arg('--generator', type=str, default="resnet", choices=['resnet', 'unet'])
