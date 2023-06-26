@@ -55,7 +55,17 @@ for model_idx, (name, ep) in enumerate(
             A_dataset, A_dataset_test, B_dataset, B_dataset_test = load_test_data_from_args(args)
             B_dataset_test.shuffle(buffer_size=500)
             # ds_to_eval = B_dataset_test.take(20).repeat(len(config[test_args.dataset]["model_names"]))
-            ds_to_eval = B_dataset_test.skip(70).repeat(len(config[test_args.dataset]["model_names"]))
+            ds_to_eval = B_dataset_test.skip(180).repeat(len(config[test_args.dataset]["model_names"]))
         save_img = get_save_img(args)
+        # Load images to tensors from folder
+        """images = []
+        for img_path in glob.glob("/Users/dimitrymindlin/UniProjects/CycleGAN-Tensorflow-2/b_images/*.png"):
+            img = load_img(img_path, target_size=(512, 512))
+            img_array = np.array(img)
+            img_tensor = tf.convert_to_tensor(img_array, dtype=tf.float32)
+            img_tensor = tf.expand_dims(img_tensor, axis=0)
+            img_tensor = scale_between_minus_one_one(img_tensor)
+            images.append(img_tensor)
+"""
         axs = generate_images_for_grid(model_idx, args, ds_to_eval, clf, G_B2A, gradcam, 1, training=False,
                                        num_images=6, axs=axs)
