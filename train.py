@@ -42,7 +42,7 @@ py.arg('--cycle_loss_weight', type=float, default=10.0)
 py.arg('--counterfactual_loss_weight', type=float, default=0.0)
 py.arg('--identity_loss_weight', type=float, default=0.0)
 py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
-py.arg('--cyclegan_mode', default='abc-gan', choices=['normal', 'abc-gan', 'ganterfactual'])
+py.arg('--cyclegan_mode', default='abc-gan', choices=['cyclegan', 'abc-gan', 'ganterfactual'])
 py.arg('--clf_name', default='inception', choices=['inception', 'alexnet'])
 py.arg('--clf_ckp_name', default=None)  # checkpoint name of the classifier to load
 py.arg('--start_attention_epoch', default=0, type=int)  # epoch to start using attention maps
@@ -124,7 +124,7 @@ train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 
 # Set classifier and gradcam if ABC-GAN or GANterfactual
 # Check if it's a normal run
-if not args.cyclegan_mode == "normal":
+if not args.cyclegan_mode == "cyclegan":
     clf = None
     gradcam = None
 
@@ -396,7 +396,7 @@ with train_summary_writer.as_default():
 
         # train for an epoch
         for A, B in tqdm.tqdm(A_B_dataset, desc='Inner Epoch Loop', total=len_dataset):
-            if args.cyclegan_mode == "normal":
+            if args.cyclegan_mode == "cyclegan":
                 G_loss_dict, D_loss_dict = train_step(A, B)
             elif args.cyclegan_mode == "ganterfactual":
                 G_loss_dict, D_loss_dict = train_step_ganterfactual(A, B)
@@ -418,7 +418,7 @@ with train_summary_writer.as_default():
             # sample and save img every 100 steps
             if G_optimizer.iterations.numpy() % 100 == 0:
                 A, B = next(test_iter)
-                if args.cyclegan_mode == "normal" or args.cyclegan_mode == "ganterfactual":
+                if args.cyclegan_mode == "cyclegan" or args.cyclegan_mode == "ganterfactual":
                     A2B, B2A, A2B2A, B2A2B = sample(A, B)
                     img = im.immerge(np.concatenate([A, A2B, A2B2A, B, B2A, B2A2B], axis=0), n_rows=2)
                     im.imwrite(img, py.join(sample_dir, 'iter-%09d.jpg' % G_optimizer.iterations.numpy()))
