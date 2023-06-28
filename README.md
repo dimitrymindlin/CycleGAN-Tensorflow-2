@@ -1,42 +1,30 @@
-***News***
+# Tensorflow 2 implementation of ABC-GAN.
 
-- We re-implement CycleGAN by **Tensorflow 2**! The old versions are here: [v1](https://github.com/LynnHo/CycleGAN-Tensorflow-PyTorch/tree/v1), [v0](https://github.com/LynnHo/CycleGAN-Tensorflow-PyTorch/tree/v0).
+Based on [CycleGAN-Tensorflow-2](https://github.com/LynnHo/CycleGAN-Tensorflow-2)
 
-<hr style="height:1px" />
+Paper: [ABC-GAN... ADD LINK from ARXIV]()
 
-<p align="center"> <img src="./pics/horse2zebra.gif" width="100%" /> </p>
+Author: [Dimitry Mindlin](https://github.com/dimitrymindlin) *et al.*
 
-<hr style="height:1px" />
+## Main Contribution
 
-# <p align="center"> CycleGAN - Tensorflow 2 </p>
-
-Tensorflow 2 implementation of CycleGAN.
-
-Paper: [Unpaired Image-to-Image Translation using Cycle-Consistent Adversarial Networks](https://arxiv.org/pdf/1703.10593.pdf)
-
-Author: [Jun-Yan Zhu ](https://people.eecs.berkeley.edu/~junyanz/) *et al.*
+#TODO: Include the main contribution of the paper as image
 
 ## Exemplar results
 
-### summer2winter
+### TODO: MURA dataset
 
 row 1: summer -> winter -> reconstructed summer, row 2: winter -> summer -> reconstructed winter
 
 <p align="center"> <img src="./pics/summer2winter.jpg" width="100%" /> </p>
 
-### horse2zebra
+### TODO: RSNA dataset
 
 row 1: horse -> zebra -> reconstructed horse, row 2: zebra -> horse -> reconstructed zebra
 
 <p align="center"> <img src="./pics/horse2zebra.jpg" width="100%" /> </p>
 
-### apple2orange
-
-row 1: apple -> orange -> reconstructed apple, row 2: orange -> apple -> reconstructed orange
-
-<p align="center"> <img src="./pics/apple2orange.jpg" width="100%" /> </p>
-
-# Usage
+# TODO: Usage
 
 - Environment
 
@@ -46,7 +34,9 @@ row 1: apple -> orange -> reconstructed apple, row 2: orange -> apple -> reconst
 
     - OpenCV, scikit-image, tqdm, oyaml
 
-    - *we recommend [Anaconda](https://www.anaconda.com/distribution/#download-section) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html#linux-installers), then you can create the TensorFlow 2.2 environment with commands below*
+    - *we recommend [Anaconda](https://www.anaconda.com/distribution/#download-section)
+      or [Miniconda](https://docs.conda.io/en/latest/miniconda.html#linux-installers), then you can create the
+      TensorFlow 2.2 environment with commands below*
 
         ```console
         conda create -n tensorflow-2.2 python=3.6
@@ -66,7 +56,12 @@ row 1: apple -> orange -> reconstructed apple, row 2: orange -> apple -> reconst
         source activate tensorflow-2.2
         ```
 
-- Dataset
+- TODO: Dataset
+    - Download the mura dataset ... ?
+    
+            ```console
+            sh ./download_dataset.sh mura
+            ```
 
     - download the summer2winter dataset
 
@@ -99,3 +94,10 @@ row 1: apple -> orange -> reconstructed apple, row 2: orange -> apple -> reconst
     ```console
     CUDA_VISIBLE_DEVICES=0 python test.py --experiment_dir ./output/summer2winter_yosemite
     ```
+
+# Changes from the original CycleGAN
+
+- Introducing abc_gan.py in attention_strategies folder to do the training step with the attention mechanism
+- With that, attention_maps.py and image_segmentation.py help to create and store information about the image such as
+  background, foreground and attention map
+- 

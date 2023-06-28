@@ -1,5 +1,5 @@
 import numpy as np
-
+import tensorflow as tf
 
 def _check(images, dtypes, min_value=-np.inf, max_value=np.inf):
     # check type
@@ -78,3 +78,29 @@ def im2cv(images):
     """Transform images from [-1.0, 1.0] to opencv images."""
     images = im2uint(images)
     return images[..., ::-1]
+
+def scale_between_zero_one(img):
+    # TODO: Can I simply use to_range() here?
+    """Scales [-1,1] image to range [0,1]"""
+    if tf.reduce_max(img) == 255 or tf.reduce_max(img) == 255.0:
+        img = img / 255.0
+    shifted = tf.math.add(tf.math.multiply(0.5, img), 0.5)
+    return tf.clip_by_value(shifted, 0, 1)
+
+
+def scale_between_minus_one_one(img):
+    """Scales [0,1] image to range [-1,1]"""
+    if tf.reduce_max(img) == 255 or tf.reduce_max(img) == 255.0:
+        img = img / 255.0
+    try:
+        shifted = tf.math.subtract(tf.math.multiply(2.0, img), 1)
+    except TypeError:  # Multiply by 2.0 not working with dtype int
+        img = tf.cast(img, dtype=tf.float32)
+        shifted = tf.math.subtract(tf.math.multiply(2.0, img), 1.0)
+    return tf.clip_by_value(shifted, -1, 1)
+
+
+def batched_tf_img_to_2d_numpy(img):
+    if tf.shape(img)[-1] == 1:
+        img = tf.image.grayscale_to_rgb(img)
+    return tf.squeeze(img).numpy()

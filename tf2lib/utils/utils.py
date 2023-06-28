@@ -10,7 +10,8 @@ class Checkpoint:
                  max_to_keep=5,
                  keep_checkpoint_every_n_hours=None):
         self.checkpoint = tf.train.Checkpoint(**checkpoint_kwargs)
-        self.manager = tf.train.CheckpointManager(self.checkpoint, directory, max_to_keep, keep_checkpoint_every_n_hours)
+        self.manager = tf.train.CheckpointManager(self.checkpoint, directory, max_to_keep,
+                                                  keep_checkpoint_every_n_hours)
 
     def restore(self, save_path=None):
         save_path = self.manager.latest_checkpoint if save_path is None else save_path
@@ -43,6 +44,7 @@ def summary(name_data_dict,
     >>> summary({'a': data_a, 'b': data_b})
 
     """
+
     def _summary(name, data):
         if data.shape == ():
             tf.summary.scalar(name, data, step=step)
@@ -63,3 +65,34 @@ def summary(name_data_dict,
     with tf.name_scope(name):
         for name, data in name_data_dict.items():
             _summary(name, data)
+
+
+def is_ganterfactual_run_in_abc_repo(args):
+    """
+    Checks the settings to determin whether this is a ganterfactual run in the current repo.
+    Parameters
+    ----------
+    args
+
+    Returns True is ganterfactual run in the current repo.
+    -------
+
+    """
+    return args.attention_type == "none" and args.counterfactual_loss_weight > 0
+
+
+def is_ganterfactual_repo(args):
+    """
+
+    Parameters
+    ----------
+    args
+
+    Returns
+    -------
+
+    """
+    try:
+        return args.ganterfactual_repo
+    except AttributeError:
+        return False
