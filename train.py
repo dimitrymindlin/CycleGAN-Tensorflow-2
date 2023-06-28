@@ -37,6 +37,7 @@ py.arg('--lr', type=float, default=0.0002)
 py.arg('--beta_1', type=float, default=0.5)
 py.arg('--adversarial_loss_mode', default='lsgan', choices=['gan', 'hinge_v1', 'hinge_v2', 'lsgan', 'wgan'])
 py.arg('--gradient_penalty_mode', default='none', choices=['none', 'dragan', 'wgan-gp'])
+py.arg('--adversarial_loss_weight', type=float, default=1.0)
 py.arg('--gradient_penalty_weight', type=float, default=10.0)
 py.arg('--cycle_loss_weight', type=float, default=10.0)
 py.arg('--counterfactual_loss_weight', type=float, default=0.0)
@@ -46,6 +47,7 @@ py.arg('--cyclegan_mode', default='abc-gan', choices=['cyclegan', 'abc-gan', 'ga
 py.arg('--clf_name', default='inception', choices=['inception', 'alexnet'])
 py.arg('--clf_ckp_name', default=None)  # checkpoint name of the classifier to load
 py.arg('--start_attention_epoch', default=0, type=int)  # epoch to start using attention maps
+py.arg('--discriminator', default='default', choices=['default', 'attention'])
 
 args = py.args()
 
@@ -307,7 +309,7 @@ def train_step_ABC_GAN(A_img_seg, B_img_seg):
     A2B = A2B_pool(A2B)  # or A2B = A2B_pool(A2B.numpy()), but it is much slower
     B2A = B2A_pool(B2A)  # because of the communication between CPU and GPU
 
-    if args.discriminator == "patch_gan_attention":
+    if args.discriminator == "attention":
         # Attentive discriminator mode: use attention map to guide the discriminator
         # Here, use attention map on source and target images to only give foreground to the discriminator
         A, A2B = abc_gan_discriminator_step(A_img_seg.img, A2B, A_img_seg.attention)
