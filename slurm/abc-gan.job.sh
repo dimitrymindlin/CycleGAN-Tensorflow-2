@@ -8,10 +8,10 @@ python3 -m train \
   --adversarial_loss_weight 1 \
   --cycle_loss_weight 10 \
   --counterfactual_loss_weight 0 \
-  --identity_loss_weight 0 \
+  --identity_loss_weight 1 \
   --generator resnet \
   --clf_name inception \
   --start_attention_epoch 0 \
-  --discriminator patch_gan_attention \
+  --discriminator default \
   --cyclegan_mode cyclegan
 
