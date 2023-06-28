@@ -40,8 +40,8 @@ def get_clf_attention_img(img, gradcam, class_index, args):
     if np.max(cam) == 0 and np.min(cam) == 0:
         cam = tf.ones(shape=cam.shape)
     # Normalise
-    cam = (cam - tf.reduce_min(cam)) / (tf.reduce_max(cam) - tf.reduce_min(cam))
-    # OLD cam = tf.math.divide(cam, tf.reduce_max(cam))
+    #cam = (cam - tf.reduce_min(cam)) / (tf.reduce_max(cam) - tf.reduce_min(cam))
+    cam = tf.math.divide(cam, tf.reduce_max(cam))
     # Turn to batched channeled array and make chanel dimension compatible with img
     cam = tf.expand_dims(cam, axis=-1)
     if img.get_shape()[-1] == 3:
