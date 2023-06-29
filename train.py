@@ -57,6 +57,7 @@ TFDS_PATH = ROOT_DIR + "/../tensorflow_datasets"
 # output_dir
 output_dir = py.join('output', args.dataset)
 py.mkdir(output_dir)
+print(mura_config['body_part']) # debugging on gpu
 
 # ==============================================================================
 # =                                    data                                    =
