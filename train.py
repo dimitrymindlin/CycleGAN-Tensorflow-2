@@ -57,7 +57,6 @@ TFDS_PATH = ROOT_DIR + "/../tensorflow_datasets"
 # output_dir
 output_dir = py.join('output', args.dataset)
 py.mkdir(output_dir)
-print(mura_config['body_part']) # debugging on gpu
 
 # ==============================================================================
 # =                                    data                                    =
@@ -71,7 +70,7 @@ else:
 if args.dataset == "mura":
     # A = Normal, B = Abnormal
     A_B_dataset, A_B_dataset_valid, A_B_dataset_test, len_dataset = get_mura_ds_by_body_part_split_class(
-        mura_config['body_part'],
+        mura_config['body_parts'],
         TFDS_PATH,
         args.batch_size,
         mura_config['img_width'],
