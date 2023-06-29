@@ -1,45 +1,41 @@
 import tensorflow as tf
 
 
-class CycleGAN:
-    def __init__(self):
-        pass
+def cycleGAN_transform(img, G, G_cycle, training):
+    """
+    Transforms img in target domain and returns the transformed image and the cycled image.
+    Parameters
+    ----------
+    img : Image from source domain
+    G : Generator from source to target domain
+    G_cycle : Generator from target to source domain
+    training : boolean whether training or inferencing
 
-    def cycleGAN_transform(img, G, G_cycle, training):
-        """
-        Transforms img in target domain and returns the transformed image and the cycled image.
-        Parameters
-        ----------
-        img : Image from source domain
-        G : Generator from source to target domain
-        G_cycle : Generator from target to source domain
-        training : boolean whether training or inferencing
-
-        Returns (forward_mapping, cycled, id_mapping)
-        -------
-        """
-        forward_mapping = G(img, training=training)
+    Returns (forward_mapping, cycled, id_mapping)
+    -------
+    """
+    forward_mapping = G(img, training=training)
+    # resize to original size
+    # TODO: (Dimi) is this necessary? why not use the original size?
+    forward_mapping = tf.image.resize_with_pad(forward_mapping, tf.shape(img)[1], tf.shape(img)[2],
+                                               method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+    # Cycle
+    if G_cycle:
+        cycled = G_cycle(forward_mapping, training=training)
         # resize to original size
-        # TODO: (Dimi) is this necessary? why not use the original size?
-        forward_mapping = tf.image.resize_with_pad(forward_mapping, tf.shape(img)[1], tf.shape(img)[2],
-                                                   method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-        # Cycle
-        if G_cycle:
-            cycled = G_cycle(forward_mapping, training=training)
-            # resize to original size
-            cycled = tf.image.resize_with_pad(cycled, tf.shape(img)[1], tf.shape(img)[2],
+        cycled = tf.image.resize_with_pad(cycled, tf.shape(img)[1], tf.shape(img)[2],
+                                          method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+    if training:
+        # ID
+        id_mapping = G_cycle(img, training)
+        # resize to original size
+        id_mapping = tf.image.resize_with_pad(id_mapping, tf.shape(img)[1], tf.shape(img)[2],
                                               method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-        if training:
-            # ID
-            id_mapping = G_cycle(img, training)
-            # resize to original size
-            id_mapping = tf.image.resize_with_pad(id_mapping, tf.shape(img)[1], tf.shape(img)[2],
-                                                  method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-            return forward_mapping, cycled, id_mapping
-        else:
-            if G_cycle:
-                return forward_mapping, cycled  # used for sample phase during training
-            return forward_mapping  # Used for testing counterfactuals
+        return forward_mapping, cycled, id_mapping
+    else:
+        if G_cycle:
+            return forward_mapping, cycled  # used for sample phase during training
+        return forward_mapping  # Used for testing counterfactuals
 
 
 def cycleGAN_step(A_img, B_img, G_A2B, G_B2A, training=True):
