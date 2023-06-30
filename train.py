@@ -1,4 +1,5 @@
 import functools
+from datetime import datetime
 
 from tf_keras_vis.gradcam_plus_plus import GradcamPlusPlus
 
@@ -54,8 +55,10 @@ args = py.args()
 # TODO: (Dimi) Make this better....
 args.clf_ckp_name = "2022-06-04--00.05"
 TFDS_PATH = ROOT_DIR + "/../tensorflow_datasets"
+# get current timestamp for run
+execution_id = datetime.now().strftime("%Y-%m-%d--%H.%M")
 # output_dir
-output_dir = py.join('output', args.dataset)
+output_dir = py.join('output', args.dataset, execution_id)
 py.mkdir(output_dir)
 
 # ==============================================================================
