@@ -197,7 +197,9 @@ def train_G_no_attention(A, B):
                       'A2B2A_cycle_loss': A2B2A_cycle_loss,
                       'B2A2B_cycle_loss': B2A2B_cycle_loss,
                       'A2A_id_loss': A2A_id_loss,
-                      'B2B_id_loss': B2B_id_loss}
+                      'B2B_id_loss': B2B_id_loss,
+                      'A2B_counterfactual_loss': A2B_counterfactual_loss,
+                      'B2A_counterfactual_loss': B2A_counterfactual_loss}
 
 
 @tf.function
