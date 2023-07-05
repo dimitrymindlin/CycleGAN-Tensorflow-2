@@ -47,7 +47,7 @@ py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 py.arg('--cyclegan_mode', default='abc-gan', choices=['cyclegan', 'abc-gan', 'ganterfactual'])
 py.arg('--clf_name', default='inception', choices=['inception', 'alexnet'])
 py.arg('--clf_ckp_name', default=None)  # checkpoint name of the classifier to load
-py.arg('--start_attention_epoch', default=0, type=int)  # epoch to start using attention maps
+py.arg('--start_attention_epoch', default=10, type=int)  # epoch to start using attention maps
 py.arg('--discriminator', default='default', choices=['default', 'attention'])
 
 args = py.args()
@@ -128,10 +128,9 @@ train_D_A_acc = tf.keras.metrics.BinaryAccuracy()
 train_D_B_acc = tf.keras.metrics.BinaryAccuracy()
 
 # Set classifier and gradcam if ABC-GAN or GANterfactual
-# Check if it's a normal run
 if not args.cyclegan_mode == "cyclegan":
     clf = None
-    gradcam = None
+    attention_function = None
 
 if args.cyclegan_mode in ["ganterfactual", "abc-gan"]:
     # Load the classifier model
@@ -140,7 +139,7 @@ if args.cyclegan_mode in ["ganterfactual", "abc-gan"]:
     # Get the input channel of the classifier
     args.clf_input_channel = clf.layers[0].input_shape[0][-1]
     if args.cyclegan_mode == "abc-gan":  # abc-gan
-        gradcam = GradcamPlusPlus(clf, clone=True)
+        attention_function = GradcamPlusPlus(clf, clone=True)
 
 # save settings.yml here, since args.clf_input_channel might be set before
 settings_name = "settings.yml"
@@ -410,7 +409,7 @@ with train_summary_writer.as_default():
             else:  # ABC-GAN
                 set_current_attention_type(args, ep)  # important if attention should start later than epoch 0
                 if args.current_attention_type == "attention":
-                    A_img_seg, B_img_seg = get_img_segmentations(A, B, args)
+                    A_img_seg, B_img_seg = get_img_segmentations(A, B, args, attention_function, clf)
                     G_loss_dict, D_loss_dict = train_step_ABC_GAN(A_img_seg, B_img_seg)
                 else:
                     # Without attention, use ganterfactual approach
@@ -425,7 +424,7 @@ with train_summary_writer.as_default():
             # sample and save img every 100 steps
             if G_optimizer.iterations.numpy() % 100 == 0:
                 A, B = next(test_iter)
-                if args.cyclegan_mode == "cyclegan" or args.cyclegan_mode == "ganterfactual":
+                if args.cyclegan_mode == "cyclegan" or args.cyclegan_mode == "ganterfactual" or args.current_attention_type == "none":
                     A2B, B2A, A2B2A, B2A2B = sample(A, B)
                     img = im.immerge(np.concatenate([A, A2B, A2B2A, B, B2A, B2A2B], axis=0), n_rows=2)
                     im.imwrite(img, py.join(sample_dir, 'iter-%09d.jpg' % G_optimizer.iterations.numpy()))

@@ -13,4 +13,3 @@ python3 -m train \
   --start_attention_epoch 10 \
   --discriminator default \
   --cyclegan_mode abc-gan
-
