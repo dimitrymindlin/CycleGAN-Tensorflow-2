@@ -8,9 +8,9 @@ python3 -m train \
   --adversarial_loss_weight 1 \
   --cycle_loss_weight 10 \
   --counterfactual_loss_weight 1 \
-  --identity_loss_weight 1 \
+  --identity_loss_weight 0 \
   --clf_name inception \
-  --start_attention_epoch 0 \
+  --start_attention_epoch 10 \
   --discriminator default \
-  --cyclegan_mode ganterfactual
+  --cyclegan_mode abc-gan
 
