@@ -61,8 +61,7 @@ class ImageSegmentation:
             self.split_fore_and_background_by_attention()
 
     def get_attention(self, class_label, attention_func, args):
-        enhanced_img, attention = attention_maps.get_clf_attention_img(self.img, attention_func, class_label,
-                                                                       args.current_attention_type)
+        enhanced_img, attention = attention_maps.get_clf_attention_img(self.img, attention_func, class_label, args)
         self.enhanced_img = enhanced_img
         self.attention = attention
 

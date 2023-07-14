@@ -47,7 +47,7 @@ py.arg('--pool_size', type=int, default=50)  # pool size to store fake samples
 py.arg('--cyclegan_mode', default='abc-gan', choices=['cyclegan', 'abc-gan', 'ganterfactual'])
 py.arg('--clf_name', default='inception', choices=['inception', 'alexnet'])
 py.arg('--clf_ckp_name', default=None)  # checkpoint name of the classifier to load
-py.arg('--clf_input_channels', default=3, type=int)  # number of channels of the classifier input
+py.arg('--clf_input_channel', default=3, type=int)  # number of channels of the classifier input
 py.arg('--start_attention_epoch', default=10, type=int)  # epoch to start using attention maps
 py.arg('--discriminator', default='default', choices=['default', 'attention'])
 
