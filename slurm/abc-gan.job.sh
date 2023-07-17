@@ -10,6 +10,6 @@ python3 -m train \
   --counterfactual_loss_weight 1 \
   --identity_loss_weight 0 \
   --clf_name inception \
-  --start_attention_epoch 10 \
+  --start_attention_epoch 0 \
   --discriminator default \
   --cyclegan_mode abc-gan
