@@ -11,5 +11,5 @@ python3 -m train \
   --identity_loss_weight 0 \
   --clf_name inception \
   --start_attention_epoch 0 \
-  --discriminator attention \
-  --cyclegan_mode abc-gan
+  --discriminator default \
+  --cyclegan_mode ganterfactual
