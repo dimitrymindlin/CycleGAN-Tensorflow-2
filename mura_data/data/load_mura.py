@@ -11,9 +11,9 @@ def filenames(data_root,
               train=True,
               transformed=False):
     if train:
-        csv_path = data_root + "train_image_paths.csv"
+        csv_path = data_root + "MURA-v1.1/train_image_paths.csv"
     else:
-        csv_path = data_root + "valid_image_paths.csv"
+        csv_path = data_root + "MURA-v1.1/valid_image_paths.csv"
 
     with open(csv_path, 'rb') as F:
         d = F.readlines()
@@ -151,13 +151,14 @@ def make_concat_dataset(A_img_paths, B_img_paths, batch_size, load_size, crop_si
                         special_normalisation=special_normalisation), dataset_length
 
 
-def get_split_dataset_paths(body_parts: List[str], tfds_path: str):
+def get_split_dataset_paths(body_parts: List[str], tfds_path: str, transformed: bool):
     """
     body_parts: List of body parts to work with. Check MURA documentation for available body_parts.
     tfds_path: Path to tensorflow datasets directory.
     """
     # A = 0 = negative, B = 1 = positive
-    train_x, train_y, valid_x, valid_y, test_x, test_y = get_mura_data_paths(body_parts, tfds_path)
+    train_x, train_y, valid_x, valid_y, test_x, test_y = get_mura_data_paths(body_parts, tfds_path,
+                                                                             transformed=transformed)
     A_img_paths = [filename for filename in train_x if "negative" in filename]
     B_img_paths = [filename for filename in train_x if "positive" in filename]
     A_img_paths_valid = [filename for filename in valid_x if "negative" in filename]
@@ -196,17 +197,19 @@ def get_mura_ds_by_body_part_split_class(body_parts, tfds_path, batch_size, crop
     return A_B_dataset, A_B_dataset_valid, A_B_dataset_test, len_dataset_train
 
 
-def get_mura_ds_by_body_part(body_parts, tfds_path, batch_size, crop_size, load_size, special_normalisation=None):
+def get_mura_ds_by_body_part(body_parts, dataset_root, batch_size, crop_size, load_size, special_normalisation=None,
+                             transformed=False):
     """
     Method loads the MURA data filtered by the specified body part in one dataset. Can be used to train classifiers.
     body_parts: List of body parts to work with. Check MURA documentation for available body_parts.
-    tfds_path: Path to tensorflow datasets directory.
+    dataset_root: Path to datasets directory where MURA dataset lies
     batch_size: Batch size for the data loader.
     crop_size: Final image size that will be cropped to.
     load_size: The image will be loaded with this size.
     special_normalisation: Can be any normalisation from keras preprocessing (e.g. inception_preprocessing)
+    transformed: If True, the images will be loaded from the transformed dataset (MURA-v1.1-transformed)
     """
-    A_train, B_train, A_valid, B_valid, A_test, B_test = get_split_dataset_paths(body_parts, tfds_path)
+    A_train, B_train, A_valid, B_valid, A_test, B_test = get_split_dataset_paths(body_parts, dataset_root, transformed)
     A_B_dataset, len_dataset_train = make_concat_dataset(A_train, B_train, batch_size,
                                                          load_size,
                                                          crop_size, training=True, shuffle=True,
