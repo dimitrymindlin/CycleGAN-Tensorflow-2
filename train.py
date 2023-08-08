@@ -18,9 +18,9 @@ import module
 from imlib.image_segmentation import get_img_segmentations
 from cyclegan_strategies.abc_gan import abc_gan_step, abc_gan_discriminator_step
 from cyclegan_strategies.cyclegan import cycleGAN_step
-from mura import get_mura_ds_by_body_part_split_class
+from mura_data.data.load_mura import get_mura_ds_by_body_part_split_class
 from dataset_configs.mura_config import config as mura_config
-from rsna import get_rsna_ds_split_class
+from rsna_data.data.load_rsna import get_rsna_ds_split_class
 from global_config import ROOT_DIR
 
 # ==============================================================================
