@@ -2,27 +2,24 @@
 
 Based on [CycleGAN-Tensorflow-2](https://github.com/LynnHo/CycleGAN-Tensorflow-2)
 
-Paper: [ABC-GAN... ADD LINK from ARXIV]()
+Paper: [ABC-GAN... ADD LINK]()
 
 Author: [Dimitry Mindlin](https://github.com/dimitrymindlin) *et al.*
 
 ## Main Contribution
 
-#TODO: Include the main contribution of the paper as image
+We propose a novel counterfactual generation method for location specific counterfactuals.
 
-## Exemplar results
 
-### TODO: MURA dataset
+<p align="center"> <img src="./pics/Linear-ABC-GAN-Mura.svg" width="70%" /> </p>
 
-row 1: summer -> winter -> reconstructed summer, row 2: winter -> summer -> reconstructed winter
+### Experiments with MURA dataset
 
-<p align="center"> <img src="./pics/summer2winter.jpg" width="100%" /> </p>
+abnormal -> normal counterfactuals. Green boxes indicate valid counterfactuals, red boxes indicate invalid
 
-### TODO: RSNA dataset
+<p align="center"> <img src="./pics/ABC-GAN-Comparison-MURA.drawio.svg" width="90%" /> </p>
 
-row 1: horse -> zebra -> reconstructed horse, row 2: zebra -> horse -> reconstructed zebra
-
-<p align="center"> <img src="./pics/horse2zebra.jpg" width="100%" /> </p>
+Check out the paper for more results.
 
 # TODO: Usage
 
@@ -56,48 +53,59 @@ row 1: horse -> zebra -> reconstructed horse, row 2: zebra -> horse -> reconstru
         source activate tensorflow-2.2
         ```
 
-- TODO: Dataset
-    - Download the mura dataset ... ?
-    
-            ```console
-            sh ./download_dataset.sh mura
-            ```
+### Dataset to replicate the experiments
 
-    - download the summer2winter dataset
+- Download the MURA dataset here: [MURA](https://stanfordmlgroup.github.io/competitions/mura/)
+- Download the RSNA dataset here: [RSNA](https://www.kaggle.com/c/rsna-pneumonia-detection-challenge/)
 
-        ```console
-        sh ./download_dataset.sh summer2winter_yosemite
-        ```
+#### Prepare Mura dataset
 
-    - download the horse2zebra dataset
+We use Histogram Equalization to preprocess the MURA Wrist images. This is done in the
+mura_data/data/transform_dataset.py file.
 
-        ```console
-        sh ./download_dataset.sh horse2zebra
-        ```
+run the following command to create the transformed dataset:
 
-    - see [download_dataset.sh](./download_dataset.sh) for more datasets
+```console 
+python transform_dataset.py --dataset_dir <path to the MURA dataset> --output_dir <path to the output directory>
+```
 
-- Example of training
+### Training the classification model
 
-    ```console
-    CUDA_VISIBLE_DEVICES=0 python train.py --dataset summer2winter_yosemite
-    ```
+ABC-GAN and GANterfactual require a classification model to be trained before the training of the GANs.
+We used the inception v3 model for the mura dataset and an alexnet for the RSNA data as originally proposed in the
+[GANterfactual paper](https://www.frontiersin.org/articles/10.3389/frai.2022.825565/full).
 
-    - tensorboard for loss visualization
+The training script for the inception model on the MURA dataset can be found at
+classifiers/MURA/train_mura_classifier.py
 
-        ```console
-        tensorboard --logdir ./output/summer2winter_yosemite/summaries --port 6006
-        ```
+The training script for the alexnet model on the RSNA dataset can be found at the original repository of
+[GANterfactual](https://github.com/hcmlab/GANterfactual/blob/main/GANterfactual/train_alexNet.py)
 
-- Example of testing
+### Training ABC-GAN
 
-    ```console
-    CUDA_VISIBLE_DEVICES=0 python test.py --experiment_dir ./output/summer2winter_yosemite
-    ```
+Once the classifier is trained, the ABC-GAN and GANterfactual models can be trained. train.py is responsibel to do that
+with the provided arguments.
+Change the following arguments to replicate the experiments from the paper:
 
-# Changes from the original CycleGAN
+- dataset: mura or rsna
+- counterfactual_loss_weight: 1 to include it for ABC-GAN and GANterfactual, 0 for normal CycleGAN
+- identity_loss_weight: Check in paper which versions use this loss (=1) and which don't (=0)
+- cyclegan_mode: abc-gan or ganterfactual or cycle-gan
+- clf_name: inception for mura, alexnet for rsna
+- clf_ckp_name: name of the checkpoint of the classifier that was trained before
+- clf_input_channels: 3 for inception (mura), 1 for alexnet (rsna)
+- start_attention_epoch: defines when the attention strategy should be applied. Experiments showed that
+  pretraining without attention for 10 epochs and then with attention yield the best results.
+- discriminator: whether to use the normal patchgan discriminator that acts on the whole image or the "attentive"
+  version
+  where only the attended area is passed to the discriminator.
+
+# Changes from the original CycleGAN Repository
 
 - Introducing abc_gan.py in attention_strategies folder to do the training step with the attention mechanism
 - With that, attention_maps.py and image_segmentation.py help to create and store information about the image such as
   background, foreground and attention map
+- classifiers folder that contains the training scripts for the classifiers
+- rsna_data folder that contains the scripts to preprocess the rsna dataset
+- mura_data folder that contains the scripts to preprocess the mura dataset
 - 
