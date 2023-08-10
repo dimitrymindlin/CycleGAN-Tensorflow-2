@@ -66,7 +66,7 @@ mura_data/data/transform_dataset.py file.
 run the following command to create the transformed dataset:
 
 ```console 
-python transform_dataset.py --dataset_dir <path to the MURA dataset> --output_dir <path to the output directory>
+python transform_dataset.py
 ```
 
 ### Training the classification model
@@ -99,6 +99,19 @@ Change the following arguments to replicate the experiments from the paper:
 - discriminator: whether to use the normal patchgan discriminator that acts on the whole image or the "attentive"
   version
   where only the attended area is passed to the discriminator.
+
+``console
+python -m train \
+  --dataset mura \
+  --adversarial_loss_weight 1 \
+  --cycle_loss_weight 10 \
+  --counterfactual_loss_weight 1 \
+  --identity_loss_weight 0 \
+  --clf_name inception \
+  --start_attention_epoch 0 \
+  --discriminator attention \
+  --cyclegan_mode abc-gan
+``
 
 # Changes from the original CycleGAN Repository
 
