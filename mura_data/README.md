@@ -11,8 +11,8 @@ We use
 
 Set the correct dataset dir and run the following command to create the transformed dataset:
 
-```console
-transform_dataset.py
+```
+python3 mura_data/data/transform_dataset.py
 ```
 
 These images are used in the paper for both, the classifier and CycleGAN experiments.
@@ -22,8 +22,8 @@ The new folder is on the same level as MURA-v1.1 and is called MURA-v1.1-transfo
 
 ## Loading the dataset
 
-The dataset can now be loaded with different function in
+The dataset can now be loaded with by functions in
 
-```console
+```
 load_mura.py
 ```
