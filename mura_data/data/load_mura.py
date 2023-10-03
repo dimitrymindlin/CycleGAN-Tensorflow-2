@@ -6,8 +6,8 @@ from sklearn.utils import shuffle
 import tf2lib as tl
 
 
-def filenames(data_root,
-              body_parts,
+def filenames(data_root: str,
+              body_parts: List[str],
               train=True,
               transformed=False):
     if train:

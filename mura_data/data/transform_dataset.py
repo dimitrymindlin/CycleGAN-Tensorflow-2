@@ -1,5 +1,3 @@
-from typing import List
-import sys
 from torchvision.transforms import Compose
 from mura_data.data.load_mura import filenames
 from mura_data.data.transforms import GrayScale, MinMaxNormalization, ToTensor
@@ -80,8 +78,8 @@ def apply_and_save_hist_equalization(root_dir):
                                    MinMaxNormalization(v_min=normalisation[0], v_max=normalisation[1]),
                                    ToTensor()])
 
-    train_filenames, _ = filenames(["XR_WRIST"], root_dir)
-    valid_filenamse, _ = filenames(["XR_WRIST"], root_dir, train=False)
+    train_filenames, _ = filenames(root_dir, ["XR_WRIST"])
+    valid_filenamse, _ = filenames(root_dir, ["XR_WRIST"], train=False)
     train = MURASubset(filenames=train_filenames, transform=composed_transforms)
     validation = MURASubset(filenames=valid_filenamse, transform=composed_transforms)
 
