@@ -1,6 +1,6 @@
 import cv2
+import tensorflow as tf
 import numpy as np
-import torch
 
 
 class GrayScale(object):
@@ -22,11 +22,14 @@ class Padding(object):
     def __call__(self, sample):
         if self.centered:
             # Centering & padding with black color (for the same dimension)
-            tb, uneven_tb = int((self.max_shape[0] - sample['image'].shape[0]) / 2), (self.max_shape[0] - sample['image'].shape[0]) % 2
-            lr, uneven_lr = int((self.max_shape[1] - sample['image'].shape[1]) / 2), (self.max_shape[1] - sample['image'].shape[1]) % 2
+            tb, uneven_tb = int((self.max_shape[0] - sample['image'].shape[0]) / 2), (self.max_shape[0] -
+                                                                                      sample['image'].shape[0]) % 2
+            lr, uneven_lr = int((self.max_shape[1] - sample['image'].shape[1]) / 2), (self.max_shape[1] -
+                                                                                      sample['image'].shape[1]) % 2
         else:
             tb, lr = 0, 0
-            uneven_tb, uneven_lr = self.max_shape[0] - sample['image'].shape[0], self.max_shape[1] - sample['image'].shape[1]
+            uneven_tb, uneven_lr = self.max_shape[0] - sample['image'].shape[0], self.max_shape[1] - \
+                                   sample['image'].shape[1]
 
         try:
             sample['image'] = cv2.copyMakeBorder(sample['image'], tb, tb + uneven_tb, lr, lr + uneven_lr,
@@ -89,26 +92,29 @@ class MinMaxNormalization(object):
         self.v_max = v_max
 
     def __call__(self, sample):
-        sample['image'] = (sample['image'] - np.min(sample['image'])) / (np.max(sample['image']) - np.min(sample['image']))
+        sample['image'] = (sample['image'] - np.min(sample['image'])) / (
+                np.max(sample['image']) - np.min(sample['image']))
         sample['image'] = (self.v_max - self.v_min) * sample['image'] + self.v_min
         return sample
 
 
-class ToTensor(object):
+class ToTensor:
     """Convert ndarrays in sample to Tensors."""
 
     def __call__(self, sample):
-
-        # add color axis
         image = np.empty((1, *sample['image'].shape))
         image[0, :, :] = sample['image']
-        sample['image'] = torch.from_numpy(image).float()
 
-        # create pixel-wise masking
-        sample['mask'] = (sample['image'] != 0.0).float()
+        sample['image'] = tf.convert_to_tensor(image, dtype=tf.float32)
+        sample['mask'] = tf.cast(sample['image'] != 0.0, tf.float32)
 
-        sample['label'] = torch.tensor(sample['label']).int() if sample['label'] is not None else torch.Tensor()
-        sample['patient'] = torch.tensor(int(sample['patient'])).int() if sample['patient'] is not None else torch.Tensor()
+        sample['label'] = tf.convert_to_tensor(sample['label'], dtype=tf.int32) if sample[
+                                                                                       'label'] is not None else tf.zeros(
+            [])
+        sample['patient'] = tf.convert_to_tensor(int(sample['patient']), dtype=tf.int32) if sample[
+                                                                                                'patient'] is not None else tf.zeros(
+            [])
+
         return sample
 
 
@@ -116,7 +122,6 @@ class MedianFilter(object):
     """Creates median filter"""
 
     def __call__(self, sample):
-
         sample['image'] = cv2.medianBlur(sample['image'], 19)
         return sample
 
@@ -165,6 +170,6 @@ class AdaptiveHistogramEqualization(object):
 
     def __call__(self, sample):
         if self.active:
-            #apply adaptive histogram equalization
+            # apply adaptive histogram equalization
             sample['image'] = self.clahe.apply(sample['image'])
         return sample
