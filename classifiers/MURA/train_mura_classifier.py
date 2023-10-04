@@ -1,6 +1,5 @@
 from tensorflow import keras
 import tensorflow as tf
-from keras import regularizers
 from datetime import datetime
 import numpy as np
 from sklearn.utils.class_weight import compute_class_weight
@@ -38,7 +37,7 @@ class MuraModel(tf.keras.Model):
     def __init__(self, config, weights='imagenet'):
         super(MuraModel, self).__init__(name='WristPredictNet')
         self.config = config
-        self.weight_regularisation = regularizers.l2(config["train"]["weight_regularisation"]) if config["train"][
+        self.weight_regularisation = keras.regularizers.l2(config["train"]["weight_regularisation"]) if config["train"][
             "weight_regularisation"] else None
         self._input_shape = get_input_shape_from_config(self.config)
         self.img_input = tf.keras.Input(shape=self._input_shape)
