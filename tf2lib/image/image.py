@@ -1,9 +1,7 @@
 import functools
-import math
 import random
 
 import tensorflow as tf
-import tensorflow_addons as tfa
 
 
 @tf.function
@@ -53,5 +51,23 @@ def random_grayscale(image, p=0.1):
 def random_rotate(images, max_degrees, interpolation='BILINEAR'):
     # Randomly rotate image(s) counterclockwise by the angle(s) uniformly chosen from [-max_degree(s), max_degree(s)].
     max_degrees = tf.convert_to_tensor(max_degrees, dtype=tf.float32)
-    angles = tf.random.uniform(tf.shape(max_degrees), minval=-1.0, maxval=1.0) * max_degrees / 180.0 * math.pi
-    return tfa.image.rotate(images, angles, interpolation=interpolation)
+    angles_deg = tf.random.uniform(tf.shape(max_degrees), minval=-max_degrees, maxval=max_degrees)
+
+    # Convert images tensor from [0, 1] range to [0, 255], as `apply_affine_transform` expects that range.
+    images_255 = tf.cast(images * 255, dtype=tf.uint8)
+
+    # Use a python loop to rotate each image individually
+    rotated_images = []
+    for i in range(images_255.shape[0]):
+        rotated_image = tf.keras.preprocessing.image.apply_affine_transform(
+            images_255[i].numpy(),
+            theta=angles_deg[i].numpy(),
+            channel_axis=2,
+            row_axis=0,
+            col_axis=1,
+            fill_mode=interpolation.lower()
+        )
+        rotated_images.append(rotated_image)
+
+    # Convert list of arrays back to tensor and normalize to [0, 1] range.
+    return tf.convert_to_tensor(rotated_images, dtype=tf.float32) / 255.0
