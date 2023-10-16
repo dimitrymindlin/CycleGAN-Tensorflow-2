@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from typing import List
 import tensorflow as tf
 
@@ -10,22 +12,21 @@ def filenames(data_root: str,
               body_parts: List[str],
               train=True,
               transformed=False):
-    if train:
-        csv_path = data_root + "MURA-v1.1/train_image_paths.csv"
-    else:
-        csv_path = data_root + "MURA-v1.1/valid_image_paths.csv"
+    partition_name = "train" if train else "valid"
+    csv_path = os.path.join(data_root, f"MURA-v1.1/{partition_name}_image_paths.csv")
 
     with open(csv_path, 'rb') as F:
         d = F.readlines()
         if not transformed:
             if body_parts == 'all':
-                imgs = [data_root + str(x, encoding='utf-8').strip() for x in d]
+                imgs = [os.path.join(data_root, str(x, encoding='utf-8').strip()) for x in d]
             else:
-                imgs = [data_root + str(x, encoding='utf-8').strip() for x
+                imgs = [os.path.join(data_root, str(x, encoding='utf-8').strip()) for x
                         in d if str(x, encoding='utf-8').strip().split('/')[2] in body_parts]
         else:
-            imgs = [data_root + str(x, encoding='utf-8').strip().replace("MURA-v1.1", "MURA-v1.1_transformed") for x
-                    in d if str(x, encoding='utf-8').strip().split('/')[2] in body_parts]
+            imgs = [
+                os.path.join(data_root, str(x, encoding='utf-8').strip().replace("MURA-v1.1", "MURA-v1.1_transformed"))
+                for x in d if str(x, encoding='utf-8').strip().split('/')[2] in body_parts]
     if len(imgs) == 0:
         raise FileNotFoundError(f"Couldn't filter dataset based on {body_parts}. Check if spelling is correct.")
     labels = [x.split('_')[-1].split('/')[0] for x in imgs]
@@ -171,7 +172,7 @@ def get_split_dataset_paths(body_parts: List[str], tfds_path: str, transformed: 
 
 
 def get_mura_ds_by_body_part_split_class(body_parts, tfds_path, batch_size, crop_size, load_size,
-                                         special_normalisation=None):
+                                         special_normalisation=None, transformed=True):
     """
     Method loads the MURA data filtered by the specified body part two datasets split by class.
     Can be used to train CycleGANs.
@@ -181,8 +182,9 @@ def get_mura_ds_by_body_part_split_class(body_parts, tfds_path, batch_size, crop
     crop_size: Final image size that will be cropped to.
     load_size: The image will be loaded with this size.
     special_normalisation: Can be any normalisation from keras preprocessing (e.g. inception_preprocessing)
+    transformed: If True, the transformed images will be loaded. If False, the original images will be loaded.
     """
-    A_train, B_train, A_valid, B_valid, A_test, B_test = get_split_dataset_paths(body_parts, tfds_path)
+    A_train, B_train, A_valid, B_valid, A_test, B_test = get_split_dataset_paths(body_parts, tfds_path, transformed)
     A_B_dataset, len_dataset_train = make_zip_dataset(A_train, B_train, batch_size, load_size,
                                                       crop_size, training=True, repeat=False,
                                                       special_normalisation=special_normalisation)
@@ -198,7 +200,7 @@ def get_mura_ds_by_body_part_split_class(body_parts, tfds_path, batch_size, crop
 
 
 def get_mura_ds_by_body_part(body_parts, dataset_root, batch_size, crop_size, load_size, special_normalisation=None,
-                             transformed=False):
+                             transformed=True):
     """
     Method loads the MURA data filtered by the specified body part in one dataset. Can be used to train classifiers.
     body_parts: List of body parts to work with. Check MURA documentation for available body_parts.
